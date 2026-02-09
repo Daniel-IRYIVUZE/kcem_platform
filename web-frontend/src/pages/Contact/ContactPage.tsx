@@ -66,7 +66,7 @@ const ContactPage = () => {
       label: 'Phone',
       items: [
         { type: 'Support Line', value: '+250 780 162 164', hours: 'Mon-Fri, 8AM-6PM' },
-        { type: 'Emergency', value: '+250 788 999 999', hours: '24/7' }
+        { type: 'Emergency', value: '+250 780 162 164', hours: '24/7' }
       ]
     },
     {
@@ -361,7 +361,7 @@ const ContactPage = () => {
                           name="name"
                           value={formData.name}
                           onChange={handleInputChange}
-                          placeholder="John Doe"
+                          placeholder="Full Name"
                           className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
                           required
                         />

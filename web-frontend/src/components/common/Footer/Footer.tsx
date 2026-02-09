@@ -154,13 +154,13 @@ const Footer = () => {
               &copy; {new Date().getFullYear()} Kigali Circular Economy Marketplace (KCEM). All rights reserved.
             </div>
             <div className="flex gap-6 text-xs text-gray-400">
-              <Link to="/privacy-policy" className="hover:text-gray-300 transition-colors">
+              <Link to="/terms-privacy" className="hover:text-gray-300 transition-colors">
                 Privacy Policy
               </Link>
-              <Link to="/terms-of-service" className="hover:text-gray-300 transition-colors">
+              <Link to="/terms-privacy" className="hover:text-gray-300 transition-colors">
                 Terms of Service
               </Link>
-              <Link to="/cookie-policy" className="hover:text-gray-300 transition-colors">
+              <Link to="/terms-privacy" className="hover:text-gray-300 transition-colors">
                 Cookie Policy
               </Link>
             </div>

@@ -1187,12 +1187,21 @@ const RegisterPage = () => {
               </div>
             </div>
             
-            <button
-              onClick={() => step > 1 ? setStep(step - 1) : setStep(0)}
-              className="text-slate-600 hover:text-slate-900 transition-colors"
-            >
-              ← Back
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/')}
+                className="text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-1"
+                title="Go to Home"
+              >
+                <Home size={20} />
+              </button>
+              <button
+                onClick={() => step > 1 ? setStep(step - 1) : setStep(0)}
+                className="text-slate-600 hover:text-slate-900 transition-colors"
+              >
+                ← Back
+              </button>
+            </div>
           </div>
           
           {/* Progress Steps */}

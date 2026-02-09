@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, LogIn, ShieldCheck, Home, Eye, EyeOff, Leaf } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext'; // Add this import
 
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -10,16 +11,20 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login } = useAuth(); // Get login function from context
 
   const demoCredentials = [
     { role: 'business', email: 'business@demo.com', password: 'demo123', name: 'Hotel Manager' },
     { role: 'recycler', email: 'recycler@demo.com', password: 'recycle123', name: 'Recycling Company' },
     { role: 'driver', email: 'driver@demo.com', password: 'drive123', name: 'Logistics Driver' },
-    { role: 'admin', email: 'admin@demo.com', password: 'admin123', name: 'Platform Admin' },
+    { role: 'admin', email: 'admin@demo.com', password: 'admin123', name: 'Admin' },
     { role: 'individual', email: 'user@demo.com', password: 'user123', name: 'Individual User' },
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  interface HandleSubmitEvent extends React.FormEvent<HTMLFormElement> {}
+
+
+  const handleSubmit = async (e: HandleSubmitEvent): Promise<void> => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -30,11 +35,9 @@ const LoginPage = () => {
       return;
     }
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    const matchedUser = demoCredentials.find(
-      cred =>
+    // Find matching credentials
+    const matchedUser: DemoCredential | undefined = demoCredentials.find(
+      (cred: DemoCredential) =>
         cred.email === formData.email.trim() &&
         cred.password === formData.password
     );
@@ -45,22 +48,26 @@ const LoginPage = () => {
       return;
     }
 
-    // Store user data in localStorage
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userEmail', matchedUser.email);
-    localStorage.setItem('userRole', matchedUser.role);
-    localStorage.setItem('userName', matchedUser.name);
-    localStorage.setItem('rememberMe', rememberMe.toString());
-
-    // Dispatch event for Navbar to listen to
-    window.dispatchEvent(new Event('authChange'));
-
-    // Navigate to home page (Navbar will show dashboard links)
-    navigate('/');
-    setLoading(false);
+    try {
+      // Use the auth context login function
+      await login(formData.email, formData.password, matchedUser.role);
+      
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true');
+      }
+      
+      // Navigate to the appropriate dashboard
+      navigate(`/dashboard/${matchedUser.role}`);
+    } catch (err: unknown) {
+      setError('Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleInputChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+  interface InputChangeEvent extends React.ChangeEvent<HTMLInputElement> {}
+
+  const handleInputChange = (e: InputChangeEvent): void => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -68,12 +75,28 @@ const LoginPage = () => {
     if (error) setError('');
   };
 
-  const handleDemoFill = (credential: typeof demoCredentials[0]) => {
+  interface DemoCredential {
+    role: string;
+    email: string;
+    password: string;
+    name: string;
+  }
+
+
+  const handleDemoFill = (credential: DemoCredential) => {
     setFormData({
       email: credential.email,
       password: credential.password
     });
   };
+
+  // Check for remembered login on component mount
+  useEffect(() => {
+    const remembered = localStorage.getItem('rememberMe');
+    if (remembered === 'true') {
+      setRememberMe(true);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-2 sm:p-4 lg:p-6">
@@ -306,13 +329,6 @@ const LoginPage = () => {
           </div>
         </div>
       </motion.div>
-
-      {/* Landscape Mode Tip for Tablets */}
-      <div className="hidden sm:block lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm border border-slate-200 rounded-xl p-3 shadow-lg max-w-sm">
-        <p className="text-xs text-slate-600 text-center">
-          <span className="font-medium">Better Experience:</span> Rotate to landscape mode
-        </p>
-      </div>
     </div>
   );
 };

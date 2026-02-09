@@ -35,11 +35,11 @@ const Navbar = () => {
 
   const getDashboardPath = () => {
     switch (userRole) {
-      case 'admin': return '/admin';
-      case 'business': return '/business';
-      case 'recycler': return '/recycler';
-      case 'driver': return '/driver';
-      case 'individual': return '/individual';
+      case 'admin': return '/dashboard/admin';
+      case 'business': return '/dashboard/business';
+      case 'recycler': return '/dashboard/recycler';
+      case 'driver': return '/dashboard/driver';
+      case 'individual': return '/dashboard/individual';
       default: return '/dashboard';
     }
   };
