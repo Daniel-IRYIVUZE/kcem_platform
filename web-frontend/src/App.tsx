@@ -9,17 +9,16 @@ import RegisterPage from './pages/Register/RegisterPage';
 import ForgotPassword from './pages/Login/ForgotPassword';
 import BlogPage from './pages/Blog/BlogPage';
 import ContactPage from './pages/Contact/ContactPage';
-import UpdatesPage from './pages/Updates/UpdatesPage';
+// import UpdatesPage from './pages/Updates/UpdatesPage';
 import MarketplacePage from './pages/Marketplace/MarketplacePage';
 import TermsPrivacyPage from './pages/TermsPrivacy/TermsPrivacy';
 
 // Dashboard Pages
-import HotelDashboard from './pages/Dashboard/hotel';
-import RecyclerDashboard from './pages/Dashboard/recycler';
-import DriverDashboard from './pages/Dashboard/driver';
-import UserDashboard from './pages/Dashboard/user';
-import SettingsPage from './pages/Dashboard/settings';
-import AdminDashboard from './pages/admin';
+import RecyclerDashboard from './pages/Dashboard/RecyclerPage';
+import DriverDashboard from './pages/Dashboard/DriverPage';
+import UserDashboard from './pages/Dashboard/UserPage';
+import BusinessDashboard from './pages/Dashboard/BusinessPage';
+import AdminDashboard from './pages/Dashboard/AdminPage';
 
 function App() {
   return (
@@ -34,7 +33,7 @@ function App() {
             <Route path="/services" element={<ServicesPage />} />
             <Route path="/blog" element={<BlogPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            <Route path="/updates" element={<UpdatesPage />} />
+            {/* <Route path="/updates" element={<UpdatesPage />} /> */}
             <Route path="/marketplace" element={<MarketplacePage />} />
             <Route path="/terms-privacy" element={<TermsPrivacyPage />} />
             
@@ -44,27 +43,19 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             
             {/* Admin Dashboard Routes */}
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/settings" element={<SettingsPage role="admin" />} />
+            <Route path="/admin" element={<AdminDashboard/>} />
             
-            {/* Hotel Dashboard Routes */}
-            <Route path="/dashboard/hotel" element={<HotelDashboard />} />
-            <Route path="/dashboard/hotel/settings" element={<SettingsPage role="hotel" />} />
+            {/* Business Dashboard Routes */}
+            <Route path="/business" element={<BusinessDashboard />} />
             
             {/* Recycler Dashboard Routes */}
-            <Route path="/dashboard/recycler" element={<RecyclerDashboard />} />
-            <Route path="/dashboard/recycler/settings" element={<SettingsPage role="recycler" />} />
+            <Route path="/recycler" element={<RecyclerDashboard />} />
             
             {/* Driver Dashboard Routes */}
-            <Route path="/dashboard/driver" element={<DriverDashboard />} />
-            <Route path="/dashboard/driver/settings" element={<SettingsPage role="driver" />} />
+            <Route path="/driver" element={<DriverDashboard />} />
             
             {/* User Dashboard Routes */}
-            <Route path="/dashboard/user" element={<UserDashboard />} />
-            <Route path="/dashboard/user/settings" element={<SettingsPage role="user" />} />
-            
-            {/* Global Settings Route */}
-            <Route path="/dashboard/settings" element={<SettingsPage role="user" />} />
+            <Route path="/user" element={<UserDashboard />} />
           </Routes>
         </main>
       </div>

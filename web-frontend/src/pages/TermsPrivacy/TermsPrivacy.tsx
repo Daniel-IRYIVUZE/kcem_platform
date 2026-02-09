@@ -409,7 +409,7 @@ const TermsPrivacyPage = () => {
                   <h4 className="font-medium text-slate-900 mb-2">Contact Information</h4>
                   <div className="space-y-2 text-sm text-slate-600">
                     <div>Email: legal@kcem.rw</div>
-                    <div>Phone: +250 788 123 456</div>
+                    <div>Phone: +250 780 162 164</div>
                     <div>Address: Kigali Innovation City, Rwanda</div>
                   </div>
                 </div>

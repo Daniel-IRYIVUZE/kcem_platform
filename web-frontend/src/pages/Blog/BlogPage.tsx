@@ -1,4 +1,4 @@
-import { useState} from 'react';
+import { useState } from 'react';
 import { 
   Search, 
   Clock, 
@@ -13,7 +13,6 @@ import {
   Facebook,
   Twitter,
   Linkedin,
-  Instagram,
   TrendingUp,
   Filter,
   X,
@@ -65,8 +64,6 @@ const BlogPage = () => {
         
         <h2>The Rwandan Model</h2>
         <p>Rwanda's approach to circular economy combines strong government policy with private sector innovation. The ban on single-use plastics in 2008 was just the beginning. Today, we're seeing a comprehensive ecosystem emerge where every waste stream has value.</p>
-        
-        <img src="https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=1470" alt="Recycling center" className="w-full rounded-2xl my-6" />
         
         <h2>Digital Transformation in Waste Management</h2>
         <p>Traditional waste management systems rely on linear models. KCEM introduces a digital layer that connects waste generators with recyclers in real-time, optimizing routes and maximizing value recovery.</p>
@@ -236,7 +233,8 @@ const BlogPage = () => {
     );
   };
 
-  const handleCommentSubmit = () => {
+  const handleCommentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!comment.trim()) return;
     
     const newComment = {
@@ -255,127 +253,152 @@ const BlogPage = () => {
     return articles.filter(article => articleIds.includes(article.id));
   };
 
+  const handleShare = (platform: string) => {
+    const url = window.location.href;
+    const title = selectedArticle?.title || 'KCEM Blog';
+    let shareUrl = '';
+    
+    switch (platform) {
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        break;
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(url);
+        alert('Link copied to clipboard!');
+        return;
+    }
+    
+    window.open(shareUrl, '_blank', 'width=600,height=400');
+  };
+
   // Article Detail View
   if (selectedArticle) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
+      <div className="min-h-screen bg-gray-50">
         <Navbar />
         
-        <div className="pt-24 pb-20">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="pt-20 pb-12">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Back Button */}
-            <button 
-              onClick={() => setSelectedArticle(null)} 
-              className="flex items-center gap-2 text-slate-600 hover:text-cyan-600 font-medium mb-8 transition-colors group"
-            >
-              <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-              Back to All Articles
-            </button>
+            <div className="mb-6">
+              <button 
+                onClick={() => setSelectedArticle(null)} 
+                className="flex items-center gap-2 text-gray-600 hover:text-cyan-600 font-medium transition-colors group"
+              >
+                <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                Back to All Articles
+              </button>
+            </div>
 
-            {/* Article Hero */}
+            {/* Article Content */}
             <motion.article
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white rounded-3xl shadow-lg overflow-hidden border border-slate-200"
+              className="bg-white rounded-xl sm:rounded-2xl shadow-md overflow-hidden border border-gray-200"
             >
               {/* Hero Image */}
-              <div className="relative h-64 sm:h-80 md:h-96">
+              <div className="relative h-48 sm:h-64 md:h-80">
                 <img 
                   src="https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&q=80&w=1470" 
                   alt={selectedArticle.title}
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                 
                 {/* Category Badge */}
-                <div className="absolute top-6 left-6">
-                  <div className="bg-gradient-to-r from-cyan-500 to-cyan-500 text-white px-4 py-2 rounded-xl font-bold text-sm">
+                <div className="absolute top-4 left-4">
+                  <div className="bg-cyan-600 text-white px-3 py-1.5 rounded-lg font-bold text-sm">
                     {selectedArticle.category}
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 sm:p-8 md:p-10">
+              <div className="p-4 sm:p-6 md:p-8">
                 {/* Article Meta */}
-                <div className="flex flex-wrap items-center gap-4 mb-6 text-sm text-slate-500">
-                  <div className="flex items-center gap-2">
-                    <Calendar size={16} />
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-1">
+                    <Calendar size={14} />
                     {selectedArticle.date}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Clock size={16} />
+                  <div className="flex items-center gap-1">
+                    <Clock size={14} />
                     {selectedArticle.readTime} read
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Eye size={16} />
+                  <div className="flex items-center gap-1">
+                    <Eye size={14} />
                     {selectedArticle.views} views
                   </div>
-                  <div className="flex items-center gap-2">
-                    <ThumbsUp size={16} />
+                  <div className="flex items-center gap-1">
+                    <ThumbsUp size={14} />
                     {selectedArticle.likes} likes
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MessageCircle size={16} />
+                  <div className="flex items-center gap-1">
+                    <MessageCircle size={14} />
                     {selectedArticle.comments} comments
                   </div>
                 </div>
 
                 {/* Article Title */}
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-6 leading-tight">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4 leading-tight">
                   {selectedArticle.title}
                 </h1>
 
-                {/* Article Meta Row */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 pb-6 border-b border-slate-200">
-                  {/* Author Info */}
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                {/* Author Info */}
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-cyan-600 rounded-full flex items-center justify-center text-white font-bold">
                       {selectedArticle.authorAvatar}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-900">{selectedArticle.author}</p>
-                      <p className="text-sm text-slate-500">{selectedArticle.authorRole}</p>
+                      <p className="font-bold text-gray-900">{selectedArticle.author}</p>
+                      <p className="text-sm text-gray-500">{selectedArticle.authorRole}</p>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleLike(selectedArticle.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
+                      className={`p-2 rounded-lg transition-colors ${
                         likedArticles.includes(selectedArticle.id)
-                          ? 'bg-rose-50 text-rose-600 border border-rose-200'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          ? 'bg-rose-50 text-rose-600'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
+                      aria-label="Like article"
                     >
                       <ThumbsUp size={18} className={likedArticles.includes(selectedArticle.id) ? 'fill-rose-600' : ''} />
-                      Like
                     </button>
                     <button
                       onClick={() => handleBookmark(selectedArticle.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
+                      className={`p-2 rounded-lg transition-colors ${
                         bookmarkedArticles.includes(selectedArticle.id)
-                          ? 'bg-cyan-50 text-cyan-600 border border-cyan-200'
-                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          ? 'bg-cyan-50 text-cyan-600'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
+                      aria-label="Bookmark article"
                     >
                       {bookmarkedArticles.includes(selectedArticle.id) ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
-                      Save
                     </button>
                   </div>
                 </div>
 
                 {/* Article Content */}
-                <div className="prose prose-lg max-w-none text-slate-700 mb-12">
+                <div className="prose prose-sm sm:prose max-w-none text-gray-700 mb-8">
                   <div dangerouslySetInnerHTML={{ __html: selectedArticle.content }} />
                 </div>
 
                 {/* Tags */}
-                <div className="mb-12">
-                  <h3 className="text-lg font-bold text-slate-900 mb-4">Tags</h3>
+                <div className="mb-8">
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">Tags</h3>
                   <div className="flex flex-wrap gap-2">
                     {selectedArticle.tags.map((tag: string, index: number) => (
-                      <span key={index} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium">
+                      <span key={index} className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium">
                         #{tag}
                       </span>
                     ))}
@@ -383,72 +406,84 @@ const BlogPage = () => {
                 </div>
 
                 {/* Share Section */}
-                <div className="mb-12 p-6 bg-gradient-to-r from-cyan-50 to-cyan-50 rounded-2xl border border-cyan-200">
-                  <h3 className="text-lg font-bold text-slate-900 mb-4">Share this article</h3>
-                  <div className="flex items-center gap-4">
-                    <button className="w-12 h-12 bg-cyan-600 text-white rounded-xl flex items-center justify-center hover:bg-cyan-700 transition-colors">
-                      <Facebook size={20} />
+                <div className="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <h3 className="text-lg font-bold text-gray-900 mb-3">Share this article</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => handleShare('facebook')}
+                      className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+                      aria-label="Share on Facebook"
+                    >
+                      <Facebook size={18} />
                     </button>
-                    <button className="w-12 h-12 bg-sky-500 text-white rounded-xl flex items-center justify-center hover:bg-sky-600 transition-colors">
-                      <Twitter size={20} />
+                    <button
+                      onClick={() => handleShare('twitter')}
+                      className="w-10 h-10 bg-sky-500 text-white rounded-lg flex items-center justify-center hover:bg-sky-600 transition-colors"
+                      aria-label="Share on Twitter"
+                    >
+                      <Twitter size={18} />
                     </button>
-                    <button className="w-12 h-12 bg-cyan-700 text-white rounded-xl flex items-center justify-center hover:bg-cyan-800 transition-colors">
-                      <Linkedin size={20} />
+                    <button
+                      onClick={() => handleShare('linkedin')}
+                      className="w-10 h-10 bg-blue-700 text-white rounded-lg flex items-center justify-center hover:bg-blue-800 transition-colors"
+                      aria-label="Share on LinkedIn"
+                    >
+                      <Linkedin size={18} />
                     </button>
-                    <button className="w-12 h-12 bg-pink-600 text-white rounded-xl flex items-center justify-center hover:bg-pink-700 transition-colors">
-                      <Instagram size={20} />
-                    </button>
-                    <button className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50 transition-colors">
-                      <Share2 size={18} />
+                    <button
+                      onClick={() => handleShare('copy')}
+                      className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                    >
+                      <Share2 size={16} />
                       Copy Link
                     </button>
                   </div>
                 </div>
 
                 {/* Comments Section */}
-                <div className="mb-12">
-                  <h3 className="text-2xl font-bold text-slate-900 mb-6">
+                <div className="mb-8">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">
                     Comments ({comments.length})
                   </h3>
                   
                   {/* Add Comment */}
-                  <div className="mb-8">
+                  <form onSubmit={handleCommentSubmit} className="mb-6">
                     <textarea
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
                       placeholder="Share your thoughts..."
-                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none min-h-[100px] resize-none"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none min-h-[80px] resize-none text-sm"
                     />
-                    <div className="flex justify-end mt-3">
+                    <div className="flex justify-end mt-2">
                       <button
-                        onClick={handleCommentSubmit}
-                        className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-cyan-600 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
+                        type="submit"
+                        className="px-4 py-2 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 transition-colors flex items-center gap-2 text-sm"
                       >
-                        <Send size={18} />
+                        <Send size={16} />
                         Post Comment
                       </button>
                     </div>
-                  </div>
+                  </form>
 
                   {/* Comments List */}
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {comments.map(comment => (
-                      <div key={comment.id} className="p-6 bg-slate-50/50 rounded-2xl border border-slate-200">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-medium text-slate-700">
+                      <div key={comment.id} className="p-4 bg-gray-50/50 rounded-lg border border-gray-200">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center font-medium text-gray-700 text-sm">
                               {comment.author.charAt(0)}
                             </div>
                             <div>
-                              <p className="font-bold text-slate-900">{comment.author}</p>
-                              <p className="text-sm text-slate-500">{comment.date}</p>
+                              <p className="font-bold text-gray-900 text-sm">{comment.author}</p>
+                              <p className="text-xs text-gray-500">{comment.date}</p>
                             </div>
                           </div>
-                          <button className="text-slate-400 hover:text-rose-500 transition-colors">
-                            <ThumbsUp size={16} />
+                          <button className="text-gray-400 hover:text-rose-500 transition-colors">
+                            <ThumbsUp size={14} />
                           </button>
                         </div>
-                        <p className="text-slate-700">{comment.text}</p>
+                        <p className="text-gray-700 text-sm">{comment.text}</p>
                       </div>
                     ))}
                   </div>
@@ -456,25 +491,25 @@ const BlogPage = () => {
 
                 {/* Related Articles */}
                 <div>
-                  <h3 className="text-2xl font-bold text-slate-900 mb-6">Related Articles</h3>
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Related Articles</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {getRelatedArticles(selectedArticle.relatedArticles).map(article => (
                       <div 
                         key={article.id}
                         onClick={() => setSelectedArticle(article)}
-                        className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-lg transition-all cursor-pointer group"
+                        className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                       >
-                        <div className="p-6">
-                          <div className="flex items-center gap-2 mb-3">
-                            <span className="px-3 py-1 bg-cyan-100 text-cyan-700 rounded-lg text-xs font-bold">
+                        <div className="p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="px-2 py-1 bg-cyan-100 text-cyan-700 rounded text-xs font-bold">
                               {article.category}
                             </span>
-                            <span className="text-sm text-slate-500">{article.readTime}</span>
+                            <span className="text-xs text-gray-500">{article.readTime}</span>
                           </div>
-                          <h4 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-cyan-600 transition-colors">
+                          <h4 className="font-bold text-gray-900 text-sm mb-2 hover:text-cyan-600 transition-colors line-clamp-2">
                             {article.title}
                           </h4>
-                          <p className="text-slate-600 text-sm line-clamp-2">{article.excerpt}</p>
+                          <p className="text-gray-600 text-xs line-clamp-2">{article.excerpt}</p>
                         </div>
                       </div>
                     ))}
@@ -492,36 +527,37 @@ const BlogPage = () => {
 
   // Blog Listing View
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
       
-      <div className="pt-24 pb-20">
+      <div className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Hero Section */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-6">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
               Insights & <span className="text-cyan-600">Stories</span>
             </h1>
-            <p className="text-lg text-slate-600 max-w-3xl mx-auto mb-8">
+            <p className="text-gray-600 max-w-3xl mx-auto mb-6 text-sm sm:text-base">
               Discover the latest in circular economy, sustainable waste management, and technology innovations
             </p>
             
             {/* Search Bar */}
-            <div className="max-w-2xl mx-auto mb-12">
+            <div className="max-w-2xl mx-auto mb-8">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search articles, topics, or authors..."
-                  className="w-full pl-12 pr-4 py-4 rounded-xl bg-white border-2 border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
+                  className="w-full pl-12 pr-4 py-3 rounded-lg bg-white border-2 border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
                 />
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-cyan-600"
+                  aria-label="Filter articles"
                 >
-                  <Filter size={20} />
+                  <Filter size={18} />
                 </button>
               </div>
             </div>
@@ -534,13 +570,13 @@ const BlogPage = () => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="lg:hidden mb-8 overflow-hidden"
+                className="lg:hidden mb-6 overflow-hidden"
               >
-                <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-bold text-slate-900">Categories</h3>
-                    <button onClick={() => setShowFilters(false)}>
-                      <X size={20} className="text-slate-400" />
+                <div className="bg-white rounded-xl border border-gray-300 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-bold text-gray-900">Categories</h3>
+                    <button onClick={() => setShowFilters(false)} aria-label="Close filters">
+                      <X size={20} className="text-gray-400" />
                     </button>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -551,10 +587,10 @@ const BlogPage = () => {
                           setActiveCategory(cat);
                           setShowFilters(false);
                         }}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                           activeCategory === cat
-                            ? 'bg-gradient-to-r from-cyan-600 to-cyan-600 text-white'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                            ? 'bg-cyan-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                         }`}
                       >
                         {cat}
@@ -566,42 +602,41 @@ const BlogPage = () => {
             )}
           </AnimatePresence>
 
-          <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
             {/* Sidebar Categories */}
             <div className="lg:w-1/4">
               <div className="hidden lg:block sticky top-28">
-                <div className="bg-white rounded-2xl border border-slate-200 p-6">
-                  <h3 className="text-lg font-bold text-slate-900 mb-4">Categories</h3>
+                <div className="bg-white rounded-xl border border-gray-300 p-5">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">Categories</h3>
                   <div className="space-y-2">
                     {categories.map(cat => (
                       <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
-                        className={`flex items-center justify-between w-full p-3 rounded-xl transition-all ${
+                        className={`flex items-center justify-between w-full p-3 rounded-lg transition-colors text-sm ${
                           activeCategory === cat
-                            ? 'bg-gradient-to-r from-cyan-50 to-cyan-50 border border-cyan-200 text-cyan-700'
-                            : 'hover:bg-slate-50 text-slate-700'
+                            ? 'bg-cyan-50 border border-cyan-200 text-cyan-700'
+                            : 'hover:bg-gray-50 text-gray-700'
                         }`}
                       >
                         <span className="font-medium">{cat}</span>
                         {activeCategory === cat && (
-                          <ChevronRight size={16} />
+                          <ChevronRight size={14} />
                         )}
                       </button>
                     ))}
                   </div>
                   
                   {/* Featured Stats */}
-                  <div className="mt-8 p-4 bg-gradient-to-r from-cyan-50 to-cyan-50 rounded-xl border border-cyan-200">
-                    <div className="flex items-center gap-3 mb-3">
-                      <TrendingUp className="text-cyan-600" size={20} />
-                      <span className="font-bold text-slate-900">Weekly Stats</span>
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="text-cyan-600" size={16} />
+                      <span className="font-bold text-gray-900 text-sm">Weekly Stats</span>
                     </div>
-                    <div className="space-y-2 text-sm text-slate-600">
+                    <div className="space-y-1 text-xs text-gray-600">
                       <div>12 new articles this week</div>
                       <div>8.4k total views</div>
                       <div>156 comments</div>
-                      <div>42 articles bookmarked</div>
                     </div>
                   </div>
                 </div>
@@ -612,12 +647,12 @@ const BlogPage = () => {
             <div className="lg:w-3/4">
               {/* Featured Articles */}
               {activeCategory === 'All' || activeCategory === 'Featured' ? (
-                <div className="mb-12">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
-                    <Star className="text-amber-500" size={20} />
+                <div className="mb-8">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <Star className="text-amber-500" size={18} />
                     Featured Articles
                   </h2>
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                     {articles.filter(article => article.featured).map(article => (
                       <FeaturedArticleCard 
                         key={article.id} 
@@ -635,15 +670,15 @@ const BlogPage = () => {
 
               {/* All Articles */}
               <div>
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-slate-900">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900">
                     {activeCategory === 'All' ? 'Latest Articles' : activeCategory}
                   </h2>
-                  <span className="text-slate-500">{filteredArticles.length} articles</span>
+                  <span className="text-gray-500 text-sm">{filteredArticles.length} articles</span>
                 </div>
                 
                 {filteredArticles.length > 0 ? (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                     {filteredArticles.map(article => (
                       <ArticleCard 
                         key={article.id} 
@@ -657,16 +692,16 @@ const BlogPage = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <BookOpen className="mx-auto text-slate-300 mb-4" size={48} />
-                    <h3 className="text-xl font-bold text-slate-700 mb-2">No articles found</h3>
-                    <p className="text-slate-500 mb-6">Try adjusting your search or filters</p>
+                  <div className="text-center py-8">
+                    <BookOpen className="mx-auto text-gray-300 mb-3" size={40} />
+                    <h3 className="text-lg font-bold text-gray-700 mb-2">No articles found</h3>
+                    <p className="text-gray-500 mb-4 text-sm">Try adjusting your search or filters</p>
                     <button
                       onClick={() => {
                         setSearchQuery('');
                         setActiveCategory('All');
                       }}
-                      className="px-6 py-3 bg-cyan-600 text-white rounded-xl font-medium hover:bg-cyan-700 transition-colors"
+                      className="px-4 py-2 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 transition-colors text-sm"
                     >
                       Clear Search
                     </button>
@@ -688,58 +723,60 @@ const FeaturedArticleCard = ({ article, onClick, onBookmark, onLike, isBookmarke
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-cyan-50 to-cyan-50 rounded-2xl border border-cyan-200 overflow-hidden group cursor-pointer hover:shadow-xl transition-all"
+      className="bg-white rounded-xl border border-gray-300 overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
       onClick={onClick}
     >
-      <div className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <span className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-cyan-500 text-white rounded-lg text-xs font-bold">
+      <div className="p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="px-2 py-1 bg-cyan-600 text-white rounded text-xs font-bold">
             {article.category}
           </span>
-          <div className="flex items-center gap-2 text-sm text-slate-500">
-            <Clock size={14} />
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <Clock size={12} />
             {article.readTime}
           </div>
         </div>
         
-        <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-cyan-600 transition-colors">
+        <h3 className="text-lg font-bold text-gray-900 mb-2 hover:text-cyan-600 transition-colors line-clamp-2">
           {article.title}
         </h3>
-        <p className="text-slate-600 mb-4 line-clamp-2">{article.excerpt}</p>
+        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{article.excerpt}</p>
         
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-cyan-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
               {article.authorAvatar}
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-900">{article.author}</p>
-              <p className="text-xs text-slate-500">{article.date}</p>
+              <p className="text-sm font-medium text-gray-900">{article.author}</p>
+              <p className="text-xs text-gray-500">{article.date}</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onLike();
               }}
-              className={`p-2 rounded-lg transition-colors ${
-                isLiked ? 'text-rose-500 hover:bg-rose-50' : 'text-slate-400 hover:text-rose-500 hover:bg-slate-100'
+              className={`p-1.5 rounded transition-colors ${
+                isLiked ? 'text-rose-500 hover:bg-rose-50' : 'text-gray-400 hover:text-rose-500 hover:bg-gray-100'
               }`}
+              aria-label="Like article"
             >
-              <ThumbsUp size={16} className={isLiked ? 'fill-rose-500' : ''} />
+              <ThumbsUp size={14} className={isLiked ? 'fill-rose-500' : ''} />
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onBookmark();
               }}
-              className={`p-2 rounded-lg transition-colors ${
-                isBookmarked ? 'text-cyan-500 hover:bg-cyan-50' : 'text-slate-400 hover:text-cyan-500 hover:bg-slate-100'
+              className={`p-1.5 rounded transition-colors ${
+                isBookmarked ? 'text-cyan-500 hover:bg-cyan-50' : 'text-gray-400 hover:text-cyan-500 hover:bg-gray-100'
               }`}
+              aria-label="Bookmark article"
             >
-              {isBookmarked ? <BookmarkCheck size={16} /> : <Bookmark size={16} />}
+              {isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
             </button>
           </div>
         </div>
@@ -753,33 +790,33 @@ const ArticleCard = ({ article, onClick, onBookmark, onLike, isBookmarked, isLik
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl border border-slate-200 overflow-hidden group cursor-pointer hover:shadow-lg transition-all"
+      className="bg-white rounded-lg border border-gray-300 overflow-hidden cursor-pointer hover:shadow-sm transition-shadow"
       onClick={onClick}
     >
-      <div className="p-5">
-        <div className="flex items-center justify-between mb-3">
-          <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold">
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs font-bold">
             {article.category}
           </span>
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Clock size={12} />
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <Clock size={10} />
             {article.readTime}
           </div>
         </div>
         
-        <h3 className="font-bold text-slate-900 mb-2 group-hover:text-cyan-600 transition-colors line-clamp-2">
+        <h3 className="font-bold text-gray-900 text-sm mb-2 hover:text-cyan-600 transition-colors line-clamp-2">
           {article.title}
         </h3>
-        <p className="text-sm text-slate-600 mb-4 line-clamp-2">{article.excerpt}</p>
+        <p className="text-gray-600 text-xs mb-3 line-clamp-2">{article.excerpt}</p>
         
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center font-medium text-slate-700 text-sm">
+            <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center font-medium text-gray-700 text-xs">
               {article.authorAvatar}
             </div>
             <div>
-              <p className="text-xs font-medium text-slate-900">{article.author.split(' ')[0]}</p>
-              <p className="text-xs text-slate-500">{article.date}</p>
+              <p className="text-xs font-medium text-gray-900">{article.author.split(' ')[0]}</p>
+              <p className="text-xs text-gray-500">{article.date}</p>
             </div>
           </div>
           
@@ -789,22 +826,24 @@ const ArticleCard = ({ article, onClick, onBookmark, onLike, isBookmarked, isLik
                 e.stopPropagation();
                 onLike();
               }}
-              className={`p-1.5 rounded transition-colors ${
-                isLiked ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'
+              className={`p-1 rounded transition-colors ${
+                isLiked ? 'text-rose-500' : 'text-gray-400 hover:text-rose-500'
               }`}
+              aria-label="Like article"
             >
-              <ThumbsUp size={14} className={isLiked ? 'fill-rose-500' : ''} />
+              <ThumbsUp size={12} className={isLiked ? 'fill-rose-500' : ''} />
             </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onBookmark();
               }}
-              className={`p-1.5 rounded transition-colors ${
-                isBookmarked ? 'text-cyan-500' : 'text-slate-400 hover:text-cyan-500'
+              className={`p-1 rounded transition-colors ${
+                isBookmarked ? 'text-cyan-500' : 'text-gray-400 hover:text-cyan-500'
               }`}
+              aria-label="Bookmark article"
             >
-              {isBookmarked ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+              {isBookmarked ? <BookmarkCheck size={12} /> : <Bookmark size={12} />}
             </button>
           </div>
         </div>

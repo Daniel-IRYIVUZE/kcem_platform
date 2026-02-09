@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Mail, ShieldCheck, Lock, ChevronLeft, ArrowRight, RefreshCw, Check, Eye, EyeOff, Key, Timer } from 'lucide-react';
+import { Mail, ShieldCheck, Lock, ChevronLeft, ArrowRight, RefreshCw, Check, Eye, EyeOff, Key, Timer, Home } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,7 +18,6 @@ const ForgotPassword = () => {
   const otpRefs = useRef<Array<HTMLInputElement | null>>([]);
   const navigate = useNavigate();
 
-  // Auto-advance OTP inputs
   const handleOtpChange = (index: number, value: string) => {
     if (!/^\d?$/.test(value)) return;
     
@@ -26,12 +25,10 @@ const ForgotPassword = () => {
     newOtp[index] = value;
     setOtp(newOtp);
     
-    // Auto-focus next input
     if (value && index < 5) {
       otpRefs.current[index + 1]?.focus();
     }
     
-    // Auto-submit when all digits entered
     if (newOtp.every(digit => digit !== '') && index === 5) {
       setTimeout(() => handleVerifyOtp(), 300);
     }
@@ -43,7 +40,6 @@ const ForgotPassword = () => {
     }
   };
 
-  // Countdown timer for OTP
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     if (countdown > 0) {
@@ -66,15 +62,13 @@ const ForgotPassword = () => {
     setLoading(true);
     setError('');
     
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 800));
     
     setLoading(false);
     setStage('otp');
-    setCountdown(600); // 10 minutes in seconds
+    setCountdown(300); // 5 minutes in seconds
     setSuccess(`Verification code sent to ${email}`);
     
-    // Clear success message after 3 seconds
     setTimeout(() => setSuccess(''), 3000);
   };
 
@@ -86,7 +80,6 @@ const ForgotPassword = () => {
 
     setLoading(true);
     
-    // Simulate API verification
     await new Promise(resolve => setTimeout(resolve, 800));
     
     setLoading(false);
@@ -94,7 +87,6 @@ const ForgotPassword = () => {
     setError('');
     setSuccess('OTP verified successfully!');
     
-    // Clear success message
     setTimeout(() => setSuccess(''), 3000);
   };
 
@@ -107,10 +99,9 @@ const ForgotPassword = () => {
     setLoading(true);
     setError('');
     
-    // Simulate resend
     setTimeout(() => {
       setLoading(false);
-      setCountdown(600);
+      setCountdown(300);
       setSuccess('New verification code sent!');
       setOtp(['', '', '', '', '', '']);
       otpRefs.current[0]?.focus();
@@ -137,13 +128,11 @@ const ForgotPassword = () => {
 
     setLoading(true);
     
-    // Simulate API reset
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     setLoading(false);
     setSuccess('Password reset successfully! Redirecting to login...');
     
-    // Redirect to login after 2 seconds
     setTimeout(() => {
       navigate('/login?reset=success');
     }, 2000);
@@ -155,38 +144,42 @@ const ForgotPassword = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleBackToHome = () => {
+    navigate('/');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-cyan-50 to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       {/* Back Button */}
-      <div className="absolute top-6 left-6 z-20">
-        <Link
-          to="/login"
-          className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2.5 rounded-xl text-slate-700 font-medium hover:bg-white hover:shadow-md transition-all border border-white/20"
+      <div className="absolute top-4 left-4">
+        <button
+          onClick={handleBackToHome}
+          className="inline-flex items-center gap-2 bg-white px-3 py-2 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors border border-gray-200 text-sm"
         >
-          <ChevronLeft size={18} />
-          Back to Login
-        </Link>
+          <Home size={16} />
+          Home
+        </button>
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-md w-full bg-white rounded-2xl shadow-2xl overflow-hidden border border-white/50 backdrop-blur-sm"
+        className="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200"
       >
-        <div className="p-6 sm:p-8">
+        <div className="p-4 sm:p-6">
           {/* Progress Indicators */}
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-between items-center mb-6">
             {['email', 'otp', 'reset'].map((step, index) => (
               <div key={step} className="flex flex-col items-center flex-1">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                  stage === step ? 'bg-gradient-to-br from-cyan-500 to-cyan-500 text-white' :
-                  ['email', 'otp', 'reset'].indexOf(stage) > index ? 'bg-gradient-to-br from-cyan-500 to-cyan-500 text-white' :
-                  'bg-slate-100 text-slate-400'
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                  stage === step ? 'bg-cyan-600 text-white' :
+                  ['email', 'otp', 'reset'].indexOf(stage) > index ? 'bg-cyan-600 text-white' :
+                  'bg-gray-100 text-gray-400'
                 }`}>
-                  {['email', 'otp', 'reset'].indexOf(stage) > index ? <Check size={14} /> : index + 1}
+                  {['email', 'otp', 'reset'].indexOf(stage) > index ? <Check size={12} /> : index + 1}
                 </div>
-                <span className="text-xs font-medium text-slate-700 mt-2 capitalize">{step}</span>
+                <span className="text-xs font-medium text-gray-700 mt-1 capitalize">{step}</span>
               </div>
             ))}
           </div>
@@ -199,33 +192,33 @@ const ForgotPassword = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                className="space-y-4"
               >
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-100 to-cyan-50 text-cyan-600 rounded-2xl mb-4">
-                    <Mail size={32} />
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-cyan-100 text-cyan-600 rounded-lg mb-3">
+                    <Mail size={24} />
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Reset Your Password</h2>
-                  <p className="text-slate-600">
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Reset Your Password</h2>
+                  <p className="text-gray-600 text-sm">
                     Enter the email associated with your KCEM account to receive a verification code.
                   </p>
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                  <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                     {error}
                   </div>
                 )}
 
                 {success && (
-                  <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-600 text-sm">
+                  <div className="p-2 bg-cyan-50 border border-cyan-200 rounded-lg text-cyan-600 text-sm">
                     {success}
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input
                       type="email"
                       value={email}
@@ -234,7 +227,7 @@ const ForgotPassword = () => {
                         if (error) setError('');
                       }}
                       placeholder="name@business.rw"
-                      className="w-full pl-12 pr-4 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-slate-50/50 to-white border-2 border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
                       disabled={loading}
                     />
                   </div>
@@ -244,25 +237,25 @@ const ForgotPassword = () => {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleSendCode}
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-cyan-600 to-cyan-600 text-white py-3 sm:py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-cyan-200 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full bg-cyan-600 text-white py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-cyan-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed text-sm"
                   >
                     {loading ? (
                       <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         Sending Code...
                       </>
                     ) : (
                       <>
                         Send Verification Code
-                        <ArrowRight size={18} />
+                        <ArrowRight size={16} />
                       </>
                     )}
                   </motion.button>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100">
-                  <p className="text-xs text-slate-500 text-center">
-                    You'll receive a 6-digit code valid for 10 minutes
+                <div className="pt-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 text-center">
+                    You'll receive a 6-digit code valid for 5 minutes
                   </p>
                 </div>
               </motion.div>
@@ -275,33 +268,33 @@ const ForgotPassword = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                className="space-y-4"
               >
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-100 to-cyan-50 text-cyan-600 rounded-2xl mb-4">
-                    <ShieldCheck size={32} />
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-cyan-100 text-cyan-600 rounded-lg mb-3">
+                    <ShieldCheck size={24} />
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Verify Your Email</h2>
-                  <p className="text-slate-600 mb-2">
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Verify Your Email</h2>
+                  <p className="text-gray-600 text-sm mb-1">
                     Enter the 6-digit code sent to
                   </p>
-                  <p className="font-medium text-cyan-600 break-all">{email}</p>
+                  <p className="font-medium text-cyan-600 break-all text-sm">{email}</p>
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                  <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                     {error}
                   </div>
                 )}
 
                 {success && (
-                  <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-600 text-sm">
+                  <div className="p-2 bg-cyan-50 border border-cyan-200 rounded-lg text-cyan-600 text-sm">
                     {success}
                   </div>
                 )}
 
                 {/* OTP Inputs */}
-                <div className="flex justify-between gap-2 mb-6">
+                <div className="flex justify-between gap-1 mb-4">
                   {otp.map((digit, index) => (
                     <input
                       key={index}
@@ -313,7 +306,7 @@ const ForgotPassword = () => {
                       value={digit}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-12 h-14 text-center text-2xl font-bold rounded-xl bg-gradient-to-b from-slate-50 to-white border-2 border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none"
+                      className="w-10 h-12 text-center text-xl font-bold rounded-lg border-2 border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none"
                       disabled={loading}
                     />
                   ))}
@@ -321,9 +314,9 @@ const ForgotPassword = () => {
 
                 {/* Timer Display */}
                 {countdown > 0 && (
-                  <div className="flex items-center justify-center gap-2 text-sm text-slate-600 mb-4">
-                    <Timer size={16} />
-                    <span>Code expires in: <span className="font-bold text-cyan-600">{formatTime(countdown)}</span></span>
+                  <div className="flex items-center justify-center gap-1 text-sm text-gray-600 mb-3">
+                    <Timer size={14} />
+                    <span>Code expires in: <span className="font-medium text-cyan-600">{formatTime(countdown)}</span></span>
                   </div>
                 )}
 
@@ -332,11 +325,11 @@ const ForgotPassword = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleVerifyOtp}
                   disabled={loading || otp.some(digit => !digit)}
-                  className="w-full bg-gradient-to-r from-cyan-600 to-cyan-600 text-white py-3 sm:py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-cyan-200 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="w-full bg-cyan-600 text-white py-2.5 rounded-lg font-medium hover:bg-cyan-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed text-sm"
                 >
                   {loading ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Verifying Code...
                     </>
                   ) : (
@@ -347,20 +340,20 @@ const ForgotPassword = () => {
                 <button
                   onClick={handleResendCode}
                   disabled={loading || countdown > 0}
-                  className="w-full flex items-center justify-center gap-2 text-sm font-medium text-slate-600 hover:text-cyan-600 transition-colors disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-1 text-sm font-medium text-gray-600 hover:text-cyan-600 transition-colors disabled:opacity-50"
                 >
-                  <RefreshCw size={16} />
+                  <RefreshCw size={14} />
                   {countdown > 0 ? `Resend in ${formatTime(countdown)}` : 'Resend Code'}
                 </button>
 
-                <div className="pt-4 border-t border-slate-100">
+                <div className="pt-3 border-t border-gray-100">
                   <button
                     onClick={() => {
                       setStage('email');
                       setOtp(['', '', '', '', '', '']);
                       setError('');
                     }}
-                    className="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+                    className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
                   >
                     ← Use a different email address
                   </button>
@@ -375,33 +368,33 @@ const ForgotPassword = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
+                className="space-y-4"
               >
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-cyan-100 to-cyan-50 text-cyan-600 rounded-2xl mb-4">
-                    <Key size={32} />
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-cyan-100 text-cyan-600 rounded-lg mb-3">
+                    <Key size={24} />
                   </div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">Create New Password</h2>
-                  <p className="text-slate-600">
+                  <h2 className="text-xl font-bold text-gray-900 mb-1">Create New Password</h2>
+                  <p className="text-gray-600 text-sm">
                     Your new password must be at least 8 characters long for security.
                   </p>
                 </div>
 
                 {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+                  <div className="p-2 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                     {error}
                   </div>
                 )}
 
                 {success && (
-                  <div className="p-3 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-600 text-sm">
+                  <div className="p-2 bg-cyan-50 border border-cyan-200 rounded-lg text-cyan-600 text-sm">
                     {success}
                   </div>
                 )}
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input
                       type={showPassword ? "text" : "password"}
                       value={newPassword}
@@ -410,20 +403,20 @@ const ForgotPassword = () => {
                         if (error) setError('');
                       }}
                       placeholder="New password (min. 8 characters)"
-                      className="w-full pl-12 pr-12 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-slate-50/50 to-white border-2 border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
                       disabled={loading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
-                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
 
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
@@ -432,22 +425,22 @@ const ForgotPassword = () => {
                         if (error) setError('');
                       }}
                       placeholder="Confirm new password"
-                      className="w-full pl-12 pr-12 py-3 sm:py-4 rounded-xl bg-gradient-to-r from-slate-50/50 to-white border-2 border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
                       disabled={loading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
-                      {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
 
                   {/* Password Strength Indicator */}
                   {newPassword && (
-                    <div className="space-y-2">
-                      <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="space-y-1">
+                      <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
                         <div 
                           className={`h-full transition-all duration-300 ${
                             newPassword.length >= 8 ? 'bg-cyan-500' : 'bg-amber-500'
@@ -468,11 +461,11 @@ const ForgotPassword = () => {
                     whileTap={{ scale: 0.98 }}
                     onClick={handlePasswordReset}
                     disabled={loading}
-                    className="w-full bg-gradient-to-r from-cyan-600 to-cyan-600 text-white py-3 sm:py-4 rounded-xl font-bold hover:shadow-lg hover:shadow-cyan-200 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full bg-cyan-600 text-white py-2.5 rounded-lg font-medium hover:bg-cyan-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed text-sm"
                   >
                     {loading ? (
                       <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         Resetting Password...
                       </>
                     ) : (
@@ -481,8 +474,8 @@ const ForgotPassword = () => {
                   </motion.button>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100">
-                  <p className="text-xs text-slate-500 text-center">
+                <div className="pt-3 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 text-center">
                     After resetting, you'll be redirected to login with your new password
                   </p>
                 </div>
@@ -492,8 +485,8 @@ const ForgotPassword = () => {
         </div>
 
         {/* Footer */}
-        <div className="p-4 bg-gradient-to-r from-slate-50 to-cyan-50/30 border-t border-slate-100">
-          <p className="text-xs text-slate-500 text-center">
+        <div className="p-3 bg-gray-50 border-t border-gray-200">
+          <p className="text-xs text-gray-500 text-center">
             Need help? Contact support at{' '}
             <a href="mailto:support@kcem.rw" className="text-cyan-600 hover:underline">
               support@kcem.rw

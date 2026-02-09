@@ -22,11 +22,14 @@ import {
   AlertCircle,
   Users,
   Briefcase,
-  MailOpen
+  MailOpen,
+  Home,
+  ExternalLink
 } from 'lucide-react';
 import Navbar from '../../components/common/Navbar/Navbar';
 import Footer from '../../components/common/Footer/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 const ContactPage = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -46,6 +49,7 @@ const ContactPage = () => {
   const [chatInput, setChatInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   const contactInfo = [
     {
@@ -61,7 +65,7 @@ const ContactPage = () => {
       icon: <Phone size={20} />,
       label: 'Phone',
       items: [
-        { type: 'Support Line', value: '+250 788 123 456', hours: 'Mon-Fri, 8AM-6PM' },
+        { type: 'Support Line', value: '+250 780 162 164', hours: 'Mon-Fri, 8AM-6PM' },
         { type: 'Emergency', value: '+250 788 999 999', hours: '24/7' }
       ]
     },
@@ -175,7 +179,7 @@ const ContactPage = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.size <= 10 * 1024 * 1024) { // 10MB limit
+    if (file && file.size <= 10 * 1024 * 1024) {
       setFormData(prev => ({ ...prev, file }));
     } else {
       alert('File size must be less than 10MB');
@@ -185,7 +189,6 @@ const ContactPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!formData.name || !formData.email || !formData.message) {
       setFormStatus('error');
       setTimeout(() => setFormStatus('idle'), 3000);
@@ -194,7 +197,6 @@ const ContactPage = () => {
 
     setFormStatus('loading');
     
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     setFormStatus('success');
@@ -207,7 +209,6 @@ const ContactPage = () => {
       file: null
     });
     
-    // Reset after 3 seconds
     setTimeout(() => setFormStatus('idle'), 3000);
   };
 
@@ -225,7 +226,6 @@ const ContactPage = () => {
     setChatMessages([...chatMessages, newMessage]);
     setChatInput('');
     
-    // Simulate bot response
     setTimeout(() => {
       const botResponse = {
         id: chatMessages.length + 2,
@@ -247,61 +247,88 @@ const ContactPage = () => {
     }
   };
 
+  const handleBackToHome = () => {
+    navigate('/');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-slate-50">
+    <div className="min-h-screen bg-white">
       <Navbar />
       
-      <div className="pt-24 pb-20">
+      <div className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Back Button */}
+          <div className="mb-6">
+            <button 
+              onClick={handleBackToHome}
+              className="flex items-center gap-2 text-gray-600 hover:text-cyan-600 font-medium transition-colors"
+            >
+              <Home size={16} />
+              Back to Home
+            </button>
+          </div>
+
           {/* Header */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-cyan-100 to-cyan-100 text-cyan-700 px-4 py-2 rounded-full text-sm font-bold mb-6"
+              className="inline-flex items-center gap-2 bg-cyan-100 text-cyan-700 px-3 py-1.5 rounded-full text-sm font-medium mb-4"
             >
-              <MessageCircle size={18} />
+              <MessageCircle size={16} />
               We're Here to Help
             </motion.div>
             
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-slate-900 mb-6">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
               Get in <span className="text-cyan-600">Touch</span>
             </h1>
-            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+            <p className="text-gray-600 max-w-3xl mx-auto">
               Have questions about listings, registration, or partnerships? Our team is here to help transform waste into value.
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6">
             {/* Contact Information */}
             <div className="lg:col-span-1">
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="space-y-8"
+                className="space-y-4"
               >
                 {contactInfo.map((info, index) => (
-                  <div key={index} className="bg-white rounded-2xl border border-slate-200 p-6">
+                  <div key={index} className="bg-white rounded-xl border border-gray-200 p-5">
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-cyan-100 to-cyan-50 text-cyan-600 rounded-xl flex items-center justify-center">
+                      <div className="w-10 h-10 bg-cyan-100 text-cyan-600 rounded-lg flex items-center justify-center">
                         {info.icon}
                       </div>
-                      <h3 className="font-bold text-slate-900">{info.label}</h3>
+                      <h3 className="font-bold text-gray-900">{info.label}</h3>
                     </div>
                     
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {info.items.map((item, itemIndex) => (
-                        <div key={itemIndex} className="pb-4 border-b border-slate-100 last:border-b-0 last:pb-0">
-                          <div className="text-sm font-medium text-slate-900 mb-1">{item.type}</div>
-                          <div className="text-slate-700 font-bold">{item.value}</div>
+                        <div key={itemIndex} className="pb-3 border-b border-gray-100 last:border-b-0 last:pb-0">
+                          <div className="text-sm font-medium text-gray-900 mb-1">{item.type}</div>
+                          <div className="text-gray-800 font-medium break-words">
+                            {info.label === 'Email' ? (
+                              <a href={`mailto:${item.value}`} className="text-cyan-600 hover:underline">
+                                {item.value}
+                              </a>
+                            ) : info.label === 'Phone' ? (
+                              <a href={`tel:${item.value.replace(/\s/g, '')}`} className="text-cyan-600 hover:underline">
+                                {item.value}
+                              </a>
+                            ) : (
+                              item.value
+                            )}
+                          </div>
                           {'response' in item && item.response && (
-                            <div className="text-xs text-slate-500 mt-1">Response: {item.response}</div>
+                            <div className="text-xs text-gray-500 mt-1">Response: {item.response}</div>
                           )}
                           {'hours' in item && item.hours && (
-                            <div className="text-xs text-slate-500 mt-1">{item.hours}</div>
+                            <div className="text-xs text-gray-500 mt-1">{item.hours}</div>
                           )}
                           {'details' in item && item.details && (
-                            <div className="text-xs text-slate-500 mt-1">{item.details}</div>
+                            <div className="text-xs text-gray-500 mt-1">{item.details}</div>
                           )}
                         </div>
                       ))}
@@ -316,16 +343,16 @@ const ContactPage = () => {
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg"
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden"
               >
-                <div className="p-6 sm:p-8">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">Send Us a Message</h2>
-                  <p className="text-slate-500 mb-6">Fill out the form below and we'll get back to you as soon as possible</p>
+                <div className="p-5 sm:p-6">
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Send Us a Message</h2>
+                  <p className="text-gray-500 mb-4 text-sm">Fill out the form below and we'll get back to you as soon as possible</p>
                   
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid sm:grid-cols-2 gap-4">
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           <User size={14} className="inline mr-2" />
                           Full Name *
                         </label>
@@ -335,13 +362,13 @@ const ContactPage = () => {
                           value={formData.name}
                           onChange={handleInputChange}
                           placeholder="John Doe"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
                           required
                         />
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           <Mail size={14} className="inline mr-2" />
                           Email Address *
                         </label>
@@ -351,15 +378,15 @@ const ContactPage = () => {
                           value={formData.email}
                           onChange={handleInputChange}
                           placeholder="contact@business.rw"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
                           required
                         />
                       </div>
                     </div>
 
-                    <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="grid sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           <HelpCircle size={14} className="inline mr-2" />
                           Inquiry Type *
                         </label>
@@ -367,7 +394,7 @@ const ContactPage = () => {
                           name="inquiryType"
                           value={formData.inquiryType}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all bg-white"
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm bg-white"
                         >
                           {inquiryTypes.map(type => (
                             <option key={type.id} value={type.id}>
@@ -378,7 +405,7 @@ const ContactPage = () => {
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           <FileText size={14} className="inline mr-2" />
                           Subject
                         </label>
@@ -388,13 +415,13 @@ const ContactPage = () => {
                           value={formData.subject}
                           onChange={handleInputChange}
                           placeholder="Brief description of your inquiry"
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         <MessageCircle size={14} className="inline mr-2" />
                         Message *
                       </label>
@@ -403,21 +430,21 @@ const ContactPage = () => {
                         value={formData.message}
                         onChange={handleInputChange}
                         placeholder="Please provide details about your inquiry..."
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all min-h-[150px] resize-none"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm min-h-[120px] resize-none"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         <Upload size={14} className="inline mr-2" />
                         Attachments (Optional)
                       </label>
-                      <div className="flex items-center gap-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="px-4 py-3 border-2 border-dashed border-slate-300 rounded-xl text-slate-600 hover:border-cyan-400 hover:text-cyan-600 transition-colors flex items-center gap-2"
+                          className="px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-cyan-400 hover:text-cyan-600 transition-colors flex items-center gap-2 text-sm"
                         >
                           <Paperclip size={16} />
                           Choose File
@@ -430,31 +457,31 @@ const ContactPage = () => {
                           accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                         />
                         {formData.file && (
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
                             <FileText size={14} />
                             {formData.file.name}
                             <button
                               type="button"
                               onClick={() => setFormData(prev => ({ ...prev, file: null }))}
-                              className="text-slate-400 hover:text-slate-600"
+                              className="text-gray-400 hover:text-gray-600"
                             >
                               <X size={14} />
                             </button>
                           </div>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 mt-2">
+                      <p className="text-xs text-gray-500 mt-2">
                         Maximum file size: 10MB. Supported formats: PDF, DOC, JPG, PNG
                       </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-4 border-t border-slate-100">
-                      <div className="text-sm text-slate-600">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-gray-100">
+                      <div className="text-sm text-gray-600">
                         <div className="flex items-center gap-2">
                           <Clock size={14} />
-                          Estimated response time: <span className="font-bold text-cyan-600">{getResponseTime(formData.inquiryType)}</span>
+                          Estimated response time: <span className="font-medium text-cyan-600">{getResponseTime(formData.inquiryType)}</span>
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">
+                        <p className="text-xs text-gray-500 mt-1">
                           We respond to all inquiries within the stated time frame
                         </p>
                       </div>
@@ -462,21 +489,21 @@ const ContactPage = () => {
                       <button
                         type="submit"
                         disabled={formStatus === 'loading'}
-                        className="px-8 py-3 bg-gradient-to-r from-cyan-600 to-cyan-600 text-white rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-6 py-2.5 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
                       >
                         {formStatus === 'loading' ? (
                           <>
-                            <Loader size={18} className="animate-spin" />
+                            <Loader size={16} className="animate-spin" />
                             Sending...
                           </>
                         ) : formStatus === 'success' ? (
                           <>
-                            <Check size={18} />
+                            <Check size={16} />
                             Message Sent!
                           </>
                         ) : (
                           <>
-                            <Send size={18} />
+                            <Send size={16} />
                             Send Message
                           </>
                         )}
@@ -489,9 +516,9 @@ const ContactPage = () => {
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-600 text-sm flex items-center gap-3"
+                          className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-center gap-2"
                         >
-                          <AlertCircle size={18} />
+                          <AlertCircle size={16} />
                           Please fill in all required fields marked with *
                         </motion.div>
                       )}
@@ -501,9 +528,9 @@ const ContactPage = () => {
                           initial={{ opacity: 0, y: -10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -10 }}
-                          className="p-4 bg-cyan-50 border border-cyan-200 rounded-xl text-cyan-600 text-sm flex items-center gap-3"
+                          className="p-3 bg-cyan-50 border border-cyan-200 rounded-lg text-cyan-600 text-sm flex items-center gap-2"
                         >
-                          <CheckCircle size={18} />
+                          <CheckCircle size={16} />
                           Thank you! Your message has been sent. We'll respond within {getResponseTime(formData.inquiryType)}.
                         </motion.div>
                       )}
@@ -517,46 +544,46 @@ const ContactPage = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="mt-8 bg-white rounded-2xl border border-slate-200 overflow-hidden"
+                className="mt-6 bg-white rounded-xl border border-gray-200 overflow-hidden"
               >
-                <div className="p-6 sm:p-8">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                      <HelpCircle className="text-cyan-600" size={24} />
+                <div className="p-5 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                      <HelpCircle className="text-cyan-600" size={20} />
                       Frequently Asked Questions
                     </h2>
                     
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                       <input
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder="Search FAQs..."
-                        className="w-full sm:w-64 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none text-sm"
+                        className="w-full sm:w-48 pl-9 pr-3 py-2 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none text-sm"
                       />
                     </div>
                   </div>
                   
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {filteredFaqs.length > 0 ? (
                       filteredFaqs.map(category => (
                         <div key={category.category}>
-                          <h3 className="text-lg font-bold text-slate-900 mb-4">{category.category}</h3>
-                          <div className="space-y-3">
+                          <h3 className="text-lg font-bold text-gray-900 mb-3">{category.category}</h3>
+                          <div className="space-y-2">
                             {category.questions.map(faq => (
                               <div
                                 key={faq.id}
-                                className="border border-slate-200 rounded-xl overflow-hidden"
+                                className="border border-gray-200 rounded-lg overflow-hidden"
                               >
                                 <button
                                   onClick={() => setOpenFaq(openFaq === faq.id ? null : faq.id)}
-                                  className="w-full flex justify-between items-center p-4 text-left hover:bg-slate-50 transition-colors"
+                                  className="w-full flex justify-between items-center p-3 text-left hover:bg-gray-50 transition-colors"
                                 >
-                                  <span className="font-medium text-slate-900">{faq.question}</span>
+                                  <span className="font-medium text-gray-900 text-sm">{faq.question}</span>
                                   <ChevronDown 
                                     className={`transition-transform duration-300 ${openFaq === faq.id ? 'rotate-180' : ''}`} 
-                                    size={18} 
+                                    size={16} 
                                   />
                                 </button>
                                 <AnimatePresence>
@@ -567,9 +594,9 @@ const ContactPage = () => {
                                       exit={{ opacity: 0, height: 0 }}
                                       className="overflow-hidden"
                                     >
-                                      <div className="p-4 pt-0">
-                                        <div className="pl-4 border-l-2 border-cyan-500">
-                                          <p className="text-slate-600">{faq.answer}</p>
+                                      <div className="p-3 pt-0">
+                                        <div className="pl-3 border-l-2 border-cyan-500">
+                                          <p className="text-gray-600 text-sm">{faq.answer}</p>
                                         </div>
                                       </div>
                                     </motion.div>
@@ -581,22 +608,23 @@ const ContactPage = () => {
                         </div>
                       ))
                     ) : (
-                      <div className="text-center py-8">
-                        <HelpCircle className="mx-auto text-slate-300 mb-3" size={32} />
-                        <p className="text-slate-500">No FAQs match your search. Try different keywords.</p>
+                      <div className="text-center py-6">
+                        <HelpCircle className="mx-auto text-gray-300 mb-2" size={24} />
+                        <p className="text-gray-500">No FAQs match your search. Try different keywords.</p>
                       </div>
                     )}
                   </div>
                   
-                  <div className="mt-8 pt-6 border-t border-slate-200">
+                  <div className="mt-6 pt-4 border-t border-gray-200">
                     <div className="text-center">
-                      <p className="text-slate-600 mb-4">Still have questions?</p>
-                      <button
-                        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                        className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-cyan-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                      <p className="text-gray-600 mb-3 text-sm">Still have questions?</p>
+                      <a
+                        href="mailto:support@kcem.rw"
+                        className="inline-flex items-center gap-2 bg-cyan-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-cyan-700 transition-colors text-sm"
                       >
-                        Contact Our Support Team
-                      </button>
+                        <ExternalLink size={14} />
+                        Email Support Team
+                      </a>
                     </div>
                   </div>
                 </div>
@@ -613,37 +641,37 @@ const ContactPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="fixed bottom-24 right-6 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            className="fixed bottom-20 right-4 w-80 sm:w-96 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
           >
-            <div className="bg-gradient-to-r from-cyan-900 to-blue-900 p-4 text-white">
+            <div className="bg-cyan-600 p-3 text-white">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <MessageCircle size={20} />
+                <div className="flex items-center gap-2">
+                  <MessageCircle size={16} />
                   <div>
-                    <h3 className="font-bold">Live Chat Support</h3>
-                    <p className="text-xs text-cyan-300">Typical response: 2-5 minutes</p>
+                    <h3 className="font-bold text-sm">Live Chat Support</h3>
+                    <p className="text-xs text-cyan-100">Typical response: 2-5 minutes</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setChatOpen(false)}
-                  className="text-cyan-300 hover:text-white"
+                  className="text-cyan-100 hover:text-white"
                 >
-                  <X size={20} />
+                  <X size={16} />
                 </button>
               </div>
             </div>
             
-            <div className="h-80 overflow-y-auto p-4 space-y-4">
+            <div className="h-64 overflow-y-auto p-3 space-y-3">
               {chatMessages.map(msg => (
                 <div
                   key={msg.id}
                   className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl p-3 ${
+                    className={`max-w-[80%] rounded-lg p-2 text-sm ${
                       msg.sender === 'user'
-                        ? 'bg-gradient-to-r from-cyan-500 to-cyan-500 text-white'
-                        : 'bg-slate-100 text-slate-800'
+                        ? 'bg-cyan-600 text-white'
+                        : 'bg-gray-100 text-gray-800'
                     }`}
                   >
                     <p>{msg.text}</p>
@@ -653,23 +681,23 @@ const ContactPage = () => {
               ))}
             </div>
             
-            <form onSubmit={handleChatSubmit} className="p-4 border-t border-slate-200">
+            <form onSubmit={handleChatSubmit} className="p-3 border-t border-gray-200">
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Type your message..."
-                  className="flex-1 px-4 py-2 rounded-xl border border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none"
+                  className="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none text-sm"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-cyan-600 text-white rounded-xl hover:shadow-md transition-all"
+                  className="px-3 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors"
                 >
-                  <Send size={18} />
+                  <Send size={16} />
                 </button>
               </div>
-              <p className="text-xs text-slate-500 mt-2 text-center">
+              <p className="text-xs text-gray-500 mt-1 text-center">
                 Offline? We'll respond via email within 24 hours
               </p>
             </form>
@@ -680,9 +708,9 @@ const ContactPage = () => {
       {/* Chat Toggle Button */}
       <button
         onClick={() => setChatOpen(!chatOpen)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-cyan-600 to-cyan-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center z-50"
+        className="fixed bottom-4 right-4 w-12 h-12 bg-cyan-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
       >
-        {chatOpen ? <X size={24} /> : <MessageCircle size={24} />}
+        {chatOpen ? <X size={20} /> : <MessageCircle size={20} />}
       </button>
       
       <Footer />
