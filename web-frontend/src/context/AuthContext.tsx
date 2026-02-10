@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       name: role === 'admin' ? 'System Admin' : 
              role === 'business' ? 'Kigali Hotel' :
              role === 'recycler' ? 'Green Recyclers Ltd' :
-             role === 'driver' ? 'John Driver' : 'Jane Doe',
+             role === 'driver' ? 'John Driver' : 'Jane Karekezi',
       businessName: role === 'business' ? 'Kigali Hotel' : null,
       avatar: 'https://ui-avatars.com/api/?name=' + encodeURIComponent(
         role === 'admin' ? 'Admin' : 
