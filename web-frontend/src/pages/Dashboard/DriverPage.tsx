@@ -2,17 +2,66 @@
 import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { 
-  Package, DollarSign, Truck, MapPin, Clock, 
-  CheckCircle, AlertCircle, Wifi, WifiOff, Battery,
-  Navigation, Activity, TrendingUp, Calendar
+  Navigation, DollarSign, CheckCircle, Clock, 
+  Leaf, AlertCircle, Star, Truck,
+  Download, Settings, Save, X, User, Mail, Phone, MapPin, WifiOff, Wifi
 } from 'lucide-react';
+
 import DashboardWidget from '../../components/dashboard/Widget';
 import StatCard from '../../components/dashboard/StatCard';
 import DataTable from '../../components/dashboard/DataTable';
 
+// Real Rwanda transportation/logistics images
+const AFRICAN_IMAGES = {
+  logistics: [
+    'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=500&h=300&fit=crop', // Truck/transport
+    'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=500&h=300&fit=crop', // Delivery
+    'https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?w=500&h=300&fit=crop', // Road/route
+    'https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=500&h=300&fit=crop', // Waste collection
+    'https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=300&fit=crop', // Community
+    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=500&h=300&fit=crop'  // Green logistics
+  ]
+};
+
+const ImageWithFallback = ({ src, alt, className }: { src?: string; alt: string; className: string }) => {
+  const [hasError, setHasError] = useState(false);
+  
+  if (!src || hasError) {
+    return (
+      <div className={`${className} bg-gradient-to-br from-orange-100 to-yellow-100 flex items-center justify-center`}>
+        <Leaf className="text-orange-600 opacity-30" size={40} />
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={src} 
+      alt={alt} 
+      className={className}
+      onError={() => setHasError(true)}
+      loading="lazy"
+    />
+  );
+};
+
+const SimpleRouteMap = () => (
+  <div className="relative w-full h-64 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg border border-orange-200 flex items-center justify-center overflow-hidden">
+    <div className="absolute inset-0 opacity-10" style={{
+      backgroundImage: 'linear-gradient(45deg, #ea580c 1px, transparent 1px)',
+      backgroundSize: '20px 20px'
+    }}></div>
+    <div className="relative z-10 text-center">
+      <Navigation size={32} className="text-orange-600 mx-auto mb-2" />
+      <p className="text-gray-600 font-medium">Current Route Map</p>
+      <p className="text-sm text-gray-500">6 stops • 30km total distance</p>
+    </div>
+  </div>
+);
+
 const DriverDashboard = () => {
   const [offlineMode, setOfflineMode] = useState(false);
-  const [CurrentRoute] = useState({
+  const [currentRoute, setCurrentRoute] = useState({
     stopsCompleted: 2,
     totalStops: 6,
     distanceTraveled: '12km',
@@ -21,21 +70,217 @@ const DriverDashboard = () => {
     performanceRating: 4.7
   });
 
+  const [driverProfile, setDriverProfile] = useState({
+    name: 'John Mugisha',
+    email: 'john.driver@kcem.rw',
+    phone: '+250-788-345-678',
+    address: 'KN 8 Ave, Kigali',
+    vehicleType: 'Pickup Truck',
+    vehicleNumber: 'RAD 123B',
+    licenseNumber: 'DL-KG-2024-5678',
+    verified: true,
+    routeNotifications: true,
+    earningsAlerts: true,
+    offlineSync: true,
+    preferredAreas: ['Kigali City', 'Gasabo', 'Kicukiro']
+  });
+
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
   const todaysSchedule = [
-    { id: 1, time: '8:00 AM', location: 'Kigali Hotel', material: 'UCO (50kg)', status: 'completed' },
-    { id: 2, time: '9:30 AM', location: 'City Restaurant', material: 'Glass (200kg)', status: 'completed' },
-    { id: 3, time: '11:00 AM', location: 'Hilltop Hotel', material: 'Paper (80kg)', status: 'in-progress' },
-    { id: 4, time: '1:00 PM', location: 'Riverside Cafe', material: 'UCO (35kg)', status: 'pending' },
-    { id: 5, time: '2:30 PM', location: 'Downtown Hotel', material: 'Plastic (150kg)', status: 'pending' },
-    { id: 6, time: '4:00 PM', location: 'Airport Restaurant', material: 'Glass (120kg)', status: 'pending' },
+    { id: 1, time: '8:00 AM', location: 'Kigali Hotel', material: 'UCO (50kg)', status: 'completed', amount: 12500 },
+    { id: 2, time: '9:30 AM', location: 'City Restaurant', material: 'Glass (200kg)', status: 'completed', amount: 15000 },
+    { id: 3, time: '11:00 AM', location: 'Hilltop Hotel', material: 'Paper (80kg)', status: 'in-progress', amount: 6000 },
+    { id: 4, time: '1:00 PM', location: 'Riverside Cafe', material: 'UCO (35kg)', status: 'pending', amount: 8750 },
+    { id: 5, time: '2:30 PM', location: 'Downtown Hotel', material: 'Plastic (150kg)', status: 'pending', amount: 11250 },
+    { id: 6, time: '4:00 PM', location: 'Airport Restaurant', material: 'Glass (120kg)', status: 'pending', amount: 9000 },
   ];
 
   const collectionHistory = [
-    { id: 1, date: '2024-02-09', location: 'Kigali Hotel', material: 'UCO', weight: '45kg', rating: 5 },
-    { id: 2, date: '2024-02-09', location: 'City Restaurant', material: 'Glass', weight: '180kg', rating: 4 },
-    { id: 3, date: '2024-02-08', location: 'Hilltop Hotel', material: 'Paper', weight: '75kg', rating: 5 },
-    { id: 4, date: '2024-02-08', location: 'Riverside Cafe', material: 'UCO', weight: '32kg', rating: 4 },
+    { id: 1, date: '2024-02-09', location: 'Kigali Hotel', material: 'UCO', weight: '45kg', rating: 5, earnings: 11250 },
+    { id: 2, date: '2024-02-09', location: 'City Restaurant', material: 'Glass', weight: '180kg', rating: 4, earnings: 13500 },
+    { id: 3, date: '2024-02-08', location: 'Hilltop Hotel', material: 'Paper', weight: '75kg', rating: 5, earnings: 5625 },
+    { id: 4, date: '2024-02-08', location: 'Riverside Cafe', material: 'UCO', weight: '32kg', rating: 4, earnings: 8000 },
   ];
+
+  const handleSaveSettings = () => {
+    alert('Driver settings saved successfully!');
+    setShowSettingsModal(false);
+  };
+
+  const handleStartCollection = (stop: any) => {
+    alert(`Started collection at ${stop.location} - ${stop.material}`);
+    setCurrentRoute({...currentRoute, stopsCompleted: currentRoute.stopsCompleted + 1});
+  };
+
+  const SettingsModal = ({ isOpen, onClose }: any) => {
+    const [settings, setSettings] = useState(driverProfile);
+
+    if (!isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+        <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <Settings className="text-orange-600" size={28} />
+              <h3 className="text-2xl font-bold">Driver Settings</h3>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg">
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <User className="inline mr-2" size={16} />
+                  Full Name
+                </label>
+                <input 
+                  type="text" 
+                  value={settings.name}
+                  onChange={(e) => setSettings({...settings, name: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Mail className="inline mr-2" size={16} />
+                  Email Address
+                </label>
+                <input 
+                  type="email" 
+                  value={settings.email}
+                  onChange={(e) => setSettings({...settings, email: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Phone className="inline mr-2" size={16} />
+                  Phone Number
+                </label>
+                <input 
+                  type="tel" 
+                  value={settings.phone}
+                  onChange={(e) => setSettings({...settings, phone: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Vehicle Type</label>
+                <select 
+                  value={settings.vehicleType}
+                  onChange={(e) => setSettings({...settings, vehicleType: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option>Pickup Truck</option>
+                  <option>Van</option>
+                  <option>Small Truck</option>
+                  <option>Large Truck</option>
+                  <option>Motorcycle</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <MapPin className="inline mr-2" size={16} />
+                Home Address
+              </label>
+              <textarea 
+                value={settings.address}
+                onChange={(e) => setSettings({...settings, address: e.target.value})}
+                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                rows={2}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Vehicle Number</label>
+                <input 
+                  type="text" 
+                  value={settings.vehicleNumber}
+                  onChange={(e) => setSettings({...settings, vehicleNumber: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">License Number</label>
+                <input 
+                  type="text" 
+                  value={settings.licenseNumber}
+                  onChange={(e) => setSettings({...settings, licenseNumber: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Preferred Work Areas</label>
+              <div className="flex flex-wrap gap-2">
+                {['Kigali City', 'Gasabo', 'Kicukiro', 'Nyarugenge', 'Musanze', 'Rubavu'].map((area) => (
+                  <label key={area} className="flex items-center space-x-1">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.preferredAreas.includes(area)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSettings({...settings, preferredAreas: [...settings.preferredAreas, area]});
+                        } else {
+                          setSettings({...settings, preferredAreas: settings.preferredAreas.filter(a => a !== area)});
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <span className="text-sm">{area}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="font-semibold mb-3">Notification Preferences</h4>
+              <div className="space-y-3">
+                {[
+                  { key: 'routeNotifications', label: 'Notify when new routes are assigned' },
+                  { key: 'earningsAlerts', label: 'Alert on daily earnings milestones' },
+                  { key: 'offlineSync', label: 'Auto-sync data when back online' }
+                ].map((pref) => (
+                  <label key={pref.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <span className="text-sm font-medium">{pref.label}</span>
+                    <input 
+                      type="checkbox" 
+                      checked={settings[pref.key as keyof typeof settings] as boolean}
+                      onChange={(e) => setSettings({...settings, [pref.key]: e.target.checked})}
+                      className="w-5 h-5 text-orange-600 rounded focus:ring-orange-500"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-8">
+            <button onClick={onClose} className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50">
+              Cancel
+            </button>
+            <button onClick={() => { setDriverProfile(settings); handleSaveSettings(); }} className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-yellow-500 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-yellow-600 flex items-center justify-center space-x-2">
+              <Save size={20} />
+              <span>Save Settings</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const Overview = () => (
     <div className="space-y-4 sm:space-y-6">
@@ -61,25 +306,25 @@ const DriverDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatCard 
           title="Today's Earnings"
-          value={`RWF ${CurrentRoute.earningsToday.toLocaleString()}`}
+          value={`RWF ${currentRoute.earningsToday.toLocaleString()}`}
           icon={<DollarSign className="text-cyan-500" size={24} />}
           change="+12% from yesterday"
         />
         <StatCard 
           title="Stops Completed"
-          value={`${CurrentRoute.stopsCompleted}/${CurrentRoute.totalStops}`}
+          value={`${currentRoute.stopsCompleted}/${currentRoute.totalStops}`}
           icon={<CheckCircle className="text-blue-500" size={24} />}
           change="2 remaining"
         />
         <StatCard 
           title="Distance Traveled"
-          value={CurrentRoute.distanceTraveled}
+          value={currentRoute.distanceTraveled}
           icon={<Navigation className="text-purple-500" size={24} />}
           change="18km remaining"
         />
         <StatCard 
           title="Performance"
-          value={CurrentRoute.performanceRating}
+          value={currentRoute.performanceRating}
           icon={<Star className="text-yellow-500" size={24} />}
           change="+0.2 this week"
         />
@@ -88,8 +333,13 @@ const DriverDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DashboardWidget title="Today's Schedule" icon={<Clock size={20} />}>
           <div className="space-y-4">
+            <ImageWithFallback 
+              src={AFRICAN_IMAGES.logistics[0]} 
+              alt="Driver schedule" 
+              className="w-full h-32 rounded-lg object-cover"
+            />
             {todaysSchedule.map((stop) => (
-              <div key={stop.id} className="flex items-center p-4 bg-gray-50 rounded-lg">
+              <div key={stop.id} className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => alert(`${stop.status === 'completed' ? 'Completed' : 'Upcoming'}: ${stop.location}`)}>
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${
                   stop.status === 'completed' ? 'bg-cyan-100 text-cyan-800' :
                   stop.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
@@ -101,21 +351,15 @@ const DriverDashboard = () => {
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between">
-                    <p className="font-medium">{stop.time}</p>
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      stop.status === 'completed' ? 'bg-cyan-100 text-cyan-800' :
-                      stop.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {stop.status}
-                    </span>
+                    <p className="font-medium">{stop.location}</p>
+                    <p className="text-sm text-gray-500">{stop.time}</p>
                   </div>
-                  <p className="text-sm text-gray-600">{stop.location}</p>
-                  <p className="text-sm text-gray-500">{stop.material}</p>
+                  <p className="text-sm text-gray-600">{stop.material}</p>
+                  <p className="text-sm text-green-600 font-semibold">RWF {stop.amount.toLocaleString()}</p>
                 </div>
                 {stop.status === 'in-progress' && (
-                  <button className="ml-4 px-3 sm:px-4 py-2 bg-cyan-600 text-white rounded-lg text-xs sm:text-sm whitespace-nowrap">
-                    Start Collection
+                  <button onClick={(e) => { e.stopPropagation(); handleStartCollection(stop); }} className="ml-4 px-3 sm:px-4 py-2 bg-cyan-600 text-white rounded-lg text-xs sm:text-sm whitespace-nowrap hover:bg-cyan-700">
+                    Complete
                   </button>
                 )}
               </div>
@@ -123,376 +367,295 @@ const DriverDashboard = () => {
           </div>
         </DashboardWidget>
 
-        <DashboardWidget title="Collection Verification" icon={<Package size={20} />}>
-          <div className="p-6">
-            <div className="text-center mb-6">
-              <div className="w-24 h-24 mx-auto bg-gray-200 rounded-lg mb-4 flex items-center justify-center">
-                <Package size={48} className="text-gray-400" />
+        <DashboardWidget title="Route Overview" icon={<Navigation size={20} />}>
+          <div className="space-y-4">
+            <ImageWithFallback 
+              src={AFRICAN_IMAGES.logistics[2]} 
+              alt="Route map" 
+              className="w-full h-32 rounded-lg object-cover"
+            />
+            <SimpleRouteMap />
+            <div className="grid grid-cols-3 gap-3">
+              <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                <p className="text-2xl font-bold text-cyan-600">{currentRoute.totalStops}</p>
+                <p className="text-xs text-gray-600">Total Stops</p>
               </div>
-              <p className="font-medium">Current Collection</p>
-              <p className="text-gray-600">Hilltop Hotel • Paper (80kg)</p>
-            </div>
-            
-            <div className="space-y-4">
-              <button className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 flex flex-col items-center">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-2">
-                  <Package size={24} className="text-gray-600" />
-                </div>
-                <span>Take Verification Photo</span>
-                <span className="text-sm text-gray-500">Required for collection</span>
-              </button>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Weight</p>
-                  <p className="text-xl font-bold">80 kg</p>
-                </div>
-                <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-600">Quality</p>
-                  <div className="flex items-center">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star key={star} className="text-yellow-400 fill-current" size={20} />
-                    ))}
-                  </div>
-                </div>
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <p className="text-2xl font-bold text-blue-600">30km</p>
+                <p className="text-xs text-gray-600">Total Distance</p>
               </div>
-              
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">Notes from recycler:</p>
-                <p className="text-blue-900">Please ensure paper is dry and free from food contamination</p>
+              <div className="text-center p-3 bg-purple-50 rounded-lg">
+                <p className="text-2xl font-bold text-purple-600">{currentRoute.nextStopETA}</p>
+                <p className="text-xs text-gray-600">Next Stop ETA</p>
               </div>
-              
-              <button className="w-full p-4 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700">
-                Complete Collection
-              </button>
             </div>
           </div>
         </DashboardWidget>
       </div>
 
       <DashboardWidget title="Recent Collections" icon={<Truck size={20} />}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="text-left py-3">Date</th>
-                <th className="text-left py-3">Location</th>
-                <th className="text-left py-3">Material</th>
-                <th className="text-left py-3">Weight</th>
-                <th className="text-left py-3">Rating</th>
-                <th className="text-left py-3">Earnings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {collectionHistory.map((collection) => (
-                <tr key={collection.id} className="border-b hover:bg-gray-50">
-                  <td className="py-3">{collection.date}</td>
-                  <td className="py-3">{collection.location}</td>
-                  <td className="py-3">{collection.material}</td>
-                  <td className="py-3">{collection.weight}</td>
-                  <td className="py-3">
-                    <div className="flex items-center">
-                      <Star className="text-yellow-400 fill-current" size={16} />
-                      <span className="ml-1">{collection.rating}</span>
-                    </div>
-                  </td>
-                  <td className="py-3">RWF {Math.round(parseInt(collection.weight) * 350).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-4">
+          <ImageWithFallback 
+            src={AFRICAN_IMAGES.logistics[3]} 
+            alt="Recent collections" 
+            className="w-full h-32 rounded-lg object-cover"
+          />
+          <DataTable
+            columns={[
+              { key: 'date', label: 'Date' },
+              { key: 'location', label: 'Location' },
+              { key: 'material', label: 'Material' },
+              { key: 'weight', label: 'Weight' },
+              { key: 'earnings', label: 'Earnings (RWF)', render: (value) => value.toLocaleString() },
+              { key: 'rating', label: 'Rating', render: (value) => (
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={14} className={i < value ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
+                  ))}
+                </div>
+              )}
+            ]}
+            data={collectionHistory}
+          />
         </div>
       </DashboardWidget>
     </div>
   );
 
-  const CurrentRouteView = () => (
-    <div className="h-full flex flex-col space-y-4 sm:space-y-6">
-      <div className="flex-1 bg-gray-200 rounded-lg mb-4 relative min-h-[300px] sm:min-h-[400px]">
-        {/* This would be a map component */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <MapPin size={48} className="text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">Interactive Map View</p>
-            <p className="text-sm text-gray-500">Showing optimized route with 6 stops</p>
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        <div className="p-3 sm:p-4 bg-white border rounded-lg">
-          <h3 className="font-bold mb-3">Route Summary</h3>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Distance</span>
-              <span className="font-medium">30km</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Estimated Time</span>
-              <span className="font-medium">6 hours</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Fuel Estimate</span>
-              <span className="font-medium">12 liters</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Total Earnings</span>
-              <span className="font-medium text-cyan-600">RWF 65,000</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="p-4 bg-white border rounded-lg">
-          <h3 className="font-bold mb-3">Vehicle Status</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Fuel Level</span>
-              <div className="flex items-center">
-                <Battery size={20} className="text-cyan-500 mr-2" />
-                <span>85%</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Maintenance</span>
-              <span className="text-cyan-600">Up to date</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-600">Odometer</span>
-              <span>45,280 km</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="p-3 sm:p-4 bg-white border rounded-lg">
-          <h3 className="font-bold mb-3 text-sm sm:text-base">Quick Actions</h3>
-          <div className="space-y-2 sm:space-y-3">
-            <button className="w-full p-2 sm:p-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 text-xs sm:text-sm">
-              Start Navigation
-            </button>
-            <button className="w-full p-2 sm:p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs sm:text-sm">
-              Report Issue
-            </button>
-            <button className="w-full p-2 sm:p-3 border border-gray-300 rounded-lg hover:bg-gray-50 text-xs sm:text-sm">
-              Emergency Contact
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const CollectionsHistory = () => (
+  const MyRoutes = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Collections History</h2>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard title="Total Collections" value="245" icon={<Package className="text-cyan-500" size={24} />} change="+28 this month" />
-        <StatCard title="This Week" value="18" icon={<CheckCircle className="text-blue-500" size={24} />} change="+3" />
-        <StatCard title="Avg Rating" value="4.8" icon={<Star className="text-yellow-500" size={24} />} change="+0.2" />
-        <StatCard title="Success Rate" value="98%" icon={<Activity className="text-cyan-500" size={24} />} change="+1%" />
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">My Routes</h2>
+        <button className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Export</span>
+        </button>
       </div>
-      <DashboardWidget title="Recent Collections" icon={<Package size={20} />}>
-        <DataTable
-          columns={[
-            { key: 'date', label: 'Date' },
-            { key: 'location', label: 'Location' },
-            { key: 'material', label: 'Material' },
-            { key: 'weight', label: 'Weight' },
-            { key: 'rating', label: 'Rating', render: (value: any) => (
-              <div className="flex items-center">
-                <Star className="text-yellow-400 fill-current" size={14} />
-                <span className="ml-1">{value}</span>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Active Routes" value="1" icon={<Navigation className="text-orange-500" size={24} />} change="" />
+        <StatCard title="Completed Today" value={currentRoute.stopsCompleted} icon={<CheckCircle className="text-green-500" size={24} />} change="" />
+        <StatCard title="Pending" value={currentRoute.totalStops - currentRoute.stopsCompleted} icon={<Clock className="text-yellow-500" size={24} />} change="" />
+        <StatCard title="Distance" value="30km" icon={<Navigation className="text-blue-500" size={24} />} change="" />
+      </div>
+
+      <div className="bg-white rounded-lg border p-6">
+        <h3 className="text-lg font-bold mb-4">Current Route Details</h3>
+        <SimpleRouteMap />
+        
+        <div className="mt-6 space-y-3">
+          {todaysSchedule.map((stop) => (
+            <div key={stop.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-4">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  stop.status === 'completed' ? 'bg-green-500 text-white' :
+                  stop.status === 'in-progress' ? 'bg-blue-500 text-white' :
+                  'bg-gray-300 text-gray-700'
+                }`}>
+                  {stop.id}
+                </div>
+                <div>
+                  <p className="font-semibold">{stop.location}</p>
+                  <p className="text-sm text-gray-600">{stop.time} • {stop.material}</p>
+                </div>
               </div>
-            )},
-            { key: 'earnings', label: 'Earnings', render: (_: any, row: any) => `RWF ${(parseInt(row.weight) * 350).toLocaleString()}` }
-          ]}
-          data={collectionHistory}
-        />
-      </DashboardWidget>
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                stop.status === 'completed' ? 'bg-green-100 text-green-800' :
+                stop.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {stop.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 
   const EarningsDashboard = () => (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Earnings Dashboard</h2>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard title="Today's Earnings" value={`RWF ${CurrentRoute.earningsToday.toLocaleString()}`} icon={<DollarSign className="text-cyan-500" size={24} />} change="+12%" />
-        <StatCard title="This Week" value="RWF 185K" icon={<TrendingUp className="text-blue-500" size={24} />} change="+8%" />
-        <StatCard title="This Month" value="RWF 650K" icon={<DollarSign className="text-purple-500" size={24} />} change="+15%" />
-        <StatCard title="Pending" value="RWF 50K" icon={<Clock className="text-yellow-500" size={24} />} change="2 days" />
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Earnings Dashboard</h2>
+        <button className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Export Report</span>
+        </button>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardWidget title="Earnings Breakdown" icon={<DollarSign size={20} />}>
-          <div className="space-y-4">
-            {[
-              { category: 'Collections', amount: 450000, percentage: 69 },
-              { category: 'Bonuses', amount: 120000, percentage: 18 },
-              { category: 'Tips', amount: 80000, percentage: 13 },
-            ].map((item, idx) => (
-              <div key={idx}>
-                <div className="flex justify-between mb-1">
-                  <span className="font-medium">{item.category}</span>
-                  <span className="text-cyan-600">RWF {item.amount.toLocaleString()}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-cyan-600 h-2 rounded-full" style={{ width: `${item.percentage}%` }}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </DashboardWidget>
-        <DashboardWidget title="Payment History" icon={<Calendar size={20} />}>
-          <DataTable
-            columns={[
-              { key: 'date', label: 'Date' },
-              { key: 'description', label: 'Description' },
-              { key: 'amount', label: 'Amount', render: (value: any) => `RWF ${value.toLocaleString()}` },
-              { key: 'status', label: 'Status', render: (value: any) => (
-                <span className={`px-2 py-1 rounded text-xs ${
-                  value === 'paid' ? 'bg-cyan-100 text-cyan-800' : 'bg-yellow-100 text-yellow-800'
-                }`}>{value}</span>
-              )}
-            ]}
-            data={[
-              { date: '2024-02-08', description: 'Weekly payout', amount: 185000, status: 'paid' },
-              { date: '2024-02-01', description: 'Weekly payout', amount: 165000, status: 'paid' },
-              { date: '2024-01-25', description: 'Weekly payout', amount: 178000, status: 'paid' },
-            ]}
-          />
-        </DashboardWidget>
-      </div>
-    </div>
-  );
 
-  const VehicleEquipment = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold">Vehicle & Equipment</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <div className="bg-white p-4 sm:p-6 rounded-lg border">
-          <h3 className="text-base sm:text-lg font-bold mb-4">Vehicle Information</h3>
-          <div className="w-full h-48 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-lg flex items-center justify-center mb-4">
-            <img src="/images/kCEM_Logo.png" alt="Vehicle" className="w-16 h-16 opacity-50" />
-          </div>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">Vehicle Type</p>
-                <p className="font-medium">Pickup Truck</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">License Plate</p>
-                <p className="font-medium">RAD 123 K</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Capacity</p>
-                <p className="font-medium">500 kg</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Odometer</p>
-                <p className="font-medium">45,280 km</p>
-              </div>
-            </div>
-            <div className="pt-4 border-t">
-              <p className="text-sm font-medium mb-2">Fuel Level</p>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div className="bg-cyan-600 h-3 rounded-full" style={{ width: '85%' }}></div>
-              </div>
-              <p className="text-sm text-gray-600 mt-1">85% • ~48 km remaining</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg border">
-          <h3 className="text-lg font-bold mb-4">Maintenance Schedule</h3>
-          <div className="space-y-3">
-            {[
-              { task: 'Oil Change', due: '500 km', status: 'upcoming' },
-              { task: 'Tire Rotation', due: '1,200 km', status: 'good' },
-              { task: 'Brake Inspection', due: '2,500 km', status: 'good' },
-              { task: 'Annual Service', due: '15 days', status: 'upcoming' },
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">{item.task}</p>
-                  <p className="text-sm text-gray-600">Due in {item.due}</p>
-                </div>
-                <span className={`px-3 py-1 rounded text-xs ${
-                  item.status === 'upcoming' ? 'bg-yellow-100 text-yellow-800' : 'bg-cyan-100 text-cyan-800'
-                }`}>{item.status}</span>
-              </div>
-            ))}
-          </div>
-          <button className="w-full mt-4 p-3 border rounded-lg hover:bg-gray-50">
-            Schedule Maintenance
-          </button>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Today" value={`RWF ${currentRoute.earningsToday.toLocaleString()}`} icon={<DollarSign className="text-green-500" size={24} />} change="+12%" />
+        <StatCard title="This Week" value="RWF 245K" icon={<DollarSign className="text-cyan-500" size={24} />} change="+8%" />
+        <StatCard title="This Month" value="RWF 980K" icon={<DollarSign className="text-blue-500" size={24} />} change="+15%" />
+        <StatCard title="Total" value="RWF 2.5M" icon={<DollarSign className="text-purple-500" size={24} />} change="+20%" />
       </div>
-    </div>
-  );
 
-  const OfflineMode = () => (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Offline Mode Settings</h2>
-      <div className="bg-white p-6 rounded-lg border max-w-2xl">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="font-bold">Offline Mode</h3>
-            <p className="text-sm text-gray-600">Work without internet connection</p>
-          </div>
-          <button 
-            onClick={() => setOfflineMode(!offlineMode)}
-            className={`px-6 py-3 rounded-lg ${offlineMode ? 'bg-cyan-600 text-white' : 'bg-gray-200'}`}
-          >
-            {offlineMode ? 'Enabled' : 'Disabled'}
-          </button>
-        </div>
-        
+      <div className="bg-white rounded-lg border p-6">
+        <h3 className="text-lg font-bold mb-4">Earnings Breakdown</h3>
         <div className="space-y-4">
-          <div className="p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>How it works:</strong> When offline mode is enabled, your collections data will be stored locally and synced when you reconnect to the internet.
-            </p>
-          </div>
-          
-          <div className="space-y-3">
-            <h4 className="font-medium">Offline Data</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Cached Routes</p>
-                <p className="text-2xl font-bold">6</p>
+          {[
+            { category: 'Collections', amount: 450000, percentage: 69, color: 'bg-orange-500' },
+            { category: 'Bonuses', amount: 120000, percentage: 18, color: 'bg-cyan-500' },
+            { category: 'Tips', amount: 80000, percentage: 13, color: 'bg-blue-500' },
+          ].map((item) => (
+            <div key={item.category}>
+              <div className="flex justify-between mb-2">
+                <span className="font-medium">{item.category}</span>
+                <span className="font-bold">RWF {item.amount.toLocaleString()} ({item.percentage}%)</span>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Pending Syncs</p>
-                <p className="text-2xl font-bold">{offlineMode ? '3' : '0'}</p>
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div className={`${item.color} h-3 rounded-full`} style={{ width: `${item.percentage}%` }}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'date', label: 'Date' },
+          { key: 'location', label: 'Location' },
+          { key: 'material', label: 'Material' },
+          { key: 'weight', label: 'Weight' },
+          { key: 'earnings', label: 'Earnings (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'rating', label: 'Rating', render: (value) => (
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} size={14} className={i < value ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
+              ))}
+            </div>
+          )}
+        ]}
+        data={collectionHistory}
+      />
+    </div>
+  );
+
+  const DriverSettings = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Driver Profile</h2>
+        <button 
+          onClick={() => setShowSettingsModal(true)}
+          className="flex items-center space-x-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+        >
+          <Settings size={20} />
+          <span>Edit Settings</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-lg border">
+          <h3 className="text-lg font-bold mb-4">Personal Information</h3>
+          <ImageWithFallback 
+            src={AFRICAN_IMAGES.logistics[1]} 
+            alt="Driver profile" 
+            className="w-full h-48 rounded-lg object-cover mb-4"
+          />
+          <div className="space-y-3">
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Full Name</span>
+              <span className="font-semibold">{driverProfile.name}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Email</span>
+              <span className="font-semibold">{driverProfile.email}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Phone</span>
+              <span className="font-semibold">{driverProfile.phone}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Address</span>
+              <span className="font-semibold text-right">{driverProfile.address}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Performance Rating</span>
+              <div className="flex items-center">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={16} className={i < Math.floor(currentRoute.performanceRating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
+                ))}
+                <span className="ml-2 font-semibold">{currentRoute.performanceRating}</span>
               </div>
             </div>
           </div>
-          
-          {offlineMode && (
-            <button className="w-full p-3 bg-cyan-600 text-white rounded-lg">
-              Sync Now
-            </button>
-          )}
+        </div>
+
+        <div className="space-y-4">
+          <div className="bg-white p-6 rounded-lg border">
+            <h3 className="text-lg font-bold mb-4">Vehicle Information</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between pb-3 border-b">
+                <span className="text-gray-600">Vehicle Type</span>
+                <span className="font-semibold">{driverProfile.vehicleType}</span>
+              </div>
+              <div className="flex justify-between pb-3 border-b">
+                <span className="text-gray-600">Vehicle Number</span>
+                <span className="font-semibold">{driverProfile.vehicleNumber}</span>
+              </div>
+              <div className="flex justify-between pb-3 border-b">
+                <span className="text-gray-600">License Number</span>
+                <span className="font-semibold">{driverProfile.licenseNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Verification Status</span>
+                <span className={`px-2 py-1 rounded text-xs font-semibold ${driverProfile.verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  {driverProfile.verified ? 'Verified' : 'Pending'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg border">
+            <h3 className="text-lg font-bold mb-4">Preferred Work Areas</h3>
+            <div className="flex flex-wrap gap-2">
+              {driverProfile.preferredAreas.map((area, idx) => (
+                <span key={idx} className="px-3 py-2 bg-orange-100 text-orange-800 rounded-full text-sm font-semibold">
+                  {area}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg border">
+            <h3 className="text-lg font-bold mb-4">Notifications</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Route Notifications</span>
+                <span className={`px-2 py-1 rounded text-xs ${driverProfile.routeNotifications ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                  {driverProfile.routeNotifications ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Earnings Alerts</span>
+                <span className={`px-2 py-1 rounded text-xs ${driverProfile.earningsAlerts ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                  {driverProfile.earningsAlerts ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Offline Sync</span>
+                <span className={`px-2 py-1 rounded text-xs ${driverProfile.offlineSync ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                  {driverProfile.offlineSync ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+
+      <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} />
     </div>
   );
 
   return (
     <Routes>
       <Route index element={<Overview />} />
-      <Route path="schedule" element={<Overview />} />
-      <Route path="routes" element={<CurrentRouteView />} />
-      <Route path="collections" element={<CollectionsHistory />} />
+      <Route path="overview" element={<Overview />} />
+      <Route path="routes" element={<MyRoutes />} />
       <Route path="earnings" element={<EarningsDashboard />} />
-      <Route path="vehicle" element={<VehicleEquipment />} />
-      <Route path="offline" element={<OfflineMode />} />
+      <Route path="settings" element={<DriverSettings />} />
     </Routes>
   );
 };
-
-const Star = ({ size, className }: { size: number; className: string }) => (
-  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-  </svg>
-);
 
 export default DriverDashboard;

@@ -2,644 +2,631 @@
 import { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { 
-  Package, DollarSign, Truck, Leaf, TrendingUp, 
-  PlusCircle, Edit, Trash2, Eye, Clock
+  Package, DollarSign, TrendingUp, Clock, 
+  Leaf, CheckCircle, AlertCircle, Calendar,
+  Download, Filter, Eye, Settings, Save, X, User, Mail, Phone, MapPin
 } from 'lucide-react';
+
 import DashboardWidget from '../../components/dashboard/Widget';
 import StatCard from '../../components/dashboard/StatCard';
 import DataTable from '../../components/dashboard/DataTable';
+import ChartComponent from '../../components/dashboard/ChartComponent';
+
+// Real Rwanda HORECA & business images
+const AFRICAN_IMAGES = {
+  business: [
+    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&h=300&fit=crop', // Restaurant
+    'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=500&h=300&fit=crop', // Hotel
+    'https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=500&h=300&fit=crop', // Waste management
+    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=500&h=300&fit=crop', // Sustainability
+    'https://images.unsplash.com/photo-1532996122724-8f3c58d4d0df?w=500&h=300&fit=crop', // Recycling
+    'https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=300&fit=crop'  // Community
+  ]
+};
+
+const ImageWithFallback = ({ src, alt, className }: { src?: string; alt: string; className: string }) => {
+  const [hasError, setHasError] = useState(false);
+  
+  if (!src || hasError) {
+    return (
+      <div className={`${className} bg-gradient-to-br from-green-100 to-cyan-100 flex items-center justify-center`}>
+        <Leaf className="text-green-600 opacity-30" size={40} />
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={src} 
+      alt={alt} 
+      className={className}
+      onError={() => setHasError(true)}
+      loading="lazy"
+    />
+  );
+};
+
+const SimpleBarChart = ({ data }: { data: number[] }) => (
+  <svg viewBox="0 0 400 200" className="w-full h-48 mt-4">
+    {data.map((value, idx) => (
+      <rect 
+        key={idx}
+        x={idx * 80 + 20} 
+        y={200 - value} 
+        width="60" 
+        height={value} 
+        fill="#10b981" 
+        opacity="0.8"
+        rx="4"
+      />
+    ))}
+  </svg>
+);
 
 const BusinessDashboard = () => {
   const [stats] = useState({
-    greenScore: 85,
-    totalRevenue: 150000,
-    wasteDiverted: 1250,
-    activeListings: 3,
-    co2Saved: 4200,
+    totalListings: 45,
+    activeListings: 12,
+    totalRevenue: 450000,
+    pendingPickups: 3,
+    wasteReduction: 2500
   });
 
+  const [businessProfile, setBusinessProfile] = useState({
+    name: 'Kigali Grand Hotel',
+    email: 'info@kigalihotel.com',
+    phone: '+250-788-123-456',
+    address: 'KN 4 Ave, Kigali',
+    businessType: 'Hotel',
+    verified: true,
+    autoListing: true,
+    notifyPickup: true,
+    monthlyReports: true,
+    minListingAmount: 5000
+  });
+
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showListingModal, setShowListingModal] = useState(false);
   const [selectedListing, setSelectedListing] = useState<any>(null);
 
   const mockListings = [
-    { id: 1, material: 'UCO', quantity: 50, quality: 'Good', price: 25000, status: 'active', date: '2024-02-10' },
-    { id: 2, material: 'Glass', quantity: 200, quality: 'Fair', price: 18000, status: 'reserved', date: '2024-02-09' },
-    { id: 3, material: 'Paper', quantity: 80, quality: 'Good', price: 12000, status: 'completed', date: '2024-02-08' },
-    { id: 4, material: 'UCO', quantity: 35, quality: 'Excellent', price: 19000, status: 'draft', date: '2024-02-10' },
+    { id: 1, material: 'UCO', quantity: '50kg', price: 25000, status: 'active', date: '2024-02-10', buyer: 'Green Recyclers' },
+    { id: 2, material: 'Glass', quantity: '200kg', price: 30000, status: 'pending', date: '2024-02-10', buyer: null },
+    { id: 3, material: 'Paper', quantity: '80kg', price: 12000, status: 'sold', date: '2024-02-09', buyer: 'Plastic Solutions' },
+    { id: 4, material: 'Plastic', quantity: '150kg', price: 45000, status: 'active', date: '2024-02-09', buyer: null },
+    { id: 5, material: 'Metal', quantity: '120kg', price: 60000, status: 'expired', date: '2024-02-08', buyer: null },
   ];
 
-  const mockOffers = [
-    { id: 1, recycler: 'Green Recyclers', material: 'UCO', quantity: 50, price: 25500, status: 'pending' },
-    { id: 2, recycler: 'Plastic Solutions', material: 'Glass', quantity: 200, price: 17500, status: 'accepted' },
-    { id: 3, recycler: 'Eco Waste', material: 'Paper', quantity: 80, price: 12500, status: 'rejected' },
+  const mockTransactions = [
+    { id: 1, date: '2024-02-09', material: 'UCO', quantity: '45kg', amount: 22500, buyer: 'Green Recyclers', status: 'completed' },
+    { id: 2, date: '2024-02-08', material: 'Glass', quantity: '180kg', amount: 27000, buyer: 'Plastic Solutions', status: 'completed' },
+    { id: 3, date: '2024-02-07', material: 'Paper', quantity: '75kg', amount: 11250, buyer: 'Green Recyclers', status: 'pending' },
   ];
+
+  const handleSaveSettings = () => {
+    alert('Business settings saved successfully!');
+    setShowSettingsModal(false);
+  };
+
+  const handleViewListing = (listing: any) => {
+    setSelectedListing(listing);
+    setShowListingModal(true);
+  };
+
+  const SettingsModal = ({ isOpen, onClose }: any) => {
+    const [settings, setSettings] = useState(businessProfile);
+
+    if (!isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+        <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <Settings className="text-green-600" size={28} />
+              <h3 className="text-2xl font-bold">Business Settings</h3>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg">
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <User className="inline mr-2" size={16} />
+                  Business Name
+                </label>
+                <input 
+                  type="text" 
+                  value={settings.name}
+                  onChange={(e) => setSettings({...settings, name: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Mail className="inline mr-2" size={16} />
+                  Email Address
+                </label>
+                <input 
+                  type="email" 
+                  value={settings.email}
+                  onChange={(e) => setSettings({...settings, email: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Phone className="inline mr-2" size={16} />
+                  Phone Number
+                </label>
+                <input 
+                  type="tel" 
+                  value={settings.phone}
+                  onChange={(e) => setSettings({...settings, phone: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Business Type</label>
+                <select 
+                  value={settings.businessType}
+                  onChange={(e) => setSettings({...settings, businessType: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option>Hotel</option>
+                  <option>Restaurant</option>
+                  <option>Cafe</option>
+                  <option>Catering</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <MapPin className="inline mr-2" size={16} />
+                Business Address
+              </label>
+              <textarea 
+                value={settings.address}
+                onChange={(e) => setSettings({...settings, address: e.target.value})}
+                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Minimum Listing Amount (RWF)</label>
+              <input 
+                type="number" 
+                value={settings.minListingAmount}
+                onChange={(e) => setSettings({...settings, minListingAmount: parseInt(e.target.value)})}
+                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="font-semibold mb-3">Notification Preferences</h4>
+              <div className="space-y-3">
+                {[
+                  { key: 'autoListing', label: 'Auto-list materials when threshold reached' },
+                  { key: 'notifyPickup', label: 'Notify when pickup is scheduled' },
+                  { key: 'monthlyReports', label: 'Receive monthly sustainability reports' }
+                ].map((pref) => (
+                  <label key={pref.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <span className="text-sm font-medium">{pref.label}</span>
+                    <input 
+                      type="checkbox" 
+                      checked={settings[pref.key as keyof typeof settings] as boolean}
+                      onChange={(e) => setSettings({...settings, [pref.key]: e.target.checked})}
+                      className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-8">
+            <button onClick={onClose} className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50">
+              Cancel
+            </button>
+            <button onClick={() => { setBusinessProfile(settings); handleSaveSettings(); }} className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-cyan-500 text-white rounded-xl font-semibold hover:from-green-600 hover:to-cyan-600 flex items-center justify-center space-x-2">
+              <Save size={20} />
+              <span>Save Settings</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ListingModal = ({ listing, isOpen, onClose }: any) => {
+    if (!isOpen || !listing) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+        <div className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold">Listing Details</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4 p-4 bg-gradient-to-br from-green-50 to-cyan-50 rounded-xl">
+              <div>
+                <p className="text-sm text-gray-600">Material</p>
+                <p className="text-xl font-bold text-green-600">{listing.material}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Quantity</p>
+                <p className="text-xl font-bold text-cyan-600">{listing.quantity}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Price</p>
+                <p className="text-xl font-bold">RWF {listing.price.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Status</p>
+                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                  listing.status === 'active' ? 'bg-green-100 text-green-800' :
+                  listing.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  listing.status === 'sold' ? 'bg-cyan-100 text-cyan-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {listing.status}
+                </span>
+              </div>
+            </div>
+
+            {listing.buyer && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm font-semibold text-blue-800">Buyer: {listing.buyer}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button onClick={() => alert('Edit listing')} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                Edit Listing
+              </button>
+              <button onClick={() => alert('Delete listing')} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const Overview = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <StatCard
-          title="Green Score"
-          value={stats.greenScore}
-          icon={<Leaf className="text-cyan-500" size={24} />}
-          change="+2%"
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
+        <StatCard 
+          title="Total Listings"
+          value={stats.totalListings}
+          icon={<Package className="text-green-500" size={24} />}
+          change="+8 this month"
+        />
+        <StatCard 
+          title="Active Listings"
+          value={stats.activeListings}
+          icon={<TrendingUp className="text-cyan-500" size={24} />}
+          change="12 active"
         />
         <StatCard 
           title="Total Revenue"
           value={`RWF ${stats.totalRevenue.toLocaleString()}`}
           icon={<DollarSign className="text-blue-500" size={24} />}
-          change="+5%"
+          change="+15%"
         />
         <StatCard 
-          title="Waste Diverted"
-          value={`${stats.wasteDiverted} kg`}
-          icon={<Package className="text-purple-500" size={24} />}
-          change="+1.5%"
+          title="Pending Pickups"
+          value={stats.pendingPickups}
+          icon={<Clock className="text-yellow-500" size={24} />}
+          change="3 scheduled"
         />
         <StatCard 
-          title="Active Listings"
-          value={stats.activeListings}
-          icon={<Package className="text-orange-500" size={24} />}
-          change="0%"
+          title="Waste Reduction"
+          value={`${stats.wasteReduction}kg`}
+          icon={<Leaf className="text-green-600" size={24} />}
+          change="+420kg"
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardWidget 
-          title="Active Listings" 
-          icon={<Package size={20} />}
-          action={
-            <button className="text-cyan-600 hover:text-cyan-800 flex items-center space-x-1">
-              <PlusCircle size={16} />
-              <span>New Listing</span>
-            </button>
-          }
-        >
-          <div className="overflow-x-auto">
+        <DashboardWidget title="Active Listings" icon={<Package size={20} />}>
+          <div className="space-y-4">
+            <ImageWithFallback 
+              src={AFRICAN_IMAGES.business[0]} 
+              alt="Business operations" 
+              className="w-full h-32 rounded-lg object-cover"
+            />
             <DataTable
               columns={[
-              { key: 'material', label: 'Material' },
-              { key: 'quantity', label: 'Quantity (kg)' },
-              { key: 'quality', label: 'Quality' },
-              { key: 'price', label: 'Price (RWF)', render: (value) => value.toLocaleString() },
-              { key: 'status', label: 'Status', render: (value) => (
-                <span className={`px-2 py-1 rounded text-xs ${
-                  value === 'active' ? 'bg-cyan-100 text-cyan-800' :
-                  value === 'reserved' ? 'bg-blue-100 text-blue-800' :
-                  value === 'completed' ? 'bg-gray-100 text-gray-800' :
-                  'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {value}
-                </span>
-              )},
-              { key: 'actions', label: 'Actions', render: (_, row) => (
-                <div className="flex space-x-2">
-                  <button onClick={() => { setSelectedListing(row); setShowListingModal(true); }} className="text-blue-600 hover:text-blue-800">
+                { key: 'material', label: 'Material' },
+                { key: 'quantity', label: 'Quantity' },
+                { key: 'price', label: 'Price (RWF)', render: (value) => value.toLocaleString() },
+                { key: 'status', label: 'Status', render: (value) => (
+                  <span className={`px-2 py-1 rounded text-xs ${
+                    value === 'active' ? 'bg-green-100 text-green-800' :
+                    value === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    value === 'sold' ? 'bg-cyan-100 text-cyan-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>{value}</span>
+                )},
+                { key: 'actions', label: 'Actions', render: (_, row) => (
+                  <button onClick={() => handleViewListing(row)} className="text-blue-600 hover:text-blue-800">
                     <Eye size={16} />
                   </button>
-                  <button onClick={() => { setSelectedListing(row); setShowListingModal(true); }} className="text-cyan-600 hover:text-cyan-800">
-                    <Edit size={16} />
-                  </button>
-                  <button className="text-red-600 hover:text-red-800">
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              )}
-            ]}
-            data={mockListings}
-          />
+                )}
+              ]}
+              data={mockListings.filter(l => l.status === 'active' || l.status === 'pending')}
+            />
           </div>
         </DashboardWidget>
 
-        <DashboardWidget title="Recent Offers" icon={<DollarSign size={20} />}>
-          <div className="overflow-x-auto">
+        <DashboardWidget title="Revenue Overview" icon={<DollarSign size={20} />}>
+          <div className="space-y-4">
+            <ImageWithFallback 
+              src={AFRICAN_IMAGES.business[1]} 
+              alt="Revenue analytics" 
+              className="w-full h-32 rounded-lg object-cover"
+            />
+            <SimpleBarChart data={[120, 150, 180, 160, 200]} />
+            <div className="grid grid-cols-3 gap-3 mt-4">
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <p className="text-2xl font-bold text-green-600">RWF 450K</p>
+                <p className="text-xs text-gray-600">Total</p>
+              </div>
+              <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                <p className="text-2xl font-bold text-cyan-600">RWF 90K</p>
+                <p className="text-xs text-gray-600">This Month</p>
+              </div>
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <p className="text-2xl font-bold text-blue-600">+15%</p>
+                <p className="text-xs text-gray-600">Growth</p>
+              </div>
+            </div>
+          </div>
+        </DashboardWidget>
+      </div>
+
+      <DashboardWidget title="Recent Transactions" icon={<CheckCircle size={20} />}>
+        <div className="space-y-4">
+          <ImageWithFallback 
+            src={AFRICAN_IMAGES.business[4]} 
+            alt="Transaction history" 
+            className="w-full h-32 rounded-lg object-cover"
+          />
           <DataTable
             columns={[
-              { key: 'recycler', label: 'Recycler' },
+              { key: 'date', label: 'Date' },
               { key: 'material', label: 'Material' },
-              { key: 'quantity', label: 'Quantity (kg)' },
-              { key: 'price', label: 'Offer (RWF)', render: (value) => value.toLocaleString() },
+              { key: 'quantity', label: 'Quantity' },
+              { key: 'amount', label: 'Amount (RWF)', render: (value) => value.toLocaleString() },
+              { key: 'buyer', label: 'Buyer' },
               { key: 'status', label: 'Status', render: (value) => (
                 <span className={`px-2 py-1 rounded text-xs ${
-                  value === 'accepted' ? 'bg-cyan-100 text-cyan-800' :
-                  value === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {value}
-                </span>
-              )},
-              { key: 'actions', label: 'Action', render: (_, row) => (
-                row.status === 'pending' ? (
-                  <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
-                    <button className="px-2 sm:px-3 py-1 bg-cyan-600 text-white rounded text-xs sm:text-sm whitespace-nowrap">
-                      Accept
-                    </button>
-                    <button className="px-2 sm:px-3 py-1 bg-red-600 text-white rounded text-xs sm:text-sm whitespace-nowrap">
-                      Reject
-                    </button>
-                  </div>
-                ) : null
+                  value === 'completed' ? 'bg-green-100 text-green-800' :
+                  'bg-yellow-100 text-yellow-800'
+                }`}>{value}</span>
               )}
             ]}
-            data={mockOffers}
+            data={mockTransactions}
           />
-          </div>
-        </DashboardWidget>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <DashboardWidget title="Upcoming Pickups" icon={<Truck size={20} />}>
-          <div className="space-y-4">
-            {[
-              { time: '10:00 AM', material: 'Glass (200kg)', recycler: 'Plastic Solutions' },
-              { time: '2:30 PM', material: 'UCO (50kg)', recycler: 'Green Recyclers' },
-              { time: '4:00 PM', material: 'Paper (80kg)', recycler: 'Eco Waste' },
-            ].map((pickup, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <Clock className="text-gray-400" size={16} />
-                  <div>
-                    <p className="font-medium">{pickup.time}</p>
-                    <p className="text-sm text-gray-600">{pickup.material}</p>
-                  </div>
-                </div>
-                <span className="text-sm text-gray-600">{pickup.recycler}</span>
-              </div>
-            ))}
-          </div>
-        </DashboardWidget>
-
-        <DashboardWidget title="CO₂ Savings" icon={<Leaf size={20} />}>
-          <div className="text-center py-8">
-            <div className="text-4xl font-bold text-cyan-600">{stats.co2Saved.toLocaleString()}</div>
-            <p className="text-gray-600 mt-2">kg of CO₂ saved</p>
-            <div className="mt-4 w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-cyan-600 h-2 rounded-full" style={{ width: '85%' }}></div>
-            </div>
-            <p className="text-sm text-gray-500 mt-2">Equivalent to planting {Math.round(stats.co2Saved/21)} trees</p>
-          </div>
-        </DashboardWidget>
-
-        <DashboardWidget title="Quick Actions" icon={<TrendingUp size={20} />}>
-          <div className="space-y-2 sm:space-y-3">
-            <button className="w-full p-2 sm:p-3 bg-cyan-50 text-cyan-700 rounded-lg hover:bg-cyan-100 flex items-center justify-center space-x-2 text-sm sm:text-base">
-              <PlusCircle size={18} />
-              <span>Create New Listing</span>
-            </button>
-            <button className="w-full p-2 sm:p-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 flex items-center justify-center space-x-2 text-sm sm:text-base">
-              <DollarSign size={18} />
-              <span>View Wallet</span>
-            </button>
-            <button className="w-full p-2 sm:p-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 flex items-center justify-center space-x-2 text-sm sm:text-base">
-              <Edit size={18} />
-              <span>Update Profile</span>
-            </button>
-            <button className="w-full p-2 sm:p-3 bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 flex items-center justify-center space-x-2 text-sm sm:text-base">
-              <Package size={18} />
-              <span>Browse Marketplace</span>
-            </button>
-          </div>
-        </DashboardWidget>
-      </div>
-
-      {/* Listing Details Modal */}
-      {showListingModal && selectedListing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={() => setShowListingModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-cyan-600 to-blue-600 p-6 sm:p-8 rounded-t-2xl text-white">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">Listing Details</h2>
-                  <p className="text-cyan-100">Material ID: #{selectedListing.id}</p>
-                </div>
-                <button 
-                  onClick={() => setShowListingModal(false)} 
-                  className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2"
-                >
-                  ✕
-                </button>
-              </div>
-              
-              {/* Stats Row */}
-              <div className="grid grid-cols-3 gap-4 mt-6">
-                <div className="bg-white bg-opacity-20 rounded-lg p-3 text-center">
-                  <Package className="mx-auto mb-2" size={20} />
-                  <div className="text-xl font-bold">{selectedListing.quantity}kg</div>
-                  <div className="text-xs text-cyan-100">Quantity</div>
-                </div>
-                <div className="bg-white bg-opacity-20 rounded-lg p-3 text-center">
-                  <DollarSign className="mx-auto mb-2" size={20} />
-                  <div className="text-xl font-bold">{selectedListing.price.toLocaleString()}</div>
-                  <div className="text-xs text-cyan-100">Price (RWF)</div>
-                </div>
-                <div className="bg-white bg-opacity-20 rounded-lg p-3 text-center">
-                  <Leaf className="mx-auto mb-2" size={20} />
-                  <div className="text-xl font-bold">{selectedListing.quality}</div>
-                  <div className="text-xs text-cyan-100">Quality</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 sm:p-8 space-y-6">
-              {/* Image Preview */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Material Photos</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {[1, 2, 3].map((idx) => (
-                    <div key={idx} className="w-full h-32 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-lg flex items-center justify-center">
-                      <img src="/images/kCEM_Logo.png" alt="Material" className="w-12 h-12 opacity-50" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Material Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Material Type</label>
-                  <input 
-                    type="text" 
-                    value={selectedListing.material}
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50"
-                    readOnly
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
-                  <select className="w-full p-3 border border-cyan-300 rounded-lg focus:ring-2 focus:ring-cyan-500">
-                    <option value="draft">📝 Draft</option>
-                    <option value="active" selected={selectedListing.status === 'active'}>✅ Active</option>
-                    <option value="reserved" selected={selectedListing.status === 'reserved'}>🔒 Reserved</option>
-                    <option value="completed" selected={selectedListing.status === 'completed'}>✔️ Completed</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Description</label>
-                <textarea 
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500"
-                  rows={3}
-                  placeholder="Describe the material condition, storage, and any special notes..."
-                ></textarea>
-              </div>
-
-              {/* Location */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">📍 Pickup Location</label>
-                <input 
-                  type="text" 
-                  className="w-full p-3 border border-gray-300 rounded-lg"
-                  placeholder="Enter address"
-                />
-              </div>
-
-              {/* Offers Section */}
-              <div className="bg-gradient-to-br from-cyan-50 to-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-800 mb-3">📬 Recent Offers ({mockOffers.length})</h3>
-                <div className="space-y-2">
-                  {mockOffers.slice(0, 2).map((offer) => (
-                    <div key={offer.id} className="bg-white p-3 rounded-lg flex justify-between items-center">
-                      <div>
-                        <div className="font-medium">{offer.recycler}</div>
-                        <div className="text-sm text-gray-600">{offer.quantity}kg • RWF {offer.price.toLocaleString()}</div>
-                      </div>
-                      <span className={`px-3 py-1 rounded-full text-xs ${
-                        offer.status === 'accepted' ? 'bg-cyan-100 text-cyan-800' :
-                        offer.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {offer.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 rounded-b-2xl flex flex-col sm:flex-row justify-end gap-3">
-              <button 
-                onClick={() => setShowListingModal(false)} 
-                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 text-sm sm:text-base"
-              >
-                Cancel
-              </button>
-              <button 
-                className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg hover:from-cyan-700 hover:to-blue-700 text-sm sm:text-base"
-              >
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const CreateListing = () => {
-    const [formData, setFormData] = useState({
-      material: '',
-      quantity: '',
-      quality: 'good',
-      location: '',
-      description: ''
-    });
-
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-0">
-        <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Create New Listing</h2>
-        <form className="space-y-4 sm:space-y-6 bg-white p-4 sm:p-6 rounded-lg shadow">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Material Type</label>
-            <select 
-              className="w-full p-3 border border-gray-300 rounded-lg"
-              value={formData.material}
-              onChange={(e) => setFormData({...formData, material: e.target.value})}
-            >
-              <option value="">Select material</option>
-              <option value="uco">Used Cooking Oil (UCO)</option>
-              <option value="glass">Glass Bottles</option>
-              <option value="paper">Paper & Cardboard</option>
-              <option value="plastic">Plastic Containers</option>
-              <option value="metal">Metal Cans</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Quantity (kg)</label>
-            <input 
-              type="number" 
-              className="w-full p-3 border border-gray-300 rounded-lg" 
-              placeholder="e.g., 50"
-              value={formData.quantity}
-              onChange={(e) => setFormData({...formData, quantity: e.target.value})}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Quality</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
-              {['Excellent', 'Good', 'Fair'].map((quality) => (
-                <label key={quality} className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input 
-                    type="radio" 
-                    name="quality" 
-                    value={quality.toLowerCase()}
-                    checked={formData.quality === quality.toLowerCase()}
-                    onChange={(e) => setFormData({...formData, quality: e.target.value})}
-                  />
-                  <span>{quality}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-            <textarea 
-              className="w-full p-3 border border-gray-300 rounded-lg" 
-              rows={4}
-              placeholder="Describe the waste material, storage conditions, etc."
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Photos</label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-8 text-center">
-              <div className="w-full h-48 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-lg flex items-center justify-center mb-4">
-                <img src="/images/kCEM_Logo.png" alt="KCEM" className="w-16 h-16 opacity-50" />
-              </div>
-              <Package className="mx-auto text-gray-400" size={48} />
-              <p className="mt-2 text-sm sm:text-base">Drag & drop photos or click to browse</p>
-              <p className="text-xs sm:text-sm text-gray-500 mt-1">Maximum 5 photos, 5MB each</p>
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
-            <input 
-              type="text" 
-              className="w-full p-3 border border-gray-300 rounded-lg" 
-              placeholder="Enter address or use current location"
-              value={formData.location}
-              onChange={(e) => setFormData({...formData, location: e.target.value})}
-            />
-          </div>
-          
-          <div className="flex flex-col sm:flex-row justify-end gap-3 sm:space-x-4">
-            <button type="button" className="px-4 sm:px-6 py-2 sm:py-3 border border-gray-300 rounded-lg text-sm sm:text-base">
-              Save as Draft
-            </button>
-            <button type="submit" className="px-4 sm:px-6 py-2 sm:py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 text-sm sm:text-base">
-              Publish Listing
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-  };
-
-  const MarketplaceView = () => (
-    <div className="space-y-4 sm:space-y-6 px-4 sm:px-0">
-      <h2 className="text-xl sm:text-2xl font-bold">Browse Marketplace</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {[1, 2, 3, 4, 5, 6].map((item) => (
-          <div key={item} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="w-full h-48 bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center">
-              <img src="/images/kCEM_Logo.png" alt="KCEM" className="w-16 h-16 opacity-50" />
-            </div>
-            <div className="p-3 sm:p-4">
-              <h3 className="font-bold mb-2 text-sm sm:text-base">Recycling Service Available</h3>
-              <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">Professional recycling pickup and processing</p>
-              <div className="flex justify-between items-center">
-                <span className="text-cyan-600 font-bold text-sm sm:text-base">RWF 15,000</span>
-                <button className="px-3 sm:px-4 py-1 sm:py-2 bg-cyan-600 text-white rounded-lg text-xs sm:text-sm">Contact</button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const FinancialDashboard = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold">Financial Dashboard</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <StatCard title="Total Revenue" value="RWF 150K" icon={<DollarSign className="text-cyan-500" size={24} />} change="+5%" />
-        <StatCard title="Pending Payments" value="RWF 25K" icon={<Clock className="text-yellow-500" size={24} />} change="3 pending" />
-        <StatCard title="This Month" value="RWF 45K" icon={<TrendingUp className="text-blue-500" size={24} />} change="+12%" />
-        <StatCard title="Wallet Balance" value="RWF 80K" icon={<DollarSign className="text-purple-500" size={24} />} change="" />
-      </div>
-      <DashboardWidget title="Transaction History" icon={<DollarSign size={20} />}>
-        <div className="overflow-x-auto">
-          <DataTable
-            columns={[
-            { key: 'date', label: 'Date' },
-            { key: 'description', label: 'Description' },
-            { key: 'amount', label: 'Amount (RWF)', render: (value) => value.toLocaleString() },
-            { key: 'status', label: 'Status', render: (value) => (
-              <span className={`px-2 py-1 rounded text-xs ${
-                value === 'completed' ? 'bg-cyan-100 text-cyan-800' : 'bg-yellow-100 text-yellow-800'
-              }`}>{value}</span>
-            )}
-          ]}
-          data={[
-            { date: '2024-02-10', description: 'UCO Sale to Green Recyclers', amount: 25500, status: 'completed' },
-            { date: '2024-02-09', description: 'Glass Sale to Eco Waste', amount: 18000, status: 'completed' },
-            { date: '2024-02-08', description: 'Paper Sale pending', amount: 12000, status: 'pending' },
-          ]}
-        />
         </div>
       </DashboardWidget>
+
+      <ListingModal listing={selectedListing} isOpen={showListingModal} onClose={() => setShowListingModal(false)} />
     </div>
   );
 
-  const SchedulePickups = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold">Schedule & Pickups</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardWidget title="Upcoming Pickups" icon={<Truck size={20} />}>
-          <div className="space-y-4">
-            {[
-              { time: '10:00 AM', recycler: 'Green Recyclers', material: 'UCO (50kg)', status: 'confirmed' },
-              { time: '2:30 PM', recycler: 'Eco Waste', material: 'Glass (200kg)', status: 'pending' },
-            ].map((pickup, idx) => (
-              <div key={idx} className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="font-bold">{pickup.time}</p>
-                    <p className="text-sm text-gray-600">{pickup.recycler}</p>
-                    <p className="text-sm text-gray-500">{pickup.material}</p>
-                  </div>
-                  <span className={`px-2 py-1 rounded text-xs ${
-                    pickup.status === 'confirmed' ? 'bg-cyan-100 text-cyan-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>{pickup.status}</span>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 mt-3">
-                  <button className="flex-1 px-2 sm:px-3 py-2 border rounded-lg text-xs sm:text-sm">Reschedule</button>
-                  <button className="flex-1 px-2 sm:px-3 py-2 bg-cyan-600 text-white rounded-lg text-xs sm:text-sm">Contact</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </DashboardWidget>
-        <DashboardWidget title="Schedule New Pickup" icon={<PlusCircle size={20} />}>
-          <form className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Select Listing</label>
-              <select className="w-full p-2 border rounded-lg">
-                <option>UCO - 50kg</option>
-                <option>Glass - 200kg</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Preferred Date</label>
-              <input type="date" className="w-full p-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Time Slot</label>
-              <select className="w-full p-2 border rounded-lg">
-                <option>Morning (8AM - 12PM)</option>
-                <option>Afternoon (12PM - 4PM)</option>
-                <option>Evening (4PM - 8PM)</option>
-              </select>
-            </div>
-            <button type="submit" className="w-full p-3 bg-cyan-600 text-white rounded-lg">Schedule Pickup</button>
-          </form>
-        </DashboardWidget>
-      </div>
-    </div>
-  );
-
-  const GreenScoreDashboard = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold">Green Score Dashboard</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-lg border">
-          <div className="text-center mb-6">
-            <div className="inline-block p-8 bg-cyan-50 rounded-full">
-              <div className="text-6xl font-bold text-cyan-600">{stats.greenScore}</div>
-            </div>
-            <p className="text-xl font-medium mt-4">Your Green Score</p>
-            <p className="text-gray-600">Top 15% of businesses</p>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium">Waste Diverted</span>
-                <span className="text-sm text-gray-600">85%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-cyan-600 h-2 rounded-full" style={{ width: '85%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium">Quality Rating</span>
-                <span className="text-sm text-gray-600">92%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-cyan-600 h-2 rounded-full" style={{ width: '92%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium">Consistency</span>
-                <span className="text-sm text-gray-600">78%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-cyan-600 h-2 rounded-full" style={{ width: '78%' }}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg border">
-          <h3 className="font-bold mb-4">Impact Summary</h3>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-600">CO₂ Saved</p>
-              <p className="text-2xl font-bold text-cyan-600">{stats.co2Saved} kg</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Waste Diverted</p>
-              <p className="text-2xl font-bold">{stats.wasteDiverted} kg</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Trees Equivalent</p>
-              <p className="text-2xl font-bold">{Math.round(stats.co2Saved/21)}</p>
-            </div>
-          </div>
+  const MyListings = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">My Listings</h2>
+        <div className="flex gap-3">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
+            <Filter size={16} />
+            <span>Filter</span>
+          </button>
+          <button className="px-4 py-2 bg-green-600 text-white rounded-lg">
+            + New Listing
+          </button>
         </div>
       </div>
-    </div>
-  );
 
-  const Reports = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold">Reports</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {[
-          { title: 'Monthly Summary', description: 'Complete overview of this month', icon: <Package size={24} /> },
-          { title: 'Financial Report', description: 'Revenue and transactions', icon: <DollarSign size={24} /> },
-          { title: 'Environmental Impact', description: 'CO₂ savings and waste metrics', icon: <Leaf size={24} /> },
-        ].map((report, idx) => (
-          <div key={idx} className="bg-white p-6 rounded-lg border hover:shadow-lg transition-shadow">
-            <div className="text-cyan-600 mb-4">{report.icon}</div>
-            <h3 className="font-bold mb-2">{report.title}</h3>
-            <p className="text-sm text-gray-600 mb-4">{report.description}</p>
-            <button className="w-full px-4 py-2 border border-cyan-600 text-cyan-600 rounded-lg hover:bg-cyan-50">
-              Generate Report
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total" value={stats.totalListings} icon={<Package className="text-gray-500" size={24} />} change="" />
+        <StatCard title="Active" value={stats.activeListings} icon={<TrendingUp className="text-green-500" size={24} />} change="" />
+        <StatCard title="Sold" value="28" icon={<CheckCircle className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Expired" value="5" icon={<AlertCircle className="text-red-500" size={24} />} change="" />
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'id', label: 'ID' },
+          { key: 'material', label: 'Material' },
+          { key: 'quantity', label: 'Quantity' },
+          { key: 'price', label: 'Price (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'status', label: 'Status', render: (value) => (
+            <span className={`px-2 py-1 rounded text-xs ${
+              value === 'active' ? 'bg-green-100 text-green-800' :
+              value === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+              value === 'sold' ? 'bg-cyan-100 text-cyan-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>{value}</span>
+          )},
+          { key: 'date', label: 'Date' },
+          { key: 'actions', label: 'Actions', render: (_, row) => (
+            <button onClick={() => handleViewListing(row)} className="text-blue-600 hover:text-blue-800">
+              <Eye size={16} />
             </button>
-          </div>
-        ))}
+          )}
+        ]}
+        data={mockListings}
+      />
+
+      <ListingModal listing={selectedListing} isOpen={showListingModal} onClose={() => setShowListingModal(false)} />
+    </div>
+  );
+
+  const Transactions = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Transaction History</h2>
+        <button className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Export</span>
+        </button>
       </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Revenue" value="RWF 450K" icon={<DollarSign className="text-green-500" size={24} />} change="+15%" />
+        <StatCard title="This Month" value="RWF 90K" icon={<Calendar className="text-cyan-500" size={24} />} change="+8%" />
+        <StatCard title="Completed" value="42" icon={<CheckCircle className="text-blue-500" size={24} />} change="" />
+        <StatCard title="Pending" value="3" icon={<Clock className="text-yellow-500" size={24} />} change="" />
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'id', label: 'ID' },
+          { key: 'date', label: 'Date' },
+          { key: 'material', label: 'Material' },
+          { key: 'quantity', label: 'Quantity' },
+          { key: 'amount', label: 'Amount (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'buyer', label: 'Buyer' },
+          { key: 'status', label: 'Status', render: (value) => (
+            <span className={`px-2 py-1 rounded text-xs ${
+              value === 'completed' ? 'bg-green-100 text-green-800' :
+              'bg-yellow-100 text-yellow-800'
+            }`}>{value}</span>
+          )}
+        ]}
+        data={mockTransactions}
+      />
+    </div>
+  );
+
+  const Analytics = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Business Analytics</h2>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DashboardWidget title="Revenue Trend" icon={<TrendingUp size={20} />}>
+          <ChartComponent type="line" data={{
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+              data: [75000, 85000, 95000, 88000, 102000, 90000],
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            }]
+          }} />
+        </DashboardWidget>
+
+        <DashboardWidget title="Material Distribution" icon={<Package size={20} />}>
+          <ChartComponent type="bar" data={{
+            labels: ['UCO', 'Glass', 'Paper', 'Plastic', 'Metal'],
+            datasets: [{
+              data: [450, 320, 280, 380, 150],
+              backgroundColor: '#10b981',
+            }]
+          }} />
+        </DashboardWidget>
+      </div>
+    </div>
+  );
+
+  const BusinessSettings = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Business Profile</h2>
+        <button 
+          onClick={() => setShowSettingsModal(true)}
+          className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        >
+          <Settings size={20} />
+          <span>Edit Settings</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-lg border">
+          <h3 className="text-lg font-bold mb-4">Business Information</h3>
+          <ImageWithFallback 
+            src={AFRICAN_IMAGES.business[1]} 
+            alt="Business profile" 
+            className="w-full h-48 rounded-lg object-cover mb-4"
+          />
+          <div className="space-y-3">
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Business Name</span>
+              <span className="font-semibold">{businessProfile.name}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Type</span>
+              <span className="font-semibold">{businessProfile.businessType}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Email</span>
+              <span className="font-semibold">{businessProfile.email}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Phone</span>
+              <span className="font-semibold">{businessProfile.phone}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Address</span>
+              <span className="font-semibold">{businessProfile.address}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border">
+          <h3 className="text-lg font-bold mb-4">Settings & Preferences</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium">Verified Account</span>
+              <span className={`px-3 py-1 rounded-full text-sm ${businessProfile.verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                {businessProfile.verified ? 'Verified' : 'Pending'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium">Auto-listing</span>
+              <span className={`px-3 py-1 rounded-full text-sm ${businessProfile.autoListing ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                {businessProfile.autoListing ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium">Pickup Notifications</span>
+              <span className={`px-3 py-1 rounded-full text-sm ${businessProfile.notifyPickup ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                {businessProfile.notifyPickup ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium">Monthly Reports</span>
+              <span className={`px-3 py-1 rounded-full text-sm ${businessProfile.monthlyReports ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                {businessProfile.monthlyReports ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+            <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
+              <span className="text-sm font-medium">Min Listing Amount</span>
+              <span className="font-semibold">RWF {businessProfile.minListingAmount.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} />
     </div>
   );
 
@@ -647,13 +634,10 @@ const BusinessDashboard = () => {
     <Routes>
       <Route index element={<Overview />} />
       <Route path="overview" element={<Overview />} />
-      <Route path="listings" element={<Overview />} />
-      <Route path="listings/new" element={<CreateListing />} />
-      <Route path="marketplace" element={<MarketplaceView />} />
-      <Route path="financial" element={<FinancialDashboard />} />
-      <Route path="schedule" element={<SchedulePickups />} />
-      <Route path="greenscore" element={<GreenScoreDashboard />} />
-      <Route path="reports" element={<Reports />} />
+      <Route path="listings" element={<MyListings />} />
+      <Route path="transactions" element={<Transactions />} />
+      <Route path="analytics" element={<Analytics />} />
+      <Route path="settings" element={<BusinessSettings />} />
     </Routes>
   );
 };

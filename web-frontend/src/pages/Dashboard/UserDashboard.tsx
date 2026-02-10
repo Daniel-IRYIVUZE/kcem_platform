@@ -1,494 +1,733 @@
-// pages/dashboard/UserDashboard.tsx
+import { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { DollarSign, Leaf, ShoppingCart, TrendingUp, 
-  Award, Recycle, Clock, Star, Heart, CheckCircle
+import { 
+  Leaf, DollarSign, Package, TrendingUp, 
+  Award, CheckCircle, Clock, Eye,
+  Download, Filter, Settings, Save, X, User, Mail, Phone, MapPin, Camera
 } from 'lucide-react';
+
 import DashboardWidget from '../../components/dashboard/Widget';
 import StatCard from '../../components/dashboard/StatCard';
+import DataTable from '../../components/dashboard/DataTable';
+import ChartComponent from '../../components/dashboard/ChartComponent';
+
+// Real Rwanda User/household recycling images
+const AFRICAN_IMAGES = {
+  User: [
+    'https://images.unsplash.com/photo-1532996122724-8f3c58d4d0df?w=500&h=300&fit=crop', // Recycling
+    'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=500&h=300&fit=crop', // Household items
+    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=500&h=300&fit=crop', // Green living
+    'https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=500&h=300&fit=crop', // Waste sorting
+    'https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=300&fit=crop', // Community
+    'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=500&h=300&fit=crop'  // Environment
+  ]
+};
+
+const ImageWithFallback = ({ src, alt, className }: { src?: string; alt: string; className: string }) => {
+  const [hasError, setHasError] = useState(false);
+  
+  if (!src || hasError) {
+    return (
+      <div className={`${className} bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center`}>
+        <Leaf className="text-green-600 opacity-30" size={40} />
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={src} 
+      alt={alt} 
+      className={className}
+      onError={() => setHasError(true)}
+      loading="lazy"
+    />
+  );
+};
 
 const UserDashboard = () => {
-  const stats = {
-    greenScore: 72,
-    totalImpact: 85,
-    recentPurchases: 3,
-    availableCredits: 5000,
-    co2Savings: 280
+  const [stats, setStats] = useState({
+    totalEarnings: 125000,
+    itemsSold: 24,
+    carbonSaved: 450,
+    activeListings: 3,
+    impactPoints: 890
+  });
+
+  useEffect(() => {
+    // Simulate fetching new stats
+    const fetchStats = () => {
+      // Example of updating stats
+      setStats(prevStats => ({
+        ...prevStats,
+        totalEarnings: prevStats.totalEarnings + 1000 // Example increment
+      }));
+    };
+
+    fetchStats();
+  }, []);
+
+  const [userProfile, setUserProfile] = useState({
+    name: 'Sarah Uwase',
+    email: 'sarah.uwase@email.com',
+    phone: '+250-788-456-789',
+    address: 'KN 12 Ave, Kigali',
+    memberSince: '2024-01-15',
+    verified: true,
+    receiveNotifications: true,
+    priceAlerts: true,
+    sustainabilityTips: true,
+    preferredCategories: ['Plastic', 'Glass', 'Paper']
+  });
+
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showListingModal, setShowListingModal] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<any>(null);
+
+  const mockListings = [
+    { id: 1, material: 'Plastic Bottles', quantity: '50pcs', price: 5000, status: 'active', date: '2024-02-10', views: 12 },
+    { id: 2, material: 'Glass Bottles', quantity: '30pcs', price: 4500, status: 'pending', date: '2024-02-09', views: 8 },
+    { id: 3, material: 'Paper/Cardboard', quantity: '15kg', price: 7500, status: 'sold', date: '2024-02-08', views: 15 },
+    { id: 4, material: 'Metal Cans', quantity: '20pcs', price: 3000, status: 'active', date: '2024-02-07', views: 6 },
+  ];
+
+  const mockTransactions = [
+    { id: 1, date: '2024-02-08', material: 'Plastic', quantity: '45pcs', amount: 4500, buyer: 'Green Recyclers', status: 'completed' },
+    { id: 2, date: '2024-02-05', material: 'Glass', quantity: '25pcs', amount: 3750, buyer: 'Plastic Solutions', status: 'completed' },
+    { id: 3, date: '2024-02-02', material: 'Paper', quantity: '12kg', amount: 6000, buyer: 'Green Recyclers', status: 'pending' },
+  ];
+
+  const handleSaveSettings = () => {
+    alert('Profile settings saved successfully!');
+    setShowSettingsModal(false);
   };
 
-  const recentPurchases = [
-    { id: 1, item: 'Recycled Glass Bottles', seller: 'Green Recyclers', price: 1500, date: '2024-02-10', status: 'delivered' },
-    { id: 2, item: 'Upcycled Paper Notebook', seller: 'Eco Crafts', price: 2500, date: '2024-02-08', status: 'in-transit' },
-    { id: 3, item: 'Bamboo Cutlery Set', seller: 'Sustainable Living', price: 3500, date: '2024-02-05', status: 'delivered' },
-    { id: 4, item: 'Reclaimed Wood Shelf', seller: 'Urban Recycle', price: 12000, date: '2024-02-01', status: 'delivered' },
-  ];
+  const handleViewListing = (listing: any) => {
+    setSelectedListing(listing);
+    setShowListingModal(true);
+  };
 
-  const recommendedListings = [
-    { id: 1, title: 'Artisanal Recycled Glass', price: 2000, seller: 'Green Crafts', rating: 4.8, category: 'Home Decor' },
-    { id: 2, title: 'Upcycled Denim Bag', price: 4500, seller: 'Fashion Forward', rating: 4.5, category: 'Fashion' },
-    { id: 3, title: 'Recycled Plastic Furniture', price: 25000, seller: 'Eco Home', rating: 4.9, category: 'Furniture' },
-    { id: 4, title: 'Repurposed Metal Art', price: 8000, seller: 'Metal Works', rating: 4.7, category: 'Art' },
-  ];
+  const SettingsModal = ({ isOpen, onClose }: any) => {
+    const [settings, setSettings] = useState(userProfile);
+
+    if (!isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+        <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <Settings className="text-green-600" size={28} />
+              <h3 className="text-2xl font-bold">Profile Settings</h3>
+            </div>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg">
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex justify-center mb-4">
+              <div className="relative">
+                <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+                  {settings.name.split(' ').map(n => n[0]).join('')}
+                </div>
+                <button className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg border-2 border-green-500">
+                  <Camera size={16} className="text-green-600" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <User className="inline mr-2" size={16} />
+                  Full Name
+                </label>
+                <input 
+                  type="text" 
+                  value={settings.name}
+                  onChange={(e) => setSettings({...settings, name: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Mail className="inline mr-2" size={16} />
+                  Email Address
+                </label>
+                <input 
+                  type="email" 
+                  value={settings.email}
+                  onChange={(e) => setSettings({...settings, email: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <Phone className="inline mr-2" size={16} />
+                  Phone Number
+                </label>
+                <input 
+                  type="tel" 
+                  value={settings.phone}
+                  onChange={(e) => setSettings({...settings, phone: e.target.value})}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Member Since</label>
+                <input 
+                  type="text" 
+                  value={settings.memberSince}
+                  disabled
+                  className="w-full p-3 border-2 border-gray-200 rounded-lg bg-gray-50"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <MapPin className="inline mr-2" size={16} />
+                Home Address
+              </label>
+              <textarea 
+                value={settings.address}
+                onChange={(e) => setSettings({...settings, address: e.target.value})}
+                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                rows={2}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Preferred Material Categories</label>
+              <div className="flex flex-wrap gap-2">
+                {['Plastic', 'Glass', 'Paper', 'Metal', 'Electronics', 'Textiles'].map((cat) => (
+                  <label key={cat} className="flex items-center space-x-1">
+                    <input 
+                      type="checkbox" 
+                      checked={settings.preferredCategories.includes(cat)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSettings({...settings, preferredCategories: [...settings.preferredCategories, cat]});
+                        } else {
+                          setSettings({...settings, preferredCategories: settings.preferredCategories.filter(c => c !== cat)});
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <span className="text-sm">{cat}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="font-semibold mb-3">Notification Preferences</h4>
+              <div className="space-y-3">
+                {[
+                  { key: 'receiveNotifications', label: 'Receive notifications when items sell' },
+                  { key: 'priceAlerts', label: 'Alert when similar items are listed' },
+                  { key: 'sustainabilityTips', label: 'Receive sustainability tips & insights' }
+                ].map((pref) => (
+                  <label key={pref.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100">
+                    <span className="text-sm font-medium">{pref.label}</span>
+                    <input 
+                      type="checkbox" 
+                      checked={settings[pref.key as keyof typeof settings] as boolean}
+                      onChange={(e) => setSettings({...settings, [pref.key]: e.target.checked})}
+                      className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-8">
+            <button onClick={onClose} className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50">
+              Cancel
+            </button>
+            <button onClick={() => { setUserProfile(settings); handleSaveSettings(); }} className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-semibold hover:from-green-600 hover:to-emerald-600 flex items-center justify-center space-x-2">
+              <Save size={20} />
+              <span>Save Changes</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ListingModal = ({ listing, isOpen, onClose }: any) => {
+    if (!isOpen || !listing) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+        <div className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold">Listing Details</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <ImageWithFallback 
+              src={AFRICAN_IMAGES.User[1]} 
+              alt="Item preview" 
+              className="w-full h-48 rounded-lg object-cover"
+            />
+
+            <div className="grid grid-cols-2 gap-4 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+              <div>
+                <p className="text-sm text-gray-600">Material</p>
+                <p className="text-lg font-bold text-green-600">{listing.material}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Quantity</p>
+                <p className="text-lg font-bold text-emerald-600">{listing.quantity}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Price</p>
+                <p className="text-lg font-bold">RWF {listing.price.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Views</p>
+                <p className="text-lg font-bold flex items-center">
+                  <Eye size={16} className="mr-1" />
+                  {listing.views}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm font-semibold text-green-900">Status: <span className={`px-2 py-1 rounded ${
+                listing.status === 'active' ? 'bg-green-100 text-green-800' :
+                listing.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-cyan-100 text-cyan-800'
+              }`}>{listing.status}</span></p>
+              <p className="text-sm text-green-800 mt-2">Listed on: {listing.date}</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => { alert('Edit listing'); onClose(); }} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+                Edit Listing
+              </button>
+              <button onClick={() => { alert('Delete listing'); onClose(); }} className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const Overview = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6">
         <StatCard 
-          title="Green Score"
-          value={stats.greenScore}
-          icon={<Leaf className="text-cyan-500" size={24} />}
-          change="+5 this month"
+          title="Total Earnings"
+          value={`RWF ${stats.totalEarnings.toLocaleString()}`}
+          icon={<DollarSign className="text-green-500" size={24} />}
+          change="+18% this month"
         />
         <StatCard 
-          title="Total Impact"
-          value={`${stats.totalImpact} kg`}
-          icon={<Recycle className="text-blue-500" size={24} />}
-          change="+12 kg this month"
+          title="Items Sold"
+          value={stats.itemsSold}
+          icon={<Package className="text-emerald-500" size={24} />}
+          change="+5 this week"
         />
         <StatCard 
-          title="Available Credits"
-          value={`RWF ${stats.availableCredits.toLocaleString()}`}
-          icon={<DollarSign className="text-purple-500" size={24} />}
-          change="+1000 RWF this month"
+          title="Carbon Saved"
+          value={`${stats.carbonSaved}kg`}
+          icon={<Leaf className="text-green-600" size={24} />}
+          change="+120kg"
         />
         <StatCard 
-          title="CO₂ Savings"
-          value={`${stats.co2Savings} kg`}
-          icon={<Award className="text-orange-500" size={24} />}
-          change="+45 kg this month"
+          title="Active Listings"
+          value={stats.activeListings}
+          icon={<TrendingUp className="text-cyan-500" size={24} />}
+          change="3 active"
+        />
+        <StatCard 
+          title="Impact Points"
+          value={stats.impactPoints}
+          icon={<Award className="text-yellow-500" size={24} />}
+          change="+95 points"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <DashboardWidget title="Recent Purchases" icon={<ShoppingCart size={20} />}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DashboardWidget title="My Active Listings" icon={<Package size={20} />}>
           <div className="space-y-4">
-            {recentPurchases.map((purchase) => (
-              <div key={purchase.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-lg gap-3">
-                <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
-                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <img src="/images/kCEM_Logo.png" alt={purchase.item} className="w-8 h-8 opacity-50" loading="lazy" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-sm sm:text-base">{purchase.item}</p>
-                    <p className="text-xs sm:text-sm text-gray-600">Sold by {purchase.seller}</p>
-                    <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        purchase.status === 'delivered' ? 'bg-cyan-100 text-cyan-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {purchase.status}
-                      </span>
-                      <span className="text-xs text-gray-500">{purchase.date}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right w-full sm:w-auto">
-                  <p className="text-lg sm:text-xl font-bold">RWF {purchase.price.toLocaleString()}</p>
-                  <button className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 mt-2">
-                    View Details
+            <ImageWithFallback 
+              src={AFRICAN_IMAGES.User[0]} 
+              alt="Active listings" 
+              className="w-full h-32 rounded-lg object-cover"
+            />
+            <DataTable
+              columns={[
+                { key: 'material', label: 'Material' },
+                { key: 'quantity', label: 'Qty' },
+                { key: 'price', label: 'Price', render: (value) => `RWF ${value.toLocaleString()}` },
+                { key: 'views', label: 'Views', render: (value) => (
+                  <span className="flex items-center">
+                    <Eye size={14} className="mr-1" />
+                    {value}
+                  </span>
+                )},
+                { key: 'actions', label: '', render: (_, row) => (
+                  <button onClick={() => handleViewListing(row)} className="text-green-600 hover:text-green-800 text-sm font-medium">
+                    View
                   </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </DashboardWidget>
-
-        <DashboardWidget title="Recommended for You" icon={<TrendingUp size={20} />}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {recommendedListings.map((listing) => (
-              <div key={listing.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="h-32 bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center">
-                  <img src="/images/kCEM_Logo.png" alt={listing.title} className="w-12 h-12 opacity-50" loading="lazy" />
-                </div>
-                <div className="p-2 sm:p-3">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="font-medium text-xs sm:text-sm line-clamp-1">{listing.title}</h4>
-                    <div className="flex items-center">
-                      <Star className="text-yellow-400 fill-current" size={12} />
-                      <span className="text-xs ml-1">{listing.rating}</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-600 mb-2">{listing.category}</p>
-                  <div className="flex justify-between items-center gap-2">
-                    <p className="font-bold text-sm sm:text-base">RWF {listing.price.toLocaleString()}</p>
-                    <div className="flex gap-1 sm:gap-2">
-                      <button className="p-1 hover:bg-gray-100 rounded">
-                        <Heart size={14} className="text-gray-400" />
-                      </button>
-                      <button className="px-2 sm:px-3 py-1 bg-cyan-600 text-white rounded text-xs hover:bg-cyan-700">
-                        Buy
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </DashboardWidget>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <DashboardWidget title="Impact Breakdown" icon={<Recycle size={20} />}>
-          <div className="space-y-4">
-            {[
-              { material: 'Plastic', amount: '32kg', percent: 38 },
-              { material: 'Glass', amount: '25kg', percent: 29 },
-              { material: 'Paper', amount: '18kg', percent: 21 },
-              { material: 'Metal', amount: '10kg', percent: 12 },
-            ].map((item, idx) => (
-              <div key={idx}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">{item.material}</span>
-                  <span className="text-sm text-gray-600">{item.amount}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-cyan-600 h-2 rounded-full"
-                    style={{ width: `${item.percent}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Did you know?</strong> Your 85kg waste diversion prevented approximately {stats.co2Savings}kg of CO₂ emissions!
-            </p>
-          </div>
-        </DashboardWidget>
-
-        <DashboardWidget title="Achievements" icon={<Award size={20} />}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-            {[
-              { name: 'First Purchase', icon: '🎉', unlocked: true },
-              { name: '5 Items', icon: '🛍️', unlocked: true },
-              { name: 'Eco Warrior', icon: '🌿', unlocked: false },
-              { name: 'Monthly Saver', icon: '💰', unlocked: true },
-              { name: 'Community Star', icon: '⭐', unlocked: false },
-              { name: 'Zero Waste', icon: '♻️', unlocked: false },
-            ].map((achievement, idx) => (
-              <div 
-                key={idx} 
-                className={`aspect-square rounded-lg flex flex-col items-center justify-center p-2 ${
-                  achievement.unlocked ? 'bg-cyan-50 border border-cyan-200' : 'bg-gray-50 border border-gray-200'
-                }`}
-              >
-                <span className="text-2xl mb-2">{achievement.icon}</span>
-                <span className="text-xs text-center font-medium">{achievement.name}</span>
-                {!achievement.unlocked && (
-                  <span className="text-xs text-gray-500 mt-1">Locked</span>
                 )}
-              </div>
-            ))}
+              ]}
+              data={mockListings.filter(l => l.status === 'active' || l.status === 'pending')}
+            />
           </div>
         </DashboardWidget>
 
-        <DashboardWidget title="Quick Actions" icon={<Clock size={20} />}>
-          <div className="space-y-2 sm:space-y-3">
-            <button className="w-full p-3 sm:p-4 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 flex items-center justify-center space-x-2 text-sm sm:text-base">
-              <ShoppingCart size={18} />
-              <span>Browse Marketplace</span>
-            </button>
-            <button className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center space-x-2 text-sm sm:text-base">
-              <Leaf size={18} />
-              <span>View Green Score</span>
-            </button>
-            <button className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center space-x-2 text-sm sm:text-base">
-              <DollarSign size={18} />
-              <span>Add Payment Method</span>
-            </button>
-            <button className="w-full p-3 sm:p-4 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-center space-x-2 text-sm sm:text-base">
-              <Award size={20} />
-              <span>Share Achievements</span>
-            </button>
+        <DashboardWidget title="Environmental Impact" icon={<Leaf size={20} />}>
+          <div className="space-y-4">
+            <ImageWithFallback 
+              src={AFRICAN_IMAGES.User[2]} 
+              alt="Environmental impact" 
+              className="w-full h-32 rounded-lg object-cover"
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <Leaf size={32} className="text-green-600 mx-auto mb-2" />
+                <p className="text-3xl font-bold text-green-600">{stats.carbonSaved}kg</p>
+                <p className="text-sm text-gray-600">CO₂ Saved</p>
+              </div>
+              <div className="text-center p-4 bg-emerald-50 rounded-lg">
+                <Package size={32} className="text-emerald-600 mx-auto mb-2" />
+                <p className="text-3xl font-bold text-emerald-600">{stats.itemsSold}</p>
+                <p className="text-sm text-gray-600">Items Recycled</p>
+              </div>
+              <div className="text-center p-4 bg-cyan-50 rounded-lg">
+                <Award size={32} className="text-cyan-600 mx-auto mb-2" />
+                <p className="text-3xl font-bold text-cyan-600">{stats.impactPoints}</p>
+                <p className="text-sm text-gray-600">Impact Points</p>
+              </div>
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <TrendingUp size={32} className="text-yellow-600 mx-auto mb-2" />
+                <p className="text-3xl font-bold text-yellow-600">Gold</p>
+                <p className="text-sm text-gray-600">Badge Level</p>
+              </div>
+            </div>
           </div>
         </DashboardWidget>
       </div>
+
+      <DashboardWidget title="Recent Transactions" icon={<CheckCircle size={20} />}>
+        <div className="space-y-4">
+          <ImageWithFallback 
+            src={AFRICAN_IMAGES.User[4]} 
+            alt="Transaction history" 
+            className="w-full h-32 rounded-lg object-cover"
+          />
+          <DataTable
+            columns={[
+              { key: 'date', label: 'Date' },
+              { key: 'material', label: 'Material' },
+              { key: 'quantity', label: 'Quantity' },
+              { key: 'amount', label: 'Amount (RWF)', render: (value) => value.toLocaleString() },
+              { key: 'buyer', label: 'Buyer' },
+              { key: 'status', label: 'Status', render: (value) => (
+                <span className={`px-2 py-1 rounded text-xs ${
+                  value === 'completed' ? 'bg-green-100 text-green-800' :
+                  'bg-yellow-100 text-yellow-800'
+                }`}>{value}</span>
+              )}
+            ]}
+            data={mockTransactions}
+          />
+        </div>
+      </DashboardWidget>
+
+      <ListingModal listing={selectedListing} isOpen={showListingModal} onClose={() => setShowListingModal(false)} />
     </div>
   );
 
-  const MarketplaceView = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-xl sm:text-2xl font-bold">Sustainable Marketplace</h2>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <input
-            type="text"
-            placeholder="Search sustainable products..."
-            className="px-4 py-2 border border-gray-300 rounded-lg w-full sm:w-64 text-sm sm:text-base"
-          />
-          <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm sm:text-base">
-            <option>All Categories</option>
-            <option>Home Decor</option>
-            <option>Fashion</option>
-            <option>Furniture</option>
-            <option>Art</option>
-          </select>
+  const MyListings = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">My Listings</h2>
+        <div className="flex gap-3">
+          <button className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
+            <Filter size={16} />
+            <span>Filter</span>
+          </button>
+          <button className="px-4 py-2 bg-green-600 text-white rounded-lg">
+            + New Listing
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-          <div key={item} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
-            <div className="h-48 relative">
-              <div className="w-full h-full bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center">
-                <img src="/images/kCEM_Logo.png" alt="Product" className="w-16 h-16 opacity-50" loading="lazy" />
-              </div>
-              <button className="absolute top-2 right-2 p-2 bg-white rounded-full shadow">
-                <Heart size={18} className="text-gray-400" />
-              </button>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total" value="24" icon={<Package className="text-gray-500" size={24} />} change="" />
+        <StatCard title="Active" value={stats.activeListings} icon={<TrendingUp className="text-green-500" size={24} />} change="" />
+        <StatCard title="Sold" value="18" icon={<CheckCircle className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Pending" value="3" icon={<Clock className="text-yellow-500" size={24} />} change="" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {mockListings.map((listing) => (
+          <div key={listing.id} className="bg-white border rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleViewListing(listing)}>
+            <ImageWithFallback 
+              src={AFRICAN_IMAGES.User[Math.floor(Math.random() * AFRICAN_IMAGES.User.length)]} 
+              alt={listing.material} 
+              className="w-full h-32 rounded-lg object-cover mb-3"
+            />
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="font-bold text-lg">{listing.material}</h3>
+              <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                listing.status === 'active' ? 'bg-green-100 text-green-800' :
+                listing.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-cyan-100 text-cyan-800'
+              }`}>
+                {listing.status}
+              </span>
             </div>
-            <div className="p-3 sm:p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-bold text-sm sm:text-base">Upcycled Product</h3>
-                  <p className="text-xs sm:text-sm text-gray-600">Eco Brand</p>
-                </div>
-                <div className="flex items-center">
-                  <Star className="text-yellow-400 fill-current" size={14} />
-                  <span className="ml-1 text-xs sm:text-sm">4.5</span>
-                </div>
-              </div>
-              <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">
-                Beautifully crafted from recycled materials, sustainable and eco-friendly.
-              </p>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <div>
-                  <p className="text-lg sm:text-2xl font-bold">RWF 15,000</p>
-                  <p className="text-xs sm:text-sm text-gray-600">+500 Green Points</p>
-                </div>
-                <button className="px-3 sm:px-4 py-1 sm:py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 text-xs sm:text-sm w-full sm:w-auto">
-                  Add to Cart
-                </button>
-              </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-600">Quantity:</span>
+              <span className="font-semibold">{listing.quantity}</span>
+            </div>
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-600">Views:</span>
+              <span className="font-semibold flex items-center">
+                <Eye size={14} className="mr-1" />
+                {listing.views}
+              </span>
+            </div>
+            <div className="flex justify-between items-center pt-3 border-t">
+              <span className="text-2xl font-bold text-green-600">RWF {listing.price.toLocaleString()}</span>
             </div>
           </div>
         ))}
       </div>
+
+      <ListingModal listing={selectedListing} isOpen={showListingModal} onClose={() => setShowListingModal(false)} />
     </div>
   );
 
-  const ImpactDashboard = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold">My Environmental Impact</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <StatCard title="Green Score" value={stats.greenScore} icon={<Leaf className="text-cyan-500" size={24} />} change="+5" />
-        <StatCard title="Total Impact" value={`${stats.totalImpact} kg`} icon={<Recycle className="text-blue-500" size={24} />} change="+12 kg" />
-        <StatCard title="CO₂ Saved" value={`${stats.co2Savings} kg`} icon={<Award className="text-purple-500" size={24} />} change="+45 kg" />
-        <StatCard title="Trees Equivalent" value={Math.round(stats.co2Savings/21)} icon={<Leaf className="text-cyan-500" size={24} />} change="+3" />
+  const Earnings = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Earnings & Transactions</h2>
+        <button className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Export</span>
+        </button>
       </div>
-      
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Earnings" value={`RWF ${stats.totalEarnings.toLocaleString()}`} icon={<DollarSign className="text-green-500" size={24} />} change="+18%" />
+        <StatCard title="This Month" value="RWF 35K" icon={<DollarSign className="text-emerald-500" size={24} />} change="+12%" />
+        <StatCard title="Pending" value="RWF 6K" icon={<Clock className="text-yellow-500" size={24} />} change="1 pending" />
+        <StatCard title="Completed" value="18" icon={<CheckCircle className="text-cyan-500" size={24} />} change="" />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardWidget title="Material Breakdown" icon={<Recycle size={20} />}>
+        <DashboardWidget title="Earnings Breakdown" icon={<DollarSign size={20} />}>
+          <ChartComponent type="bar" data={{
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+              data: [15000, 22000, 18000, 28000, 25000, 35000],
+              backgroundColor: '#10b981',
+            }]
+          }} />
+        </DashboardWidget>
+
+        <DashboardWidget title="Materials Sold" icon={<Package size={20} />}>
+          <ChartComponent type="bar" data={{
+            labels: ['Plastic', 'Glass', 'Paper', 'Metal'],
+            datasets: [{
+              data: [45, 30, 25, 15],
+              backgroundColor: '#10b981',
+            }]
+          }} />
+        </DashboardWidget>
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'id', label: 'ID' },
+          { key: 'date', label: 'Date' },
+          { key: 'material', label: 'Material' },
+          { key: 'quantity', label: 'Quantity' },
+          { key: 'amount', label: 'Amount (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'buyer', label: 'Buyer' },
+          { key: 'status', label: 'Status', render: (value) => (
+            <span className={`px-2 py-1 rounded text-xs ${
+              value === 'completed' ? 'bg-green-100 text-green-800' :
+              'bg-yellow-100 text-yellow-800'
+            }`}>{value}</span>
+          )}
+        ]}
+        data={mockTransactions}
+      />
+    </div>
+  );
+
+  const Impact = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Environmental Impact</h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="CO₂ Saved" value={`${stats.carbonSaved}kg`} icon={<Leaf className="text-green-500" size={24} />} change="+120kg" />
+        <StatCard title="Items Recycled" value={stats.itemsSold} icon={<Package className="text-emerald-500" size={24} />} change="+5" />
+        <StatCard title="Impact Points" value={stats.impactPoints} icon={<Award className="text-yellow-500" size={24} />} change="+95" />
+        <StatCard title="Badge Level" value="Gold" icon={<Award className="text-yellow-600" size={24} />} change="Level 3" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DashboardWidget title="Monthly Impact" icon={<Leaf size={20} />}>
+          <ChartComponent type="line" data={{
+            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+            datasets: [{
+              data: [65, 95, 120, 145, 180, 210],
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            }]
+          }} />
+        </DashboardWidget>
+
+        <DashboardWidget title="Impact Achievements" icon={<Award size={20} />}>
           <div className="space-y-4">
             {[
-              { material: 'Plastic', amount: '32kg', percent: 38, color: 'bg-cyan-600' },
-              { material: 'Glass', amount: '25kg', percent: 29, color: 'bg-blue-600' },
-              { material: 'Paper', amount: '18kg', percent: 21, color: 'bg-purple-600' },
-              { material: 'Metal', amount: '10kg', percent: 12, color: 'bg-orange-600' },
-            ].map((item, idx) => (
-              <div key={idx}>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">{item.material}</span>
-                  <span className="text-sm text-gray-600">{item.amount}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className={`${item.color} h-2 rounded-full`}
-                    style={{ width: `${item.percent}%` }}
-                  ></div>
+              { title: 'First Sale', desc: 'Made your first sale', points: 50, achieved: true },
+              { title: 'Carbon Hero', desc: 'Saved 500kg CO₂', points: 200, achieved: false },
+              { title: 'Recycling Master', desc: 'Sold 50 items', points: 300, achieved: false },
+              { title: 'Community Leader', desc: 'Referred 5 users', points: 150, achieved: true },
+            ].map((achievement, idx) => (
+              <div key={idx} className={`p-4 rounded-lg border-2 ${achievement.achieved ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <Award className={achievement.achieved ? 'text-green-600' : 'text-gray-400'} size={24} />
+                    <div>
+                      <p className="font-bold">{achievement.title}</p>
+                      <p className="text-sm text-gray-600">{achievement.desc}</p>
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${achievement.achieved ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                    {achievement.points} pts
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         </DashboardWidget>
+      </div>
+    </div>
+  );
 
-        <DashboardWidget title="Monthly Progress" icon={<TrendingUp size={20} />}>
-          <div className="space-y-4">
-            <div className="text-center py-4">
-              <div className="text-5xl font-bold text-cyan-600">85kg</div>
-              <p className="text-gray-600 mt-2">Waste diverted this month</p>
-              <p className="text-sm text-gray-500">15% more than last month</p>
-            </div>
-            <div className="p-4 bg-cyan-50 rounded-lg">
-              <p className="text-sm text-cyan-800">
-                <strong>Great job!</strong> You've saved approximately {stats.co2Savings}kg of CO₂ emissions this month. Keep it up!
-              </p>
+  const UserSettings = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Profile Settings</h2>
+        <button 
+          onClick={() => setShowSettingsModal(true)}
+          className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        >
+          <Settings size={20} />
+          <span>Edit Profile</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-lg border">
+          <h3 className="text-lg font-bold mb-4">Personal Information</h3>
+          <div className="flex justify-center mb-4">
+            <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
+              {userProfile.name.split(' ').map(n => n[0]).join('')}
             </div>
           </div>
-        </DashboardWidget>
-      </div>
-    </div>
-  );
-
-  const OrdersManagement = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold">My Orders</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <StatCard title="Total Orders" value="12" icon={<ShoppingCart className="text-cyan-500" size={24} />} change="+3 this month" />
-        <StatCard title="In Transit" value="2" icon={<Clock className="text-yellow-500" size={24} />} change="" />
-        <StatCard title="Delivered" value="10" icon={<CheckCircle className="text-cyan-500" size={24} />} change="+2" />
-        <StatCard title="Total Spent" value="RWF 45K" icon={<DollarSign className="text-purple-500" size={24} />} change="+8K" />
-      </div>
-      
-      <DashboardWidget title="Order History" icon={<ShoppingCart size={20} />}>
-        <div className="space-y-4">
-          {recentPurchases.map((purchase) => (
-            <div key={purchase.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:shadow-md transition-shadow gap-3">
-              <div className="flex items-start sm:items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
-                <div className="w-16 h-16 bg-gradient-to-br from-cyan-100 to-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <img src="/images/kCEM_Logo.png" alt={purchase.item} className="w-10 h-10 opacity-50" loading="lazy" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm sm:text-base">{purchase.item}</p>
-                  <p className="text-xs sm:text-sm text-gray-600">Sold by {purchase.seller}</p>
-                  <div className="flex flex-wrap items-center gap-2 mt-1">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      purchase.status === 'delivered' ? 'bg-cyan-100 text-cyan-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {purchase.status}
-                    </span>
-                    <span className="text-xs text-gray-500">{purchase.date}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="text-right w-full sm:w-auto">
-                <p className="text-lg sm:text-xl font-bold">RWF {purchase.price.toLocaleString()}</p>
-                <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2 mt-2">
-                  <button className="px-2 sm:px-3 py-1 border rounded text-xs sm:text-sm">Track</button>
-                  <button className="px-2 sm:px-3 py-1 bg-cyan-600 text-white rounded text-xs sm:text-sm">Reorder</button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </DashboardWidget>
-    </div>
-  );
-
-  const FinancialDashboard = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold">Financial Dashboard</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <StatCard title="Available Credits" value={`RWF ${stats.availableCredits.toLocaleString()}`} icon={<DollarSign className="text-cyan-500" size={24} />} change="+1000" />
-        <StatCard title="Green Points" value="2,450" icon={<Award className="text-purple-500" size={24} />} change="+250" />
-        <StatCard title="This Month" value="RWF 12K" icon={<TrendingUp className="text-blue-500" size={24} />} change="+15%" />
-        <StatCard title="Saved" value="RWF 3.5K" icon={<DollarSign className="text-cyan-500" size={24} />} change="+500" />
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DashboardWidget title="Transaction History" icon={<DollarSign size={20} />}>
           <div className="space-y-3">
-            {[
-              { date: '2024-02-10', description: 'Purchase - Recycled Glass', amount: -1500, type: 'debit' },
-              { date: '2024-02-08', description: 'Green Points Reward', amount: 250, type: 'credit' },
-              { date: '2024-02-05', description: 'Purchase - Bamboo Cutlery', amount: -3500, type: 'debit' },
-              { date: '2024-02-03', description: 'Referral Bonus', amount: 500, type: 'credit' },
-            ].map((txn, idx) => (
-              <div key={idx} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium">{txn.description}</p>
-                  <p className="text-sm text-gray-600">{txn.date}</p>
-                </div>
-                <span className={`font-bold ${txn.type === 'credit' ? 'text-cyan-600' : 'text-gray-900'}`}>
-                  {txn.type === 'credit' ? '+' : ''}{txn.amount.toLocaleString()} {txn.type === 'credit' ? 'pts' : 'RWF'}
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Full Name</span>
+              <span className="font-semibold">{userProfile.name}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Email</span>
+              <span className="font-semibold">{userProfile.email}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Phone</span>
+              <span className="font-semibold">{userProfile.phone}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Address</span>
+              <span className="font-semibold text-right">{userProfile.address}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Member Since</span>
+              <span className="font-semibold">{userProfile.memberSince}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="bg-white p-6 rounded-lg border">
+            <h3 className="text-lg font-bold mb-4">Account Status</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                <span className="text-sm font-medium">Verification Status</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${userProfile.verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  {userProfile.verified ? 'Verified' : 'Pending'}
                 </span>
               </div>
-            ))}
+              <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                <span className="text-sm font-medium">Badge Level</span>
+                <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold">
+                  Gold Member
+                </span>
+              </div>
+            </div>
           </div>
-        </DashboardWidget>
 
-        <DashboardWidget title="Payment Methods" icon={<DollarSign size={20} />}>
-          <div className="space-y-4">
-            <div className="p-4 border rounded-lg">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="font-medium">Mobile Money</p>
-                  <p className="text-sm text-gray-600">**** **** 5678</p>
-                </div>
-                <span className="px-2 py-1 bg-cyan-100 text-cyan-800 text-xs rounded">Primary</span>
-              </div>
-              <div className="flex space-x-2 mt-3">
-                <button className="px-3 py-1 border rounded text-sm">Edit</button>
-                <button className="px-3 py-1 text-red-600 border border-red-600 rounded text-sm">Remove</button>
-              </div>
+          <div className="bg-white p-6 rounded-lg border">
+            <h3 className="text-lg font-bold mb-4">Preferred Categories</h3>
+            <div className="flex flex-wrap gap-2">
+              {userProfile.preferredCategories.map((cat, idx) => (
+                <span key={idx} className="px-3 py-2 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
+                  {cat}
+                </span>
+              ))}
             </div>
-            <button className="w-full p-3 border-2 border-dashed rounded-lg text-cyan-600 hover:bg-cyan-50">
-              + Add Payment Method
-            </button>
           </div>
-        </DashboardWidget>
-      </div>
-    </div>
-  );
 
-  const Settings = () => (
-    <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold">Account Settings</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <div className="bg-white p-4 sm:p-6 rounded-lg border">
-          <h3 className="text-lg font-bold mb-4">Profile Information</h3>
-          <form className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Full Name</label>
-              <input type="text" defaultValue="Jane Doe" className="w-full p-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
-              <input type="email" defaultValue="jane@example.com" className="w-full p-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Phone</label>
-              <input type="tel" defaultValue="+250 788 123 456" className="w-full p-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Location</label>
-              <input type="text" defaultValue="Kigali, Rwanda" className="w-full p-2 border rounded-lg" />
-            </div>
-            <button type="submit" className="w-full p-3 bg-cyan-600 text-white rounded-lg">Save Changes</button>
-          </form>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg border">
-          <h3 className="text-lg font-bold mb-4">Preferences</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Language</label>
-              <select className="w-full p-2 border rounded-lg">
-                <option>English</option>
-                <option>Kinyarwanda</option>
-                <option>French</option>
-              </select>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-medium mb-3">Notifications</h4>
-              <div className="space-y-2">
-                {['Email notifications', 'SMS alerts', 'Push notifications', 'Marketing emails'].map((item, idx) => (
-                  <label key={idx} className="flex items-center space-x-3">
-                    <input type="checkbox" defaultChecked={idx < 3} className="w-4 h-4" />
-                    <span className="text-sm">{item}</span>
-                  </label>
-                ))}
+          <div className="bg-white p-6 rounded-lg border">
+            <h3 className="text-lg font-bold mb-4">Notifications</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Sales Notifications</span>
+                <span className={`px-2 py-1 rounded text-xs ${userProfile.receiveNotifications ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                  {userProfile.receiveNotifications ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Price Alerts</span>
+                <span className={`px-2 py-1 rounded text-xs ${userProfile.priceAlerts ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                  {userProfile.priceAlerts ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm">Sustainability Tips</span>
+                <span className={`px-2 py-1 rounded text-xs ${userProfile.sustainabilityTips ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                  {userProfile.sustainabilityTips ? 'Enabled' : 'Disabled'}
+                </span>
               </div>
             </div>
-
-            <div className="pt-4 border-t">
-              <h4 className="text-sm font-medium mb-3">Privacy</h4>
-              <div className="space-y-2">
-                {['Share impact publicly', 'Show in leaderboard', 'Allow seller contact'].map((item, idx) => (
-                  <label key={idx} className="flex items-center space-x-3">
-                    <input type="checkbox" defaultChecked={idx !== 2} className="w-4 h-4" />
-                    <span className="text-sm">{item}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            <button className="w-full p-3 bg-cyan-600 text-white rounded-lg">Update Preferences</button>
           </div>
         </div>
       </div>
+
+      <SettingsModal isOpen={showSettingsModal} onClose={() => setShowSettingsModal(false)} />
     </div>
   );
 
@@ -496,11 +735,10 @@ const UserDashboard = () => {
     <Routes>
       <Route index element={<Overview />} />
       <Route path="overview" element={<Overview />} />
-      <Route path="marketplace" element={<MarketplaceView />} />
-      <Route path="impact" element={<ImpactDashboard />} />
-      <Route path="orders" element={<OrdersManagement />} />
-      <Route path="financial" element={<FinancialDashboard />} />
-      <Route path="settings" element={<Settings />} />
+      <Route path="listings" element={<MyListings />} />
+      <Route path="earnings" element={<Earnings />} />
+      <Route path="impact" element={<Impact />} />
+      <Route path="settings" element={<UserSettings />} />
     </Routes>
   );
 };

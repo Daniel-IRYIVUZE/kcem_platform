@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Mail, ShieldCheck, Lock, ChevronLeft, ArrowRight, RefreshCw, Check, Eye, EyeOff, Key, Timer, Home } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Mail, ShieldCheck, Lock, ArrowRight, RefreshCw, Check, Eye, EyeOff, Key, Timer, Home } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ForgotPassword = () => {

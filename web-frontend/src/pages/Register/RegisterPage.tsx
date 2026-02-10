@@ -20,16 +20,7 @@ import {
   Phone,
   UserPlus,
   Home,
-  Factory,
-  Store,
   Coffee,
-  Building,
-  Users,
-  Calendar,
-  CreditCard,
-  Bell,
-  Settings,
-  LogOut,
   AlertCircle,
   Camera
 } from 'lucide-react';
