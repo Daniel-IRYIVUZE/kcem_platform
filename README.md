@@ -11,6 +11,8 @@ EcoTrade  is a digital platform connecting waste generators (hotels, restaurants
 - Green Score Certification and Impact Analytics
 - Logistics Management and Route Optimization
 - Financial Tracking and Transaction History
+- Role-based Settings pages with editable profiles
+- Actionable dashboard controls (filters, exports, status toggles)
 - CO2 Savings Calculator
 
 ### Technology Stack
@@ -24,7 +26,7 @@ EcoTrade  is a digital platform connecting waste generators (hotels, restaurants
 ## Links
 
 - GitHub Repository: https://github.com/Daniel-IRYIVUZE/kcem_platform.git
-- Live Demo: https://kcem-platform.netlify.app
+- Live Demo: https://ecotrade-rwanda.netlify.app
 - Demo Video: https://youtu.be/
 
 ## Setup Instructions
@@ -61,7 +63,8 @@ kcem_platform/
 └── web-frontend/
     ├── public/
     │   ├── images/
-    │   │   └── EcoTrade.png
+    │   │   ├── EcoTrade.png
+    │   │   └── EcoTrade1.png
     ├── src/
     │   ├── assets/
     │   │   ├── images/
@@ -108,7 +111,7 @@ npm run build
 netlify deploy --prod
 ```
 
-Live URL: https://kcem-platform.netlify.app
+Live URL: https://ecotrade-rwanda.netlify.app
 
 ## License
 
@@ -117,5 +120,5 @@ MIT License - see LICENSE file for details.
 ## Contact
 
 - Email: support@kcem.rw
-- Website: https://kcem-platform.netlify.app
+- Website: https://ecotrade-rwanda.netlify.app
 - Demo Video: https://youtu.be/

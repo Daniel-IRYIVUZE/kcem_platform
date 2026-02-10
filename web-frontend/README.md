@@ -26,7 +26,7 @@ npm run preview
 ### Access
 
 - Development: http://localhost:5173
-- Production: https://kcem-platform.netlify.app
+- Production: https://ecotrade-rwanda.netlify.app
 - Demo Video: https://youtu.be/
 
 ## Demo Login Credentials
@@ -113,37 +113,46 @@ web-frontend/
 - Analytics & Reports
 - System Configuration
 
-### Business Dashboard (7 Pages)
+### Business Dashboard (10 Pages)
 - Overview
 - Waste Listings
-- Create Listing
 - Marketplace
 - Financial Dashboard
 - Schedule & Pickups
+- Green Score
 - Reports
+- Transactions
+- Analytics
+- Settings
 
-### Recycler Dashboard (6 Pages)
+### Recycler Dashboard (9 Pages)
 - Overview
 - Marketplace
 - Logistics Management
 - Inventory
 - Financial Dashboard
 - Supplier Network
+- Purchases
+- Analytics
+- Settings
 
-### Driver Dashboard (6 Pages)
+### Driver Dashboard (8 Pages)
 - Today's Schedule
 - Assigned Routes
 - Collections History
 - Earnings Dashboard
 - Vehicle & Equipment
 - Offline Mode
+- Settings
 
-### Individual Dashboard (6 Pages)
+### Individual Dashboard (8 Pages)
 - Overview
 - Marketplace
 - My Impact
 - Orders Management
 - Financial Dashboard
+- Listings
+- Earnings
 - Settings
 
 ## Development Scripts
@@ -171,7 +180,7 @@ npm run build
 netlify deploy --prod
 ```
 
-Live URL: https://kcem-platform.netlify.app
+Live URL: https://ecotrade-rwanda.netlify.app
 
 ## Responsive Design
 
@@ -187,11 +196,12 @@ Tested on iPhone SE, iPad, and desktop screens.
 - Role-based authentication
 - Protected routes
 - Responsive design (320px - 1920px+)
-- Enhanced modals with creative UI
+- Enhanced modals with configurable overlays
 - Data tables with sorting
 - Charts and analytics
 - Form validation
-- Image placeholders
+- Material-specific imagery per listing type
+- CSV exports and filter actions
 
 ## License
 
@@ -200,5 +210,5 @@ MIT License - see LICENSE file
 ## Support
 
 - Email: support@kcem.rw
-- Website: https://kcem-platform.netlify.app
+- Website: https://ecotrade-rwanda.netlify.app
 - Demo Video: https://youtu.be/
