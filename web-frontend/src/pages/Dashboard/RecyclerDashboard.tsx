@@ -15,12 +15,12 @@ import ChartComponent from '../../components/dashboard/ChartComponent';
 // Real Rwanda recycling facility images
 const AFRICAN_IMAGES = {
   recycler: [
-    'https://images.unsplash.com/photo-1532996122724-8f3c58d4d0df?w=500&h=300&fit=crop', // Recycling center
-    'https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=500&h=300&fit=crop', // Waste sorting
-    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=500&h=300&fit=crop', // Green materials
-    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500&h=300&fit=crop', // Processing
-    'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=500&h=300&fit=crop', // Environment
-    'https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=300&fit=crop'  // Community
+    'https://e4impact.org/wp-content/uploads/2025/02/Waste-Mngm-Circular-Economy_E4Imapct-9.jpg', // Recycling center
+    'https://scx2.b-cdn.net/gfx/news/2018/africassolid.jpg', // Sorted waste materials
+    'ggghg', // Material processing
+    'https://africaclimateinsights.org/wp-content/uploads/UNEP-Plastics.jpeg', // Plastic processing
+    'https://www.sesotec.com/sites/593fc2aac25e5b0640a20ff8/content_entry59e75c78ffe9ecdb05f0bdf9/5ad6e089ffe9ec3d5c8afc73/files/glasrecycling.jpg?1652433055', // Glass sorting
+    'https://forestry.co.za/wp-content/uploads/2022/05/March-2022-Fibre-Circle-Recycling_1.jpg'  // Paper bales recycling
   ]
 };
 
@@ -68,6 +68,17 @@ const RecyclerDashboard = () => {
     monthlyReports: true,
     preferredMaterials: ['UCO', 'Plastic', 'Glass']
   });
+
+  // Map material types to specific images
+  const getMaterialImage = (material: string) => {
+    const materialMap: { [key: string]: string } = {
+      'UCO': 'https://wastedirect.co.uk/wp-content/uploads/2025/04/vegetable-oil.jpg',
+      'Glass': 'https://media.istockphoto.com/id/968977066/photo/background-of-recycle-pieces-of-broken-glass.jpg?s=612x612&w=0&k=20&c=zzvwqz1zxhehi7ohJ_CAXoCcKEWoO4KBWrK-fOlENb0=',
+      'Paper': 'https://essextubes.com/wp-content/uploads/2022/09/Why-is-cardboard-waste-a-problem-featured.webp',
+      'Plastic': 'https://www.azocleantech.com/images/Article_Images/ImageForArticle_913(1).jpg',
+    };
+    return materialMap[material] || AFRICAN_IMAGES.recycler[0];
+  };
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showListingModal, setShowListingModal] = useState(false);
@@ -128,7 +139,7 @@ const RecyclerDashboard = () => {
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+      <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
         <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
@@ -285,58 +296,62 @@ const RecyclerDashboard = () => {
     if (!isOpen || !listing) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
-        <div className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold">Material Details</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+      <div className="fixed inset-0 bg-cyan/650 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+        <div className="bg-white/90 backdrop-blur-md rounded-2xl max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="relative">
+            <ImageWithFallback 
+              src={getMaterialImage(listing.material)} 
+              alt={listing.material} 
+              className="w-full h-64 object-cover"
+            />
+            <button onClick={onClose} className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">
               <X size={24} />
             </button>
           </div>
 
-          <div className="space-y-4">
-            <ImageWithFallback 
-              src={AFRICAN_IMAGES.recycler[1]} 
-              alt="Material preview" 
-              className="w-full h-48 rounded-lg object-cover"
-            />
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-3xl font-bold text-cyan-600">{listing.material}</h3>
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                listing.quality === 'High' ? 'bg-green-100 text-green-800' :
+                listing.quality === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-orange-100 text-orange-800'
+              }`}>
+                {listing.quality} Quality
+              </span>
+            </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gradient-to-br from-cyan-50 to-cyan-50 rounded-xl">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl">
               <div>
                 <p className="text-sm text-gray-600">Seller</p>
                 <p className="text-lg font-bold text-cyan-600">{listing.seller}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Material</p>
-                <p className="text-lg font-bold text-cyan-600">{listing.material}</p>
-              </div>
-              <div>
                 <p className="text-sm text-gray-600">Quantity</p>
-                <p className="text-lg font-bold">{listing.quantity}</p>
+                <p className="text-lg font-bold text-cyan-600">{listing.quantity}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Price</p>
+                <p className="text-sm text-gray-600">Price/Unit</p>
                 <p className="text-lg font-bold">RWF {listing.price.toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Location</p>
                 <p className="text-lg font-bold">{listing.location}</p>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Quality</p>
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={16} className={i < (listing.quality === 'High' ? 5 : 3) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
-                  ))}
-                </div>
-              </div>
             </div>
 
             <div className="p-4 bg-cyan-50 border border-cyan-200 rounded-lg">
-              <h4 className="font-semibold text-cyan-900 mb-2">Material Description</h4>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-cyan-900">Quality Rating</h4>
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} size={18} className={i < (listing.quality === 'High' ? 5 : 3) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
+                  ))}
+                </div>
+              </div>
               <p className="text-sm text-cyan-800">
                 Quality {listing.quality.toLowerCase()} {listing.material} available for immediate pickup. 
-                Verified by platform. Location: {listing.location}.
+                Verified supplier at {listing.location}.
               </p>
             </div>
 
@@ -482,7 +497,7 @@ const RecyclerDashboard = () => {
         {mockMarketplace.map((listing) => (
           <div key={listing.id} className="bg-white border rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleViewListing(listing)}>
             <ImageWithFallback 
-              src={AFRICAN_IMAGES.recycler[Math.floor(Math.random() * AFRICAN_IMAGES.recycler.length)]} 
+              src={getMaterialImage(listing.material)} 
               alt={listing.material} 
               className="w-full h-32 rounded-lg object-cover mb-3"
             />

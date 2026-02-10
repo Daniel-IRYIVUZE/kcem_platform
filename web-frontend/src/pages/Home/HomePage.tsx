@@ -291,7 +291,7 @@ const HomePage = () => {
                 title="Used Cooking Oil"
                 subtitle="Transforms to Biodiesel"
                 price="Rwf 800-1,200 per liter"
-                image="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&q=80&w=1470"
+                image="https://iamhomesteader.com/wp-content/uploads/2022/05/oil-1.jpg"
                 stats={[
                   { label: "Biodiesel Potential", value: "90%" },
                   { label: "Carbon Reduction", value: "85%" }
@@ -303,7 +303,7 @@ const HomePage = () => {
                 title="Glass Bottles"
                 subtitle="Infinite Recycling Value"
                 price="Rwf 150-300 per kg"
-                image="https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?auto=format&fit=crop&q=80&w=1471"
+                image="https://www.glassonline.com/wp-content/uploads/2021/08/GreenGlass-01.jpg"
                 stats={[
                   { label: "Recyclable", value: "100%" },
                   { label: "Energy Saved", value: "30%" }
@@ -315,7 +315,7 @@ const HomePage = () => {
                 title="Paper & Cardboard"
                 subtitle="Sustainable Packaging"
                 price="Rwf 50-150 per kg"
-                image="https://images.unsplash.com/photo-1560472354-b33ff0c44a43?auto=format&fit=crop&q=80&w=1450"
+                image="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeGAzOgMStWD9RTDxw2IzxADu7_vdetnwDaA&s"
                 stats={[
                   { label: "Water Saved", value: "60%" },
                   { label: "Trees Saved", value: "17" }

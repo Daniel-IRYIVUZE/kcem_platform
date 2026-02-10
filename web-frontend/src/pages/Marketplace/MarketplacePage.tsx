@@ -96,9 +96,9 @@ const MarketplacePage = () => {
       posted: '2 hours ago',
       postedDate: '2024-02-10 09:30',
       images: [
-        'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600',
-        'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600'
+        'https://www.cookers.com.au/uploads/Used_Cooking_Oil_Image_ac8436bc79.webp', // Waste/oil collection
+        'https://www.oliveoilandbeyond.com/v/vspfiles/assets/images/iStock-514730493.jpg', // Oil processing
+        'https://media.istockphoto.com/id/1325836067/photo/used-oil-bottles.jpg?s=612x612&w=0&k=20&c=dm4WGdpr6zoujl2EoehJeH0Mnrfr5YqMNjoTC8xiKZg=' // Sorted waste
       ],
       tags: ['Weekly Collection', 'Filtered', 'Biodiesel Ready', '3-Stage Filtration', 'Food Grade'],
       contact: {
@@ -143,9 +143,9 @@ const MarketplacePage = () => {
       posted: '5 hours ago',
       postedDate: '2024-02-10 06:45',
       images: [
-        'https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600',
-        'https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600'
+        'https://recyclinginside.com/wp-content/uploads/2021/11/Harsco_LCL_Waste_Glass.jpeg', // Glass bottles
+        'https://meyer-corp.eu/wp-content/uploads/2026/02/sorting-glass-1024x606.webp', // Sorted glass
+        'https://cdn.shopify.com/s/files/1/0724/0725/3308/files/Glass_Containers.webp' // Recycling facility
       ],
       tags: ['Color Sorted', 'Clean', 'Bulk Available', 'Washed', 'Sanitized'],
       contact: {
@@ -190,9 +190,9 @@ const MarketplacePage = () => {
       posted: '1 day ago',
       postedDate: '2024-02-09 14:20',
       images: [
-        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600',
-        'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600'
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQf5MgVto6CLIqQFdY4hP9mMGkiMr7AH-kMXg&s', // Paper/cardboard bales
+        'https://www.wastepaperbrokers.com/wp-content/uploads/2022/03/Sorted-Residential-Papers-waste.jpg', // Sorted waste
+        'https://www.packaging-gateway.com/wp-content/uploads/sites/16/2017/09/3-image-22.jpg' // Recycling center
       ],
       tags: ['Flattened', 'Bundled', 'Weekly', 'Dry Storage', 'Clean'],
       contact: {
@@ -237,9 +237,9 @@ const MarketplacePage = () => {
       posted: '2 days ago',
       postedDate: '2024-02-08 11:15',
       images: [
-        'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600',
-        'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600'
+        'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTrWSxHUoTB4_K9BPKPrAymA2fX5cllIuMPiA&s',
+        'https://img.yfisher.com/m0/1753692000813-38dbb6fd5266d01621f58871de2a9d0a34fa358c/jpg70-t3-scale100.webp',
+        'https://corporate.dow.com/content/dam/images/public-images/corporate/seek-together/mr-green-africa-960x500.jpg'
       ],
       tags: ['PET Only', 'Washed', 'Sorted', 'Sanitized', 'Crushed'],
       contact: {
@@ -284,9 +284,9 @@ const MarketplacePage = () => {
       posted: '3 days ago',
       postedDate: '2024-02-07 16:40',
       images: [
-        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600',
-        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600'
+        'https://b2486448.smushcdn.com/2486448/wp-content/uploads/2023/08/Scrap-metal-recycling.jpg?lossy=2&strip=1&webp=1',
+        'https://scx2.b-cdn.net/gfx/news/2022/theres-money-in-trash.jpg',
+        'https://th-thumbnailer.cdn-si-edu.com/c6PY7rBR-hvBQJBVO95YyCcjTUE=/fit-in/1072x0/https://tf-cmsv2-smithsonianmag-media.s3.amazonaws.com/filer/ba/aa/baaac2c9-36bc-43eb-a8ac-07e6475f1f9c/04.jpg'
       ],
       tags: ['Aluminum', 'Crushed', 'Event Waste', 'Clean', 'High Volume'],
       contact: {
@@ -331,9 +331,9 @@ const MarketplacePage = () => {
       posted: '4 days ago',
       postedDate: '2024-02-06 08:20',
       images: [
-        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600',
-        'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=800&q=80&fit=crop&w=800&h=600'
+        'https://www.expadd.org/wp-content/uploads/2022/10/TOF-001.jpg',
+        'https://www.fao.org/images/faonearestlibraries/actionareas/female-workers-sorting-the-waste-into-different-categories.jpg?sfvrsn=ac5ef81f_5',
+        'https://www.urbanfarms.co.za/wp-content/uploads/elementor/thumbs/farm_offload_2-scaled-p552j0kekwpxch05bg9m363uzd1af9c5hx9cloygeg.jpg'
       ],
       tags: ['Food Waste', 'Separated', 'Compost', 'Daily', 'Organic'],
       contact: {

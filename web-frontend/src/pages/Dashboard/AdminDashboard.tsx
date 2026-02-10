@@ -16,12 +16,12 @@ import ChartComponent from '../../components/dashboard/ChartComponent';
 // African waste/recycling image URLs - Admin focus
 const AFRICAN_IMAGES = {
   dashboard: [
-    'https://images.unsplash.com/photo-1532996122724-8f3c58d4d0df?w=500&h=300&fit=crop', // Recycling center
-    'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=500&h=300&fit=crop', // Dashboard analytics
-    'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=500&h=300&fit=crop', // Environmental protection
-    'https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=300&fit=crop', // African community
-    'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=500&h=300&fit=crop', // Data visualization
-    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=500&h=300&fit=crop'  // Green sustainability
+    'https://media.cnn.com/api/v1/images/stellar/prod/210224141035-01-rwanda-africa-electronic-waste.jpg?q=w_1600,h_904,x_0,y_0,c_fill', // Recycling center operations
+    'https://www.topafricanews.com/wp-content/uploads/2022/08/workers-sort-garbage-at-nduba-dump-site-in-muremure-cell-nduba-sector-in-gasabo-district-file.jpg', // Waste sorting facility
+    'https://i.ytimg.com/vi/q16F_GdN4WQ/maxresdefault.jpg', // Waste collection
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500&h=300&fit=crop', // Material processing
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6014dpFP_zXy1fmZ2bghh0TJo0Wk_ZrsLxA&s', // Glass recycling facility
+    'https://crosswrap.com/wp-content/uploads/2025/11/Paper_bales.webp'  // Paper bales recycling
   ]
 };
 
@@ -267,7 +267,7 @@ const AdminDashboard = () => {
       </DashboardWidget>
       {/* Optionally, you can show the modal here if you want it to appear on Overview as well */}
       {showEditModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={() => setShowEditModal(false)}>
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 sm:p-6" onClick={() => setShowEditModal(false)}>
           <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-2xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
             <div className="flex items-center justify-between mb-6">
@@ -447,7 +447,7 @@ const AdminDashboard = () => {
         </div>
         
         {showEditModal && selectedUser && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={() => setShowEditModal(false)}>
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 sm:p-6" onClick={() => setShowEditModal(false)}>
             <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-2xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
               {/* Modal Header */}
               <div className="flex items-center justify-between mb-6">

@@ -15,12 +15,12 @@ import ChartComponent from '../../components/dashboard/ChartComponent';
 // Real Rwanda HORECA & business images
 const AFRICAN_IMAGES = {
   business: [
-    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&h=300&fit=crop', // Restaurant
-    'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=500&h=300&fit=crop', // Hotel
-    'https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=500&h=300&fit=crop', // Waste management
-    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=500&h=300&fit=crop', // Sustainability
-    'https://images.unsplash.com/photo-1532996122724-8f3c58d4d0df?w=500&h=300&fit=crop', // Recycling
-    'https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=300&fit=crop'  // Community
+    'https://qsvenolia.com/wp-content/uploads/2025/01/used-cooking-oil.jpg', // UCO/cooking oil waste
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7euyAkb89Gbe8Utr_O_9Gd5dkPjaOZZxugg&s', // Glass bottles from restaurants
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS7EolrBK6coZtN7Jx5nLIupLGwepaT7LJM6g&s', // Paper/cardboard waste
+    'https://www.newtimes.co.rw/uploads/imported_images/files/main/articles/2019/02/05/web-food-waste-getty.jpg', // Food waste sorting
+    'https://abdas.org/wp-content/uploads/2020/08/Rwanda-turns-plastic-into-construction-material.jpg', // Plastic bottles from business
+    'https://www.ktpress.rw/wp-content/uploads/2023/06/Single-Use-Plastics-2-1.jpg'  // Glass waste collection
   ]
 };
 
@@ -144,7 +144,7 @@ const BusinessDashboard = () => {
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
         <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
@@ -276,39 +276,44 @@ const BusinessDashboard = () => {
     if (!isOpen || !listing) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
-        <div className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold">Listing Details</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+        <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="relative">
+            <ImageWithFallback 
+              src={AFRICAN_IMAGES.business[Math.floor(Math.random() * AFRICAN_IMAGES.business.length)]} 
+              alt={listing.material} 
+              className="w-full h-64 object-cover"
+            />
+            <button onClick={onClose} className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">
               <X size={24} />
             </button>
           </div>
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gradient-to-br from-green-50 to-cyan-50 rounded-xl">
-              <div>
-                <p className="text-sm text-gray-600">Material</p>
-                <p className="text-xl font-bold text-green-600">{listing.material}</p>
-              </div>
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-3xl font-bold text-green-600">{listing.material}</h3>
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                listing.status === 'active' ? 'bg-green-100 text-green-800' :
+                listing.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                listing.status === 'sold' ? 'bg-cyan-100 text-cyan-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {listing.status}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-gradient-to-br from-green-50 to-cyan-50 rounded-xl">
               <div>
                 <p className="text-sm text-gray-600">Quantity</p>
-                <p className="text-xl font-bold text-cyan-600">{listing.quantity}</p>
+                <p className="text-lg font-bold text-cyan-600">{listing.quantity}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Price</p>
-                <p className="text-xl font-bold">RWF {listing.price.toLocaleString()}</p>
+                <p className="text-lg font-bold text-green-600">RWF {listing.price.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Status</p>
-                <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                  listing.status === 'active' ? 'bg-green-100 text-green-800' :
-                  listing.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                  listing.status === 'sold' ? 'bg-cyan-100 text-cyan-800' :
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {listing.status}
-                </span>
+                <p className="text-sm text-gray-600">Date Listed</p>
+                <p className="text-lg font-bold">{listing.date}</p>
               </div>
             </div>
 
@@ -318,11 +323,16 @@ const BusinessDashboard = () => {
               </div>
             )}
 
+            <div className="border-t border-gray-200 pt-4">
+              <p className="text-sm text-gray-600 mb-2">Material Details</p>
+              <p className="text-gray-700">High quality {listing.material.toLowerCase()} waste from our operations. Ready for pickup and processing.</p>
+            </div>
+
             <div className="flex gap-3">
-              <button onClick={() => alert('Edit listing')} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+              <button onClick={() => alert('Edit listing')} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition">
                 Edit Listing
               </button>
-              <button onClick={() => alert('Delete listing')} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
+              <button onClick={() => alert('Delete listing')} className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition">
                 Delete
               </button>
             </div>

@@ -14,12 +14,12 @@ import DataTable from '../../components/dashboard/DataTable';
 // Real Rwanda transportation/logistics images
 const AFRICAN_IMAGES = {
   logistics: [
-    'https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=500&h=300&fit=crop', // Truck/transport
-    'https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=500&h=300&fit=crop', // Delivery
-    'https://images.unsplash.com/photo-1566576721346-d4a3b4eaeb55?w=500&h=300&fit=crop', // Road/route
-    'https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=500&h=300&fit=crop', // Waste collection
-    'https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=300&fit=crop', // Community
-    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=500&h=300&fit=crop'  // Green logistics
+    'https://media.istockphoto.com/id/115027730/photo/recycling-truck.jpg?s=612x612&w=0&k=20&c=0Sv_BpHWN2Ip7MGCkKHbE1OrX_dkbCDr_9l5_LxosCY=', // Waste collection truck
+    'https://media.istockphoto.com/id/1201019473/photo/loading-waste-paper-into-the-truck.jpg?s=612x612&w=0&k=20&c=YiMa6sl1Qf_z53ZGBfZTxCnwlDuxSTzaqMrdMn8fBek=', // Loading waste
+    'https://i0.wp.com/www.ecomena.org/wp-content/uploads/2013/05/reverse-logistics.jpg', // Waste management logistics
+    'https://www.newtimes.co.rw/thenewtimes/uploads/images/2024/05/13/47821.jpg', // Waste collection
+    'https://www.wealthywaste.com/wp-content/uploads/2022/08/PWM-NOTE.jpg', // Plastic waste collection
+    'https://cm-today.com/uploads/docs/Tadweer_wrmea%20(1).jpg'  // Sorted waste transport
   ]
 };
 
@@ -150,7 +150,7 @@ const DriverDashboard = () => {
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
         <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">

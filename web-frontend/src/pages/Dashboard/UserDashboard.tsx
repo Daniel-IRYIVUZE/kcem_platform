@@ -14,12 +14,12 @@ import ChartComponent from '../../components/dashboard/ChartComponent';
 // Real Rwanda User/household recycling images
 const AFRICAN_IMAGES = {
   User: [
-    'https://images.unsplash.com/photo-1532996122724-8f3c58d4d0df?w=500&h=300&fit=crop', // Recycling
-    'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=500&h=300&fit=crop', // Household items
-    'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=500&h=300&fit=crop', // Green living
-    'https://images.unsplash.com/photo-1559027615-cd2628902d4a?w=500&h=300&fit=crop', // Waste sorting
-    'https://images.unsplash.com/photo-1552664730-d307ca884978?w=500&h=300&fit=crop', // Community
-    'https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=500&h=300&fit=crop'  // Environment
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRqScraHdFZmy2CWN8VRThG5j4qq0EArefqZA&s', // Plastic bottles recycling
+    'https://www.nepad.org/sites/default/files/styles/521_800/public/2021-07/Blog%2028_waste%20materials_banner%20image.jpg?itok=L5zTrKjJ', // Sorted waste/recycling
+    'https://cm-today.com/uploads/docs/africa%20waste.jpg', // Waste collection
+    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTrWSxHUoTB4_K9BPKPrAymA2fX5cllIuMPiA&s', // Plastic waste
+    'https://www.sesotec.com/sites/593fc2aac25e5b0640a20ff8/content_entry5996a921c25e5b2c7874b55f/62e7780f93b356e2d5dc230b/files/glas-behaelter-recycling.jpg', // Glass bottles
+    'https://ewasa.org/wp-content/uploads/2025/07/picture-waste-paper-recycle-white-background-scaled.jpg'  // Paper cardboard
   ]
 };
 
@@ -138,7 +138,7 @@ const UserDashboard = () => {
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
         <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
@@ -289,34 +289,37 @@ const UserDashboard = () => {
     if (!isOpen || !listing) return null;
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
-        <div className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-bold">Listing Details</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+      <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
+        <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="relative">
+            <ImageWithFallback 
+              src={AFRICAN_IMAGES.User[Math.floor(Math.random() * AFRICAN_IMAGES.User.length)]} 
+              alt="Item preview" 
+              className="w-full h-64 rounded-lg object-cover"
+            />
+            <button onClick={onClose} className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">
               <X size={24} />
             </button>
           </div>
 
-          <div className="space-y-4">
-            <ImageWithFallback 
-              src={AFRICAN_IMAGES.User[1]} 
-              alt="Item preview" 
-              className="w-full h-48 rounded-lg object-cover"
-            />
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-3xl font-bold text-green-600">{listing.material}</h3>
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                listing.status === 'active' ? 'bg-green-100 text-green-800' :
+                listing.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-cyan-100 text-cyan-800'
+              }`}>{listing.status}</span>
+            </div>
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
-              <div>
-                <p className="text-sm text-gray-600">Material</p>
-                <p className="text-lg font-bold text-green-600">{listing.material}</p>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
               <div>
                 <p className="text-sm text-gray-600">Quantity</p>
                 <p className="text-lg font-bold text-emerald-600">{listing.quantity}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Price</p>
-                <p className="text-lg font-bold">RWF {listing.price.toLocaleString()}</p>
+                <p className="text-lg font-bold text-green-600">RWF {listing.price.toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Views</p>
@@ -325,22 +328,22 @@ const UserDashboard = () => {
                   {listing.views}
                 </p>
               </div>
+              <div>
+                <p className="text-sm text-gray-600">Listed</p>
+                <p className="text-lg font-bold">{listing.date}</p>
+              </div>
             </div>
 
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm font-semibold text-green-900">Status: <span className={`px-2 py-1 rounded ${
-                listing.status === 'active' ? 'bg-green-100 text-green-800' :
-                listing.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                'bg-cyan-100 text-cyan-800'
-              }`}>{listing.status}</span></p>
-              <p className="text-sm text-green-800 mt-2">Listed on: {listing.date}</p>
+            <div className="border-t border-gray-200 pt-4">
+              <p className="text-sm text-gray-600 mb-2">Description</p>
+              <p className="text-gray-700">High quality {listing.material.toLowerCase()} available for immediate collection. Properly sorted and ready for processing.</p>
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => { alert('Edit listing'); onClose(); }} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+              <button onClick={() => { alert('Edit listing'); onClose(); }} className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold transition">
                 Edit Listing
               </button>
-              <button onClick={() => { alert('Delete listing'); onClose(); }} className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold">
+              <button onClick={() => { alert('Delete listing'); onClose(); }} className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold transition">
                 Delete
               </button>
             </div>
