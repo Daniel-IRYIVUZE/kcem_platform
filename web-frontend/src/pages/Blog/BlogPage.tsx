@@ -411,7 +411,7 @@ const BlogPage = () => {
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => handleShare('facebook')}
-                      className="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+                      className="w-10 h-10 bg-cyan-600 text-white rounded-lg flex items-center justify-center hover:bg-cyan-700 transition-colors"
                       aria-label="Share on Facebook"
                     >
                       <Facebook size={18} />
@@ -425,7 +425,7 @@ const BlogPage = () => {
                     </button>
                     <button
                       onClick={() => handleShare('linkedin')}
-                      className="w-10 h-10 bg-blue-700 text-white rounded-lg flex items-center justify-center hover:bg-blue-800 transition-colors"
+                      className="w-10 h-10 bg-cyan-700 text-white rounded-lg flex items-center justify-center hover:bg-cyan-800 transition-colors"
                       aria-label="Share on LinkedIn"
                     >
                       <Linkedin size={18} />

@@ -43,7 +43,7 @@ const getTypeColor = (type: string) => {
     case 'market': return 'from-purple-500 to-cyan-500';
     case 'partnership': return 'from-cyan-500 to-cyan-600';
     case 'security': return 'from-red-500 to-pink-500';
-    case 'mobile': return 'from-blue-500 to-indigo-500';
+    case 'mobile': return 'from-cyan-500 to-indigo-500';
     default: return 'from-slate-500 to-gray-500';
   }
 };
@@ -75,7 +75,7 @@ const getRoleIcon = (role: string) => {
 
 const getRoleColor = (role: string) => {
   switch (role) {
-    case 'horeca': return 'bg-blue-100 text-blue-700';
+    case 'horeca': return 'bg-cyan-100 text-cyan-700';
     case 'recycler': return 'bg-green-100 text-green-700';
     case 'driver': return 'bg-purple-100 text-purple-700';
     case 'individual': return 'bg-cyan-100 text-cyan-700';
@@ -882,30 +882,30 @@ const UpdatesPage = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5 }}
-                className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-2xl p-6 text-white"
+                className="bg-gradient-to-br from-cyan-900 to-indigo-900 rounded-2xl p-6 text-white"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <Smartphone size={24} className="text-blue-300" />
+                  <Smartphone size={24} className="text-cyan-300" />
                   <div>
                     <h4 className="font-bold text-lg">Mobile App Updates</h4>
-                    <p className="text-blue-200/80 text-sm">Role-specific mobile features</p>
+                    <p className="text-cyan-200/80 text-sm">Role-specific mobile features</p>
                   </div>
                 </div>
                 <div className="space-y-3 mb-4">
                   <div className="flex items-center gap-2 text-sm">
-                    <WifiOff size={14} className="text-blue-300" />
+                    <WifiOff size={14} className="text-cyan-300" />
                     <span>Offline mode for drivers</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <QrCode size={14} className="text-blue-300" />
+                    <QrCode size={14} className="text-cyan-300" />
                     <span>QR verification for all roles</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
-                    <Camera size={14} className="text-blue-300" />
+                    <Camera size={14} className="text-cyan-300" />
                     <span>Photo upload for HORECA</span>
                   </div>
                 </div>
-                <button className="w-full bg-white text-blue-900 py-2.5 rounded-lg font-bold hover:bg-blue-50 transition-colors">
+                <button className="w-full bg-white text-cyan-900 py-2.5 rounded-lg font-bold hover:bg-cyan-50 transition-colors">
                   Download App
                 </button>
               </motion.div>
@@ -1242,7 +1242,7 @@ const RoleUpdateCard = ({ update, isBookmarked, onBookmark }: any) => {
               </span>
               <div className={`px-2 py-1 rounded text-xs font-bold ${
                 update.type === 'feature' ? 'bg-cyan-100 text-cyan-700' :
-                update.type === 'mobile' ? 'bg-blue-100 text-blue-700' :
+                update.type === 'mobile' ? 'bg-cyan-100 text-cyan-700' :
                 'bg-amber-100 text-amber-700'
               }`}>
                 {update.type.toUpperCase()}

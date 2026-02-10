@@ -25,8 +25,8 @@ const Footer = () => {
   const socialLinks = [
     { icon: <Instagram size={20} />, name: 'Instagram', href: 'https://instagram.com/kcem', color: 'hover:text-pink-500' },
     { icon: <Twitter size={20} />, name: 'Twitter', href: 'https://twitter.com/kcem', color: 'hover:text-sky-500' },
-    { icon: <Facebook size={20} />, name: 'Facebook', href: 'https://facebook.com/kcem', color: 'hover:text-blue-600' },
-    { icon: <Linkedin size={20} />, name: 'LinkedIn', href: 'https://linkedin.com/company/kcem', color: 'hover:text-blue-700' },
+    { icon: <Facebook size={20} />, name: 'Facebook', href: 'https://facebook.com/kcem', color: 'hover:text-cyan-600' },
+    { icon: <Linkedin size={20} />, name: 'LinkedIn', href: 'https://linkedin.com/company/kcem', color: 'hover:text-cyan-700' },
     { icon: <Youtube size={20} />, name: 'YouTube', href: 'https://youtube.com/c/kcem', color: 'hover:text-red-600' },
   ];
 

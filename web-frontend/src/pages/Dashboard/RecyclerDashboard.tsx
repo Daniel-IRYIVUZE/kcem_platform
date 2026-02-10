@@ -3,7 +3,7 @@ import  { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { 
   Package, DollarSign, TrendingUp, ShoppingCart, 
-  Leaf, CheckCircle, Clock, Search,
+  Leaf, CheckCircle, Clock, Search, AlertCircle,
   Download, Filter, Eye, Settings, Save, X, User, Mail, Phone, MapPin, Star, Calendar
 } from 'lucide-react';
 
@@ -29,8 +29,8 @@ const ImageWithFallback = ({ src, alt, className }: { src?: string; alt: string;
   
   if (!src || hasError) {
     return (
-      <div className={`${className} bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center`}>
-        <Leaf className="text-blue-600 opacity-30" size={40} />
+      <div className={`${className} bg-gradient-to-br from-cyan-100 to-cyan-100 flex items-center justify-center`}>
+        <Leaf className="text-cyan-600 opacity-30" size={40} />
       </div>
     );
   }
@@ -100,6 +100,28 @@ const RecyclerDashboard = () => {
     alert(`Bid placed for ${listing.quantity} of ${listing.material} from ${listing.seller}`);
   };
 
+  const [filterVisible, setFilterVisible] = useState(false);
+
+  const handleFilterPurchases = () => {
+    setFilterVisible(!filterVisible);
+  };
+
+  const handleExportPurchases = () => {
+    const purchases = mockPurchases || [];
+    const csvContent = "Seller,Material,Quantity,Price,Status\n" + 
+      purchases.map((l: any) => `${l.seller},${l.material},${l.quantity},RWF ${l.price},${l.status}`).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'purchases_export.csv';
+    a.click();
+  };
+
+  const handleAction = (message: string) => {
+    alert(message);
+  };
+
   const SettingsModal = ({ isOpen, onClose }: any) => {
     const [settings, setSettings] = useState(recyclerProfile);
 
@@ -110,7 +132,7 @@ const RecyclerDashboard = () => {
         <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 max-w-3xl w-full shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              <Settings className="text-blue-600" size={28} />
+              <Settings className="text-cyan-600" size={28} />
               <h3 className="text-2xl font-bold">Recycler Settings</h3>
             </div>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg">
@@ -129,7 +151,7 @@ const RecyclerDashboard = () => {
                   type="text" 
                   value={settings.name}
                   onChange={(e) => setSettings({...settings, name: e.target.value})}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
 
@@ -142,7 +164,7 @@ const RecyclerDashboard = () => {
                   type="email" 
                   value={settings.email}
                   onChange={(e) => setSettings({...settings, email: e.target.value})}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
 
@@ -155,7 +177,7 @@ const RecyclerDashboard = () => {
                   type="tel" 
                   value={settings.phone}
                   onChange={(e) => setSettings({...settings, phone: e.target.value})}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
 
@@ -164,7 +186,7 @@ const RecyclerDashboard = () => {
                 <select 
                   value={settings.facilityType}
                   onChange={(e) => setSettings({...settings, facilityType: e.target.value})}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 >
                   <option>Multi-Material</option>
                   <option>Plastic Only</option>
@@ -183,7 +205,7 @@ const RecyclerDashboard = () => {
               <textarea 
                 value={settings.address}
                 onChange={(e) => setSettings({...settings, address: e.target.value})}
-                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 rows={2}
               />
             </div>
@@ -195,7 +217,7 @@ const RecyclerDashboard = () => {
                   type="text" 
                   value={settings.capacity}
                   onChange={(e) => setSettings({...settings, capacity: e.target.value})}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
 
@@ -237,7 +259,7 @@ const RecyclerDashboard = () => {
                       type="checkbox" 
                       checked={settings[pref.key as keyof typeof settings] as boolean}
                       onChange={(e) => setSettings({...settings, [pref.key]: e.target.checked})}
-                      className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                      className="w-5 h-5 text-cyan-600 rounded focus:ring-cyan-500"
                     />
                   </label>
                 ))}
@@ -249,7 +271,7 @@ const RecyclerDashboard = () => {
             <button onClick={onClose} className="flex-1 px-6 py-3 border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50">
               Cancel
             </button>
-            <button onClick={() => { setRecyclerProfile(settings); handleSaveSettings(); }} className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-cyan-600 flex items-center justify-center space-x-2">
+            <button onClick={() => { setRecyclerProfile(settings); handleSaveSettings(); }} className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-500 text-white rounded-xl font-semibold hover:from-cyan-600 hover:to-cyan-600 flex items-center justify-center space-x-2">
               <Save size={20} />
               <span>Save Settings</span>
             </button>
@@ -279,10 +301,10 @@ const RecyclerDashboard = () => {
               className="w-full h-48 rounded-lg object-cover"
             />
 
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl">
+            <div className="grid grid-cols-2 gap-4 p-4 bg-gradient-to-br from-cyan-50 to-cyan-50 rounded-xl">
               <div>
                 <p className="text-sm text-gray-600">Seller</p>
-                <p className="text-lg font-bold text-blue-600">{listing.seller}</p>
+                <p className="text-lg font-bold text-cyan-600">{listing.seller}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Material</p>
@@ -310,16 +332,16 @@ const RecyclerDashboard = () => {
               </div>
             </div>
 
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">Material Description</h4>
-              <p className="text-sm text-blue-800">
+            <div className="p-4 bg-cyan-50 border border-cyan-200 rounded-lg">
+              <h4 className="font-semibold text-cyan-900 mb-2">Material Description</h4>
+              <p className="text-sm text-cyan-800">
                 Quality {listing.quality.toLowerCase()} {listing.material} available for immediate pickup. 
                 Verified by platform. Location: {listing.location}.
               </p>
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => { handlePlaceBid(listing); onClose(); }} className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold">
+              <button onClick={() => { handlePlaceBid(listing); onClose(); }} className="flex-1 px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-semibold">
                 Place Bid
               </button>
               <button onClick={() => { alert('Purchase request sent'); onClose(); }} className="flex-1 px-4 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-semibold">
@@ -338,7 +360,7 @@ const RecyclerDashboard = () => {
         <StatCard 
           title="Total Purchases"
           value={stats.totalPurchases}
-          icon={<ShoppingCart className="text-blue-500" size={24} />}
+          icon={<ShoppingCart className="text-cyan-500" size={24} />}
           change="+12 this month"
         />
         <StatCard 
@@ -380,9 +402,9 @@ const RecyclerDashboard = () => {
               <input 
                 type="text" 
                 placeholder="Search materials..." 
-                className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               />
-              <button className="px-3 py-2 bg-blue-600 text-white rounded-lg">
+              <button className="px-3 py-2 bg-cyan-600 text-white rounded-lg">
                 <Filter size={16} />
               </button>
             </div>
@@ -393,7 +415,7 @@ const RecyclerDashboard = () => {
                 { key: 'price', label: 'Price', render: (value) => `RWF ${value.toLocaleString()}` },
                 { key: 'seller', label: 'Seller' },
                 { key: 'actions', label: '', render: (_, row) => (
-                  <button onClick={() => handleViewListing(row)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                  <button onClick={() => handleViewListing(row)} className="text-cyan-600 hover:text-cyan-800 text-sm font-medium">
                     View
                   </button>
                 )}
@@ -418,7 +440,7 @@ const RecyclerDashboard = () => {
                 { key: 'status', label: 'Status', render: (value) => (
                   <span className={`px-2 py-1 rounded text-xs ${
                     value === 'completed' ? 'bg-green-100 text-green-800' :
-                    value === 'in-transit' ? 'bg-blue-100 text-blue-800' :
+                    value === 'in-transit' ? 'bg-cyan-100 text-cyan-800' :
                     'bg-yellow-100 text-yellow-800'
                   }`}>{value}</span>
                 )}
@@ -438,15 +460,19 @@ const RecyclerDashboard = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Material Marketplace</h2>
         <div className="flex gap-3">
-          <button className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
+          <button onClick={handleFilterPurchases} className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
             <Filter size={16} />
             <span>Filter</span>
+          </button>
+          <button onClick={handleExportPurchases} className="px-4 py-2 bg-cyan-600 text-white rounded-lg flex items-center space-x-2">
+            <Download size={16} />
+            <span>Export</span>
           </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Available" value="45" icon={<Package className="text-blue-500" size={24} />} change="" />
+        <StatCard title="Available" value="45" icon={<Package className="text-cyan-500" size={24} />} change="" />
         <StatCard title="My Bids" value={stats.activeBids} icon={<TrendingUp className="text-cyan-500" size={24} />} change="" />
         <StatCard title="Watchlist" value="12" icon={<Eye className="text-purple-500" size={24} />} change="" />
         <StatCard title="Saved" value="RWF 450K" icon={<DollarSign className="text-green-500" size={24} />} change="" />
@@ -465,7 +491,7 @@ const RecyclerDashboard = () => {
                 <h3 className="font-bold text-lg">{listing.material}</h3>
                 <p className="text-sm text-gray-600">{listing.seller}</p>
               </div>
-              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-semibold">
+              <span className="px-2 py-1 bg-cyan-100 text-cyan-800 rounded text-xs font-semibold">
                 {listing.quality}
               </span>
             </div>
@@ -478,8 +504,8 @@ const RecyclerDashboard = () => {
               <span className="font-semibold">{listing.location}</span>
             </div>
             <div className="flex justify-between items-center pt-3 border-t">
-              <span className="text-2xl font-bold text-blue-600">RWF {listing.price.toLocaleString()}</span>
-              <button onClick={(e) => { e.stopPropagation(); handlePlaceBid(listing); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-semibold">
+              <span className="text-2xl font-bold text-cyan-600">RWF {listing.price.toLocaleString()}</span>
+              <button onClick={(e) => { e.stopPropagation(); handlePlaceBid(listing); }} className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 text-sm font-semibold">
                 Bid Now
               </button>
             </div>
@@ -495,14 +521,14 @@ const RecyclerDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Purchase History</h2>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center space-x-2">
+        <button onClick={() => handleAction('Purchase history exported.')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg flex items-center space-x-2">
           <Download size={16} />
           <span>Export</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Purchases" value={stats.totalPurchases} icon={<ShoppingCart className="text-blue-500" size={24} />} change="+12%" />
+        <StatCard title="Total Purchases" value={stats.totalPurchases} icon={<ShoppingCart className="text-cyan-500" size={24} />} change="+12%" />
         <StatCard title="This Month" value="12" icon={<Calendar className="text-cyan-500" size={24} />} change="+8%" />
         <StatCard title="Completed" value="142" icon={<CheckCircle className="text-green-500" size={24} />} change="" />
         <StatCard title="In Transit" value="14" icon={<Clock className="text-yellow-500" size={24} />} change="" />
@@ -520,7 +546,7 @@ const RecyclerDashboard = () => {
           { key: 'status', label: 'Status', render: (value) => (
             <span className={`px-2 py-1 rounded text-xs ${
               value === 'completed' ? 'bg-green-100 text-green-800' :
-              value === 'in-transit' ? 'bg-blue-100 text-blue-800' :
+              value === 'in-transit' ? 'bg-cyan-100 text-cyan-800' :
               'bg-yellow-100 text-yellow-800'
             }`}>{value}</span>
           )}
@@ -559,13 +585,134 @@ const RecyclerDashboard = () => {
     </div>
   );
 
+  const Logistics = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Logistics Management</h2>
+        <button onClick={() => handleAction('Driver assignment opened.')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg">Assign Driver</button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="In Transit" value="8" icon={<Clock className="text-yellow-500" size={24} />} change="" />
+        <StatCard title="Scheduled" value="5" icon={<Calendar className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Completed" value="142" icon={<CheckCircle className="text-green-500" size={24} />} change="" />
+        <StatCard title="Avg. ETA" value="45 min" icon={<MapPin className="text-cyan-500" size={24} />} change="" />
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'date', label: 'Date' },
+          { key: 'seller', label: 'Seller' },
+          { key: 'material', label: 'Material' },
+          { key: 'quantity', label: 'Quantity' },
+          { key: 'driver', label: 'Driver' },
+          { key: 'status', label: 'Status', render: (value) => (
+            <span className={`px-2 py-1 rounded text-xs ${
+              value === 'completed' ? 'bg-green-100 text-green-800' :
+              value === 'in-transit' ? 'bg-cyan-100 text-cyan-800' :
+              'bg-yellow-100 text-yellow-800'
+            }`}>{value}</span>
+          )}
+        ]}
+        data={mockPurchases}
+      />
+    </div>
+  );
+
+  const Inventory = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Inventory</h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Stock" value="1,420kg" icon={<Package className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Low Stock" value="3" icon={<AlertCircle className="text-yellow-500" size={24} />} change="" />
+        <StatCard title="Inbound" value="620kg" icon={<TrendingUp className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Processed" value="780kg" icon={<CheckCircle className="text-green-500" size={24} />} change="" />
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'material', label: 'Material' },
+          { key: 'quantity', label: 'Quantity' },
+          { key: 'quality', label: 'Quality' },
+          { key: 'location', label: 'Location' },
+        ]}
+        data={mockMarketplace}
+      />
+    </div>
+  );
+
+  const Financial = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Financial Dashboard</h2>
+        <button onClick={() => handleAction('Financial report exported.')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Export</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Spent" value={`RWF ${stats.totalSpent.toLocaleString()}`} icon={<DollarSign className="text-cyan-500" size={24} />} change="+10%" />
+        <StatCard title="Saved" value={`RWF ${stats.savedAmount.toLocaleString()}`} icon={<TrendingUp className="text-green-500" size={24} />} change="" />
+        <StatCard title="Active Bids" value={stats.activeBids} icon={<Package className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Invoices" value="24" icon={<CheckCircle className="text-purple-500" size={24} />} change="" />
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'date', label: 'Date' },
+          { key: 'seller', label: 'Seller' },
+          { key: 'material', label: 'Material' },
+          { key: 'amount', label: 'Amount (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'status', label: 'Status', render: (value) => (
+            <span className={`px-2 py-1 rounded text-xs ${
+              value === 'completed' ? 'bg-green-100 text-green-800' :
+              value === 'in-transit' ? 'bg-cyan-100 text-cyan-800' :
+              'bg-yellow-100 text-yellow-800'
+            }`}>{value}</span>
+          )}
+        ]}
+        data={mockPurchases}
+      />
+    </div>
+  );
+
+  const SupplierNetwork = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Supplier Network</h2>
+        <button onClick={() => handleAction('Supplier invite sent.')} className="px-4 py-2 bg-cyan-600 text-white rounded-lg">Invite Supplier</button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Active Suppliers" value="18" icon={<User className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Top Rated" value="6" icon={<Star className="text-yellow-500" size={24} />} change="" />
+        <StatCard title="New This Month" value="3" icon={<CheckCircle className="text-green-500" size={24} />} change="" />
+        <StatCard title="Regions" value="4" icon={<MapPin className="text-cyan-500" size={24} />} change="" />
+      </div>
+
+      <div className="bg-white rounded-lg border p-6 space-y-3">
+        {Array.from(new Set(mockPurchases.map(p => p.seller))).map((seller) => (
+          <div key={seller} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div>
+              <p className="font-semibold">{seller}</p>
+              <p className="text-sm text-gray-600">Preferred materials: UCO, Glass</p>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-100 text-cyan-800">Active</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   const RecyclerSettings = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Facility Profile</h2>
         <button 
           onClick={() => setShowSettingsModal(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="flex items-center space-x-2 px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
         >
           <Settings size={20} />
           <span>Edit Settings</span>
@@ -625,7 +772,7 @@ const RecyclerDashboard = () => {
             <h3 className="text-lg font-bold mb-4">Preferred Materials</h3>
             <div className="flex flex-wrap gap-2">
               {recyclerProfile.preferredMaterials.map((mat, idx) => (
-                <span key={idx} className="px-3 py-2 bg-blue-100 text-blue-800 rounded-full text-sm font-semibold">
+                <span key={idx} className="px-3 py-2 bg-cyan-100 text-cyan-800 rounded-full text-sm font-semibold">
                   {mat}
                 </span>
               ))}
@@ -668,6 +815,10 @@ const RecyclerDashboard = () => {
       <Route path="overview" element={<Overview />} />
       <Route path="marketplace" element={<Marketplace />} />
       <Route path="purchases" element={<MyPurchases />} />
+      <Route path="logistics" element={<Logistics />} />
+      <Route path="inventory" element={<Inventory />} />
+      <Route path="financial" element={<Financial />} />
+      <Route path="suppliers" element={<SupplierNetwork />} />
       <Route path="analytics" element={<Analytics />} />
       <Route path="settings" element={<RecyclerSettings />} />
     </Routes>

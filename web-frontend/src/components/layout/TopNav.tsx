@@ -89,7 +89,7 @@ const TopNav = ({ user }: TopNavProps) => {
               <p className="font-medium text-sm">{user.name}</p>
               <p className="text-xs text-gray-500 capitalize">{user.role}</p>
             </div>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 overflow-hidden ring-2 ring-cyan-100">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 overflow-hidden ring-2 ring-cyan-100">
               <img 
                 src={user.avatar} 
                 alt={user.name}

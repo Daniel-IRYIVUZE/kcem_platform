@@ -436,7 +436,7 @@ const ServicesPage = () => {
                     >
                       <div className="flex items-center gap-4">
                         <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${
-                          role === 'horeca' ? 'bg-gradient-to-br from-blue-500 to-cyan-500' :
+                          role === 'horeca' ? 'bg-gradient-to-br from-cyan-500 to-cyan-500' :
                           role === 'recyclers' ? 'bg-gradient-to-br from-green-500 to-cyan-500' :
                           role === 'drivers' ? 'bg-gradient-to-br from-cyan-500 to-cyan-500' :
                           role === 'individual' ? 'bg-gradient-to-br from-cyan-500 to-cyan-500' :
@@ -487,7 +487,7 @@ const ServicesPage = () => {
                             <div key={index} className="bg-white p-6 rounded-xl border border-slate-200">
                               <div className="flex items-start gap-4">
                                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                                  role === 'horeca' ? 'bg-blue-50 text-blue-600' :
+                                  role === 'horeca' ? 'bg-cyan-50 text-cyan-600' :
                                   role === 'recyclers' ? 'bg-green-50 text-green-600' :
                                   role === 'drivers' ? 'bg-cyan-50 text-cyan-600' :
                                   role === 'individual' ? 'bg-cyan-50 text-cyan-600' :

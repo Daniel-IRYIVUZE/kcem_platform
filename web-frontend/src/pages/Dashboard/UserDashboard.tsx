@@ -107,6 +107,31 @@ const UserDashboard = () => {
     setShowListingModal(true);
   };
 
+  const [filterVisible, setFilterVisible] = useState(false);
+
+  const handleFilterListings = () => {
+    setFilterVisible(!filterVisible);
+  };
+
+  const handleCreateNewListing = () => {
+    alert('New listing form opened.');
+  };
+
+  const handleExportEarnings = () => {
+    const csvContent = "Material,Quantity,Amount,Buyer,Status\n" + 
+      mockTransactions.map(t => `${t.material},${t.quantity},RWF ${t.amount},${t.buyer},${t.status}`).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'earnings_export.csv';
+    a.click();
+  };
+
+  const handleAction = (message: string) => {
+    alert(message);
+  };
+
   const SettingsModal = ({ isOpen, onClose }: any) => {
     const [settings, setSettings] = useState(userProfile);
 
@@ -131,7 +156,7 @@ const UserDashboard = () => {
                 <div className="w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
                   {settings.name.split(' ').map(n => n[0]).join('')}
                 </div>
-                <button className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg border-2 border-green-500">
+                <button onClick={() => handleAction('Upload photo dialog opened.')} className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-lg border-2 border-green-500">
                   <Camera size={16} className="text-green-600" />
                 </button>
               </div>
@@ -458,11 +483,11 @@ const UserDashboard = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">My Listings</h2>
         <div className="flex gap-3">
-          <button className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
+          <button onClick={handleFilterListings} className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
             <Filter size={16} />
             <span>Filter</span>
           </button>
-          <button className="px-4 py-2 bg-green-600 text-white rounded-lg">
+          <button onClick={handleCreateNewListing} className="px-4 py-2 bg-green-600 text-white rounded-lg">
             + New Listing
           </button>
         </div>
@@ -519,7 +544,7 @@ const UserDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Earnings & Transactions</h2>
-        <button className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2">
+        <button onClick={handleExportEarnings} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2">
           <Download size={16} />
           <span>Export</span>
         </button>
@@ -623,6 +648,100 @@ const UserDashboard = () => {
           </div>
         </DashboardWidget>
       </div>
+    </div>
+  );
+
+  const Marketplace = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Marketplace</h2>
+        <button onClick={() => handleAction('Marketplace filter applied.')} className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
+          <Filter size={16} />
+          <span>Filter</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Available" value="24" icon={<Package className="text-green-500" size={24} />} change="" />
+        <StatCard title="Saved" value="6" icon={<Eye className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Avg. Price" value="RWF 4.5K" icon={<DollarSign className="text-emerald-500" size={24} />} change="" />
+        <StatCard title="New Today" value="5" icon={<TrendingUp className="text-cyan-500" size={24} />} change="" />
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'material', label: 'Material' },
+          { key: 'quantity', label: 'Quantity' },
+          { key: 'price', label: 'Price (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'status', label: 'Status', render: (value) => (
+            <span className={`px-2 py-1 rounded text-xs ${
+              value === 'active' ? 'bg-green-100 text-green-800' :
+              value === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>{value}</span>
+          )},
+          { key: 'date', label: 'Date' },
+        ]}
+        data={mockListings}
+      />
+    </div>
+  );
+
+  const Orders = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Orders</h2>
+        <button onClick={() => handleAction('Orders exported.')} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Export</span>
+        </button>
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'date', label: 'Date' },
+          { key: 'material', label: 'Material' },
+          { key: 'quantity', label: 'Quantity' },
+          { key: 'amount', label: 'Amount (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'buyer', label: 'Buyer' },
+          { key: 'status', label: 'Status', render: (value) => (
+            <span className={`px-2 py-1 rounded text-xs ${
+              value === 'completed' ? 'bg-green-100 text-green-800' :
+              'bg-yellow-100 text-yellow-800'
+            }`}>{value}</span>
+          )}
+        ]}
+        data={mockTransactions}
+      />
+    </div>
+  );
+
+  const Financial = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Financial Dashboard</h2>
+        <button onClick={() => handleAction('Financial report exported.')} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Export</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Total Earnings" value={`RWF ${stats.totalEarnings.toLocaleString()}`} icon={<DollarSign className="text-green-500" size={24} />} change="+18%" />
+        <StatCard title="This Month" value="RWF 35K" icon={<DollarSign className="text-emerald-500" size={24} />} change="+12%" />
+        <StatCard title="Pending" value="RWF 6K" icon={<Clock className="text-yellow-500" size={24} />} change="1 pending" />
+        <StatCard title="Completed" value="18" icon={<CheckCircle className="text-cyan-500" size={24} />} change="" />
+      </div>
+
+      <DashboardWidget title="Monthly Earnings" icon={<DollarSign size={20} />}>
+        <ChartComponent type="bar" data={{
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          datasets: [{
+            data: [15000, 22000, 18000, 28000, 25000, 35000],
+            backgroundColor: '#10b981',
+          }]
+        }} />
+      </DashboardWidget>
     </div>
   );
 
@@ -736,6 +855,9 @@ const UserDashboard = () => {
       <Route index element={<Overview />} />
       <Route path="overview" element={<Overview />} />
       <Route path="listings" element={<MyListings />} />
+      <Route path="marketplace" element={<Marketplace />} />
+      <Route path="orders" element={<Orders />} />
+      <Route path="financial" element={<Financial />} />
       <Route path="earnings" element={<Earnings />} />
       <Route path="impact" element={<Impact />} />
       <Route path="settings" element={<UserSettings />} />

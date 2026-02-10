@@ -86,8 +86,7 @@ const Sidebar = ({ userRole }: SidebarProps) => {
       <div className="p-4 border-b border-gray-800 flex items-center justify-between">
         {!collapsed ? (
           <div className="flex items-center space-x-3">
-            <img src="/images/EcoTrade.png" alt="EcoTrade Rwanda" className="h-10" />
-            <span className="text-xl font-bold">EcoTrade Rwanda</span>
+            <img src="/images/EcoTrade1.png" alt="EcoTrade Rwanda" className="h-10" />
           </div>
         ) : (
           <img src="/images/EcoTrade.png" alt="EcoTrade Rwanda" className="h-10 mx-auto" />

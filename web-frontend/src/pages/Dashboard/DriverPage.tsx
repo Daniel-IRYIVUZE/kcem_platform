@@ -113,6 +113,37 @@ const DriverDashboard = () => {
     setCurrentRoute({...currentRoute, stopsCompleted: currentRoute.stopsCompleted + 1});
   };
 
+  const handleExportSchedule = () => {
+    const csvContent = "Stop,Location,Material,Status\n" + 
+      'Sample Route,Kigali Hotel,Plastic,Pending\nSample Route,City Restaurant,Glass,Pending';
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'schedule_export.csv';
+    a.click();
+  };
+
+  const handleExportEarnings = () => {
+    const csvContent = "Week,Total Earnings,Collections,Bonus\nWeek 1,RWF 45000,120,RWF 5000\nWeek 2,RWF 52000,135,RWF 7000";
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'earnings_export.csv';
+    a.click();
+  };
+
+  const handleExportCollections = () => {
+    const csvContent = "Date,Location,Material,Weight,Status\n2024-02-10,Kigali Hotel,Plastic,45kg,Completed\n2024-02-09,City Restaurant,Glass,30kg,Completed";
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'collections_export.csv';
+    a.click();
+  };
+
   const SettingsModal = ({ isOpen, onClose }: any) => {
     const [settings, setSettings] = useState(driverProfile);
 
@@ -313,7 +344,7 @@ const DriverDashboard = () => {
         <StatCard 
           title="Stops Completed"
           value={`${currentRoute.stopsCompleted}/${currentRoute.totalStops}`}
-          icon={<CheckCircle className="text-blue-500" size={24} />}
+          icon={<CheckCircle className="text-cyan-500" size={24} />}
           change="2 remaining"
         />
         <StatCard 
@@ -342,7 +373,7 @@ const DriverDashboard = () => {
               <div key={stop.id} className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => alert(`${stop.status === 'completed' ? 'Completed' : 'Upcoming'}: ${stop.location}`)}>
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${
                   stop.status === 'completed' ? 'bg-cyan-100 text-cyan-800' :
-                  stop.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                  stop.status === 'in-progress' ? 'bg-cyan-100 text-cyan-800' :
                   'bg-gray-100 text-gray-800'
                 }`}>
                   {stop.status === 'completed' ? <CheckCircle size={20} /> :
@@ -380,8 +411,8 @@ const DriverDashboard = () => {
                 <p className="text-2xl font-bold text-cyan-600">{currentRoute.totalStops}</p>
                 <p className="text-xs text-gray-600">Total Stops</p>
               </div>
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <p className="text-2xl font-bold text-blue-600">30km</p>
+              <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                <p className="text-2xl font-bold text-cyan-600">30km</p>
                 <p className="text-xs text-gray-600">Total Distance</p>
               </div>
               <div className="text-center p-3 bg-purple-50 rounded-lg">
@@ -426,7 +457,7 @@ const DriverDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">My Routes</h2>
-        <button className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center space-x-2">
+        <button onClick={handleExportSchedule} className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center space-x-2">
           <Download size={16} />
           <span>Export</span>
         </button>
@@ -436,7 +467,7 @@ const DriverDashboard = () => {
         <StatCard title="Active Routes" value="1" icon={<Navigation className="text-orange-500" size={24} />} change="" />
         <StatCard title="Completed Today" value={currentRoute.stopsCompleted} icon={<CheckCircle className="text-green-500" size={24} />} change="" />
         <StatCard title="Pending" value={currentRoute.totalStops - currentRoute.stopsCompleted} icon={<Clock className="text-yellow-500" size={24} />} change="" />
-        <StatCard title="Distance" value="30km" icon={<Navigation className="text-blue-500" size={24} />} change="" />
+        <StatCard title="Distance" value="30km" icon={<Navigation className="text-cyan-500" size={24} />} change="" />
       </div>
 
       <div className="bg-white rounded-lg border p-6">
@@ -449,7 +480,7 @@ const DriverDashboard = () => {
               <div className="flex items-center space-x-4">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   stop.status === 'completed' ? 'bg-green-500 text-white' :
-                  stop.status === 'in-progress' ? 'bg-blue-500 text-white' :
+                  stop.status === 'in-progress' ? 'bg-cyan-500 text-white' :
                   'bg-gray-300 text-gray-700'
                 }`}>
                   {stop.id}
@@ -461,7 +492,7 @@ const DriverDashboard = () => {
               </div>
               <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                 stop.status === 'completed' ? 'bg-green-100 text-green-800' :
-                stop.status === 'in-progress' ? 'bg-blue-100 text-blue-800' :
+                stop.status === 'in-progress' ? 'bg-cyan-100 text-cyan-800' :
                 'bg-gray-100 text-gray-800'
               }`}>
                 {stop.status}
@@ -477,7 +508,7 @@ const DriverDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Earnings Dashboard</h2>
-        <button className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center space-x-2">
+        <button onClick={handleExportEarnings} className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center space-x-2">
           <Download size={16} />
           <span>Export Report</span>
         </button>
@@ -486,7 +517,7 @@ const DriverDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Today" value={`RWF ${currentRoute.earningsToday.toLocaleString()}`} icon={<DollarSign className="text-green-500" size={24} />} change="+12%" />
         <StatCard title="This Week" value="RWF 245K" icon={<DollarSign className="text-cyan-500" size={24} />} change="+8%" />
-        <StatCard title="This Month" value="RWF 980K" icon={<DollarSign className="text-blue-500" size={24} />} change="+15%" />
+        <StatCard title="This Month" value="RWF 980K" icon={<DollarSign className="text-cyan-500" size={24} />} change="+15%" />
         <StatCard title="Total" value="RWF 2.5M" icon={<DollarSign className="text-purple-500" size={24} />} change="+20%" />
       </div>
 
@@ -496,7 +527,7 @@ const DriverDashboard = () => {
           {[
             { category: 'Collections', amount: 450000, percentage: 69, color: 'bg-orange-500' },
             { category: 'Bonuses', amount: 120000, percentage: 18, color: 'bg-cyan-500' },
-            { category: 'Tips', amount: 80000, percentage: 13, color: 'bg-blue-500' },
+            { category: 'Tips', amount: 80000, percentage: 13, color: 'bg-cyan-500' },
           ].map((item) => (
             <div key={item.category}>
               <div className="flex justify-between mb-2">
@@ -528,6 +559,137 @@ const DriverDashboard = () => {
         ]}
         data={collectionHistory}
       />
+    </div>
+  );
+
+  const Schedule = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Today's Schedule</h2>
+        <button onClick={handleExportSchedule} className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Export</span>
+        </button>
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'time', label: 'Time' },
+          { key: 'location', label: 'Location' },
+          { key: 'material', label: 'Material' },
+          { key: 'amount', label: 'Earnings (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'status', label: 'Status', render: (value) => (
+            <span className={`px-2 py-1 rounded text-xs ${
+              value === 'completed' ? 'bg-green-100 text-green-800' :
+              value === 'in-progress' ? 'bg-cyan-100 text-cyan-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>{value}</span>
+          )}
+        ]}
+        data={todaysSchedule}
+      />
+    </div>
+  );
+
+  const Collections = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Collections</h2>
+        <button onClick={handleExportCollections} className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Export</span>
+        </button>
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'date', label: 'Date' },
+          { key: 'location', label: 'Location' },
+          { key: 'material', label: 'Material' },
+          { key: 'weight', label: 'Weight' },
+          { key: 'earnings', label: 'Earnings (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'rating', label: 'Rating', render: (value) => (
+            <div className="flex items-center">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} size={14} className={i < value ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'} />
+              ))}
+            </div>
+          )}
+        ]}
+        data={collectionHistory}
+      />
+    </div>
+  );
+
+  const VehicleEquipment = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Vehicle & Equipment</h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-lg border">
+          <h3 className="text-lg font-bold mb-4">Vehicle Details</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Vehicle Type</span>
+              <span className="font-semibold">{driverProfile.vehicleType}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">Vehicle Number</span>
+              <span className="font-semibold">{driverProfile.vehicleNumber}</span>
+            </div>
+            <div className="flex justify-between pb-3 border-b">
+              <span className="text-gray-600">License Number</span>
+              <span className="font-semibold">{driverProfile.licenseNumber}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Status</span>
+              <span className={`px-2 py-1 rounded text-xs font-semibold ${driverProfile.verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                {driverProfile.verified ? 'Verified' : 'Pending'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg border">
+          <h3 className="text-lg font-bold mb-4">Equipment Checklist</h3>
+          <div className="space-y-3">
+            {['Safety Vest', 'Gloves', 'Weighing Scale', 'Containers', 'First Aid Kit'].map((item) => (
+              <label key={item} className="flex items-center space-x-3">
+                <input type="checkbox" defaultChecked className="w-4 h-4" />
+                <span>{item}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const OfflineMode = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Offline Mode</h2>
+
+      <div className="bg-white rounded-lg border p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-semibold">Offline Sync</p>
+            <p className="text-sm text-gray-600">Store data locally and sync when online</p>
+          </div>
+          <button
+            onClick={() => setOfflineMode(!offlineMode)}
+            className={`px-4 py-2 rounded-lg text-white ${offlineMode ? 'bg-green-600' : 'bg-gray-500'}`}
+          >
+            {offlineMode ? 'Enabled' : 'Disabled'}
+          </button>
+        </div>
+
+        <div className="mt-6 flex items-center gap-3">
+          {offlineMode ? <WifiOff className="text-orange-600" size={20} /> : <Wifi className="text-green-600" size={20} />}
+          <span className="text-sm text-gray-700">
+            {offlineMode ? 'Currently offline - syncing paused' : 'Online - sync active'}
+          </span>
+        </div>
+      </div>
     </div>
   );
 
@@ -651,8 +813,12 @@ const DriverDashboard = () => {
     <Routes>
       <Route index element={<Overview />} />
       <Route path="overview" element={<Overview />} />
+      <Route path="schedule" element={<Schedule />} />
       <Route path="routes" element={<MyRoutes />} />
+      <Route path="collections" element={<Collections />} />
       <Route path="earnings" element={<EarningsDashboard />} />
+      <Route path="vehicle" element={<VehicleEquipment />} />
+      <Route path="offline" element={<OfflineMode />} />
       <Route path="settings" element={<DriverSettings />} />
     </Routes>
   );

@@ -72,7 +72,7 @@ const RegisterPage = () => {
       label: 'Hotel/Resort', 
       icon: <Hotel size={24} />, 
       description: 'Chain or independent hotel with consistent waste output',
-      color: 'from-blue-500 to-cyan-500',
+      color: 'from-cyan-500 to-cyan-500',
       loginPath: '/dashboard/hotel',
       features: ['Waste Listing Management', 'Revenue Dashboard', 'Green Score Certification', 'Schedule Management']
     },
@@ -979,8 +979,8 @@ const RegisterPage = () => {
               <div>
                 <h3 className="text-lg font-bold text-slate-900 mb-3">2. Role-Specific Responsibilities</h3>
                 <div className="space-y-3">
-                  <div className="p-3 bg-blue-50 rounded-lg">
-                    <h4 className="font-bold text-blue-700 mb-1">HORECA Businesses</h4>
+                  <div className="p-3 bg-cyan-50 rounded-lg">
+                    <h4 className="font-bold text-cyan-700 mb-1">HORECA Businesses</h4>
                     <ul className="list-disc pl-5 text-sm text-slate-600 space-y-1">
                       <li>Accurate waste composition reporting</li>
                       <li>Proper waste segregation standards</li>

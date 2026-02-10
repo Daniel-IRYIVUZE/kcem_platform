@@ -30,7 +30,7 @@ const ImageWithFallback = ({ src, alt, className }: { src?: string; alt: string;
   
   if (!src || hasError) {
     return (
-      <div className={`${className} bg-gradient-to-br from-cyan-100 to-blue-100 flex items-center justify-center`}>
+      <div className={`${className} bg-gradient-to-br from-cyan-100 to-cyan-100 flex items-center justify-center`}>
         <Leaf className="text-cyan-600 opacity-30" size={40} />
       </div>
     );
@@ -78,7 +78,42 @@ const AdminDashboard = () => {
   // Move these states to the parent so they can be shared
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [userFilterVisible, setUserFilterVisible] = useState(false);
 
+  const handleExportUsers = () => {
+    const csvContent = "ID,Name,Email,Role,Status,Join Date\n" + 
+      mockUsers.map(u => `${u.id},${u.name},${u.email},${u.role},${u.status},${u.joinDate}`).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'users_export.csv';
+    a.click();
+  };
+
+  const handleFilterUsers = () => {
+    setUserFilterVisible(!userFilterVisible);
+  };
+
+  const handleApproveUser = (userName: string) => {
+    alert(`User ${userName} has been approved!`);
+  };
+
+  const handleSuspendUser = (userName: string) => {
+    alert(`User ${userName} has been suspended!`);
+  };
+
+  const handleApproveContent = (type: string, user: string) => {
+    alert(`${type} from ${user} has been approved!`);
+  };
+
+  const handleRejectContent = (type: string, user: string) => {
+    alert(`${type} from ${user} has been rejected!`);
+  };
+
+  const handleAction = (message: string) => {
+    alert(message);
+  };
   const mockUsers = [
     { id: 1, name: 'Kigali Hotel', email: 'hotel@kigali.com', role: 'business', status: 'active', joinDate: '2024-02-01' },
     { id: 2, name: 'Green Recyclers', email: 'info@greenrecyclers.com', role: 'recycler', status: 'pending', joinDate: '2024-02-02' },
@@ -118,7 +153,7 @@ const AdminDashboard = () => {
         <StatCard 
           title="Active Users"
           value={stats.activeUsers}
-          icon={<Users className="text-blue-500" size={24} />}
+          icon={<Users className="text-cyan-500" size={24} />}
           change="+8.2%"
         />
         <StatCard 
@@ -213,7 +248,7 @@ const AdminDashboard = () => {
               { key: 'joinDate', label: 'Join Date' },
               { key: 'actions', label: 'Actions', render: (_: any, row: any) => (
                 <div className="flex space-x-2">
-                  <button onClick={() => { setSelectedUser(row); setShowEditModal(true); }} className="text-blue-600 hover:text-blue-800">
+                  <button onClick={() => { setSelectedUser(row); setShowEditModal(true); }} className="text-cyan-600 hover:text-cyan-800">
                     <Eye size={16} />
                   </button>
                   <button onClick={() => alert(`Approved ${row.name}`)} className="text-cyan-600 hover:text-cyan-800" title="Approve">
@@ -237,7 +272,7 @@ const AdminDashboard = () => {
             {/* Modal Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
                   {selectedUser.name.charAt(0)}
                 </div>
                 <div>
@@ -254,13 +289,13 @@ const AdminDashboard = () => {
             </div>
 
             {/* User Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl">
+            <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gradient-to-br from-cyan-50 to-cyan-50 rounded-xl">
               <div className="text-center">
                 <p className="text-2xl font-bold text-cyan-600">{selectedUser.id}</p>
                 <p className="text-xs text-gray-600">User ID</p>
               </div>
               <div className="text-center border-x border-cyan-200">
-                <p className="text-2xl font-bold text-blue-600">{selectedUser.joinDate}</p>
+                <p className="text-2xl font-bold text-cyan-600">{selectedUser.joinDate}</p>
                 <p className="text-xs text-gray-600">Join Date</p>
               </div>
               <div className="text-center">
@@ -346,7 +381,7 @@ const AdminDashboard = () => {
               </button>
               <button 
                 onClick={() => setShowEditModal(false)} 
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl transition-all"
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-500 text-white rounded-xl font-semibold hover:from-cyan-600 hover:to-cyan-600 shadow-lg hover:shadow-xl transition-all"
               >
                 Save Changes
               </button>
@@ -366,11 +401,11 @@ const AdminDashboard = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-xl sm:text-2xl font-bold">User Management</h2>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-            <button className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
+            <button onClick={handleFilterUsers} className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
               <Filter size={16} />
               <span>Filter</span>
             </button>
-            <button className="px-4 py-2 bg-cyan-600 text-white rounded-lg flex items-center space-x-2">
+            <button onClick={handleExportUsers} className="px-4 py-2 bg-cyan-600 text-white rounded-lg flex items-center space-x-2">
               <Download size={16} />
               <span>Export</span>
             </button>
@@ -395,13 +430,13 @@ const AdminDashboard = () => {
             { key: 'joinDate', label: 'Join Date' },
             { key: 'actions', label: 'Actions', render: (_, row) => (
               <div className="flex space-x-2">
-                <button onClick={() => { setSelectedUser(row); setShowEditModal(true); }} className="text-blue-600 hover:text-blue-800">
+                <button onClick={() => { setSelectedUser(row); setShowEditModal(true); }} className="text-cyan-600 hover:text-cyan-800">
                   <Eye size={16} />
                 </button>
-                <button className="text-cyan-600 hover:text-cyan-800">
+                <button onClick={() => handleApproveUser(row.name)} className="text-cyan-600 hover:text-cyan-800">
                   <CheckCircle size={16} />
                 </button>
-                <button className="text-red-600 hover:text-red-800">
+                <button onClick={() => handleSuspendUser(row.name)} className="text-red-600 hover:text-red-800">
                   <XCircle size={16} />
                 </button>
               </div>
@@ -417,7 +452,7 @@ const AdminDashboard = () => {
               {/* Modal Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
                     {selectedUser.name.charAt(0)}
                   </div>
                   <div>
@@ -434,13 +469,13 @@ const AdminDashboard = () => {
               </div>
 
               {/* User Stats */}
-              <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl">
+              <div className="grid grid-cols-3 gap-4 mb-6 p-4 bg-gradient-to-br from-cyan-50 to-cyan-50 rounded-xl">
                 <div className="text-center">
                   <p className="text-2xl font-bold text-cyan-600">{selectedUser.id}</p>
                   <p className="text-xs text-gray-600">User ID</p>
                 </div>
                 <div className="text-center border-x border-cyan-200">
-                  <p className="text-2xl font-bold text-blue-600">{selectedUser.joinDate}</p>
+                  <p className="text-2xl font-bold text-cyan-600">{selectedUser.joinDate}</p>
                   <p className="text-xs text-gray-600">Join Date</p>
                 </div>
                 <div className="text-center">
@@ -526,7 +561,7 @@ const AdminDashboard = () => {
                 </button>
                 <button 
                   onClick={() => setShowEditModal(false)} 
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-semibold hover:from-cyan-600 hover:to-blue-600 shadow-lg hover:shadow-xl transition-all"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-500 text-white rounded-xl font-semibold hover:from-cyan-600 hover:to-cyan-600 shadow-lg hover:shadow-xl transition-all"
                 >
                   Save Changes
                 </button>
@@ -545,7 +580,7 @@ const AdminDashboard = () => {
         <StatCard title="Pending Review" value="12" icon={<AlertTriangle className="text-yellow-500" size={24} />} change="" />
         <StatCard title="Approved Today" value="45" icon={<CheckCircle className="text-cyan-500" size={24} />} change="+8%" />
         <StatCard title="Flagged Content" value="3" icon={<XCircle className="text-red-500" size={24} />} change="-2" />
-        <StatCard title="Auto-Approved" value="120" icon={<Activity className="text-blue-500" size={24} />} change="+15%" />
+        <StatCard title="Auto-Approved" value="120" icon={<Activity className="text-cyan-500" size={24} />} change="+15%" />
       </div>
       <div className="overflow-x-auto">
         <DataTable
@@ -562,10 +597,10 @@ const AdminDashboard = () => {
             }`}>{value}</span>
           )},
           { key: 'date', label: 'Date' },
-          { key: 'actions', label: 'Actions', render: () => (
+          { key: 'actions', label: 'Actions', render: (_, row) => (
             <div className="flex space-x-2">
-              <button className="px-3 py-1 bg-cyan-600 text-white rounded text-sm">Approve</button>
-              <button className="px-3 py-1 bg-red-600 text-white rounded text-sm">Reject</button>
+              <button onClick={() => handleApproveContent(row.type, row.user)} className="px-3 py-1 bg-cyan-600 text-white rounded text-sm">Approve</button>
+              <button onClick={() => handleRejectContent(row.type, row.user)} className="px-3 py-1 bg-red-600 text-white rounded text-sm">Reject</button>
             </div>
           )}
         ]}
@@ -585,7 +620,7 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatCard title="Total Revenue" value="RWF 1.2M" icon={<DollarSign className="text-cyan-500" size={24} />} change="+12%" />
         <StatCard title="Pending Payouts" value="RWF 350K" icon={<Clock className="text-yellow-500" size={24} />} change="5 pending" />
-        <StatCard title="Platform Fees" value="RWF 180K" icon={<TrendingUp className="text-blue-500" size={24} />} change="+8%" />
+        <StatCard title="Platform Fees" value="RWF 180K" icon={<TrendingUp className="text-cyan-500" size={24} />} change="+8%" />
         <StatCard title="Disputes" value="2" icon={<AlertTriangle className="text-red-500" size={24} />} change="-1" />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
@@ -625,7 +660,7 @@ const AdminDashboard = () => {
     <div className="space-y-6">
       <h2 className="text-xl sm:text-2xl font-bold">Analytics & Reports</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <StatCard title="Total Users" value="342" icon={<Users className="text-blue-500" size={24} />} change="+8.2%" />
+        <StatCard title="Total Users" value="342" icon={<Users className="text-cyan-500" size={24} />} change="+8.2%" />
         <StatCard title="Active Listings" value="156" icon={<Package className="text-cyan-500" size={24} />} change="+12%" />
         <StatCard title="Transactions" value="892" icon={<DollarSign className="text-purple-500" size={24} />} change="+15%" />
         <StatCard title="Platform Health" value="98.7%" icon={<Activity className="text-cyan-500" size={24} />} change="+0.3%" />
@@ -673,7 +708,7 @@ const AdminDashboard = () => {
               <label className="block text-sm font-medium mb-2">Auto-Approval Threshold (RWF)</label>
               <input type="number" defaultValue="50000" className="w-full p-2 border rounded-lg" />
             </div>
-            <button className="w-full p-3 bg-cyan-600 text-white rounded-lg">Save Settings</button>
+            <button onClick={() => handleAction('Platform settings saved successfully!')} className="w-full p-3 bg-cyan-600 text-white rounded-lg">Save Settings</button>
           </div>
         </div>
         <div className="bg-white p-6 rounded-lg border">
@@ -685,7 +720,7 @@ const AdminDashboard = () => {
                 <span>{item}</span>
               </label>
             ))}
-            <button className="w-full p-3 bg-cyan-600 text-white rounded-lg mt-4">Update Notifications</button>
+            <button onClick={() => handleAction('Notification preferences updated.')} className="w-full p-3 bg-cyan-600 text-white rounded-lg mt-4">Update Notifications</button>
           </div>
         </div>
       </div>

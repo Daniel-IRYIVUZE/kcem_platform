@@ -113,6 +113,31 @@ const BusinessDashboard = () => {
     setShowListingModal(true);
   };
 
+  const [filterVisible, setFilterVisible] = useState(false);
+
+  const handleFilterListings = () => {
+    setFilterVisible(!filterVisible);
+  };
+
+  const handleCreateNewListing = () => {
+    alert('New listing form opened.');
+  };
+
+  const handleExportTransactions = () => {
+    const csvContent = "Material,Quantity,Amount,Buyer,Status,Date\n" + 
+      mockTransactions.map(t => `${t.material},${t.quantity},RWF ${t.amount},${t.buyer},${t.status},${t.date}`).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transactions_export.csv';
+    a.click();
+  };
+
+  const handleAction = (message: string) => {
+    alert(message);
+  };
+
   const SettingsModal = ({ isOpen, onClose }: any) => {
     const [settings, setSettings] = useState(businessProfile);
 
@@ -288,8 +313,8 @@ const BusinessDashboard = () => {
             </div>
 
             {listing.buyer && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm font-semibold text-blue-800">Buyer: {listing.buyer}</p>
+              <div className="p-4 bg-cyan-50 border border-cyan-200 rounded-lg">
+                <p className="text-sm font-semibold text-cyan-800">Buyer: {listing.buyer}</p>
               </div>
             )}
 
@@ -325,7 +350,7 @@ const BusinessDashboard = () => {
         <StatCard 
           title="Total Revenue"
           value={`RWF ${stats.totalRevenue.toLocaleString()}`}
-          icon={<DollarSign className="text-blue-500" size={24} />}
+          icon={<DollarSign className="text-cyan-500" size={24} />}
           change="+15%"
         />
         <StatCard 
@@ -364,7 +389,7 @@ const BusinessDashboard = () => {
                   }`}>{value}</span>
                 )},
                 { key: 'actions', label: 'Actions', render: (_, row) => (
-                  <button onClick={() => handleViewListing(row)} className="text-blue-600 hover:text-blue-800">
+                  <button onClick={() => handleViewListing(row)} className="text-cyan-600 hover:text-cyan-800">
                     <Eye size={16} />
                   </button>
                 )}
@@ -391,8 +416,8 @@ const BusinessDashboard = () => {
                 <p className="text-2xl font-bold text-cyan-600">RWF 90K</p>
                 <p className="text-xs text-gray-600">This Month</p>
               </div>
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <p className="text-2xl font-bold text-blue-600">+15%</p>
+              <div className="text-center p-3 bg-cyan-50 rounded-lg">
+                <p className="text-2xl font-bold text-cyan-600">+15%</p>
                 <p className="text-xs text-gray-600">Growth</p>
               </div>
             </div>
@@ -435,11 +460,11 @@ const BusinessDashboard = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">My Listings</h2>
         <div className="flex gap-3">
-          <button className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
+          <button onClick={handleFilterListings} className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
             <Filter size={16} />
             <span>Filter</span>
           </button>
-          <button className="px-4 py-2 bg-green-600 text-white rounded-lg">
+          <button onClick={handleCreateNewListing} className="px-4 py-2 bg-green-600 text-white rounded-lg">
             + New Listing
           </button>
         </div>
@@ -468,7 +493,7 @@ const BusinessDashboard = () => {
           )},
           { key: 'date', label: 'Date' },
           { key: 'actions', label: 'Actions', render: (_, row) => (
-            <button onClick={() => handleViewListing(row)} className="text-blue-600 hover:text-blue-800">
+            <button onClick={() => handleViewListing(row)} className="text-cyan-600 hover:text-cyan-800">
               <Eye size={16} />
             </button>
           )}
@@ -484,7 +509,7 @@ const BusinessDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Transaction History</h2>
-        <button className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2">
+        <button onClick={handleExportTransactions} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2">
           <Download size={16} />
           <span>Export</span>
         </button>
@@ -493,7 +518,7 @@ const BusinessDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Revenue" value="RWF 450K" icon={<DollarSign className="text-green-500" size={24} />} change="+15%" />
         <StatCard title="This Month" value="RWF 90K" icon={<Calendar className="text-cyan-500" size={24} />} change="+8%" />
-        <StatCard title="Completed" value="42" icon={<CheckCircle className="text-blue-500" size={24} />} change="" />
+        <StatCard title="Completed" value="42" icon={<CheckCircle className="text-cyan-500" size={24} />} change="" />
         <StatCard title="Pending" value="3" icon={<Clock className="text-yellow-500" size={24} />} change="" />
       </div>
 
@@ -542,6 +567,167 @@ const BusinessDashboard = () => {
             }]
           }} />
         </DashboardWidget>
+      </div>
+    </div>
+  );
+
+  const Marketplace = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Marketplace</h2>
+        <button onClick={() => handleAction('Marketplace filter applied.')} className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
+          <Filter size={16} />
+          <span>Filter</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Active Listings" value={stats.activeListings} icon={<Package className="text-green-500" size={24} />} change="" />
+        <StatCard title="Pending Orders" value="6" icon={<Clock className="text-yellow-500" size={24} />} change="" />
+        <StatCard title="Avg. Price" value="RWF 28K" icon={<DollarSign className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Views" value="1.2K" icon={<Eye className="text-cyan-500" size={24} />} change="" />
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'material', label: 'Material' },
+          { key: 'quantity', label: 'Quantity' },
+          { key: 'price', label: 'Price (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'status', label: 'Status', render: (value) => (
+            <span className={`px-2 py-1 rounded text-xs ${
+              value === 'active' ? 'bg-green-100 text-green-800' :
+              value === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-gray-100 text-gray-800'
+            }`}>{value}</span>
+          )},
+          { key: 'date', label: 'Date' },
+        ]}
+        data={mockListings}
+      />
+    </div>
+  );
+
+  const Financial = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Financial Dashboard</h2>
+        <button onClick={() => handleAction('Financial report exported.')} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Export</span>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Revenue" value={`RWF ${stats.totalRevenue.toLocaleString()}`} icon={<DollarSign className="text-green-500" size={24} />} change="+15%" />
+        <StatCard title="Pending Payouts" value="RWF 60K" icon={<Clock className="text-yellow-500" size={24} />} change="" />
+        <StatCard title="Completed" value="42" icon={<CheckCircle className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Avg. Order" value="RWF 22K" icon={<TrendingUp className="text-cyan-500" size={24} />} change="" />
+      </div>
+
+      <DataTable
+        columns={[
+          { key: 'date', label: 'Date' },
+          { key: 'material', label: 'Material' },
+          { key: 'quantity', label: 'Quantity' },
+          { key: 'amount', label: 'Amount (RWF)', render: (value) => value.toLocaleString() },
+          { key: 'buyer', label: 'Buyer' },
+          { key: 'status', label: 'Status', render: (value) => (
+            <span className={`px-2 py-1 rounded text-xs ${
+              value === 'completed' ? 'bg-green-100 text-green-800' :
+              'bg-yellow-100 text-yellow-800'
+            }`}>{value}</span>
+          )}
+        ]}
+        data={mockTransactions}
+      />
+    </div>
+  );
+
+  const SchedulePickups = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Schedule & Pickups</h2>
+        <button onClick={() => handleAction('Pickup scheduling opened.')} className="px-4 py-2 bg-green-600 text-white rounded-lg">+ New Pickup</button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Scheduled" value="3" icon={<Calendar className="text-green-500" size={24} />} change="" />
+        <StatCard title="In Progress" value="1" icon={<Clock className="text-yellow-500" size={24} />} change="" />
+        <StatCard title="Completed" value="18" icon={<CheckCircle className="text-cyan-500" size={24} />} change="" />
+        <StatCard title="Cancelled" value="0" icon={<AlertCircle className="text-red-500" size={24} />} change="" />
+      </div>
+
+      <div className="bg-white rounded-lg border p-6">
+        <h3 className="text-lg font-bold mb-4">Upcoming Pickups</h3>
+        <div className="space-y-3">
+          {[
+            { id: 1, date: '2024-02-12', time: '10:00 AM', material: 'UCO (50kg)', status: 'scheduled' },
+            { id: 2, date: '2024-02-13', time: '02:30 PM', material: 'Glass (200kg)', status: 'scheduled' },
+            { id: 3, date: '2024-02-14', time: '09:00 AM', material: 'Plastic (150kg)', status: 'in-progress' },
+          ].map((pickup) => (
+            <div key={pickup.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p className="font-semibold">{pickup.material}</p>
+                <p className="text-sm text-gray-600">{pickup.date} • {pickup.time}</p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                pickup.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-green-100 text-green-800'
+              }`}>{pickup.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const GreenScore = () => (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">Green Score</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Score" value="82" icon={<Leaf className="text-green-600" size={24} />} change="+4" />
+        <StatCard title="CO₂ Saved" value="1.2t" icon={<Leaf className="text-emerald-500" size={24} />} change="+0.3t" />
+        <StatCard title="Waste Reduced" value="2,500kg" icon={<Package className="text-cyan-500" size={24} />} change="+320kg" />
+        <StatCard title="Rank" value="Top 10%" icon={<TrendingUp className="text-cyan-500" size={24} />} change="" />
+      </div>
+
+      <DashboardWidget title="Monthly Sustainability" icon={<Leaf size={20} />}>
+        <ChartComponent type="line" data={{
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          datasets: [{
+            data: [60, 65, 70, 74, 78, 82],
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          }]
+        }} />
+      </DashboardWidget>
+    </div>
+  );
+
+  const Reports = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Reports</h2>
+        <button onClick={() => handleAction('Reports downloaded.')} className="px-4 py-2 bg-green-600 text-white rounded-lg flex items-center space-x-2">
+          <Download size={16} />
+          <span>Download All</span>
+        </button>
+      </div>
+
+      <div className="bg-white rounded-lg border p-6 space-y-4">
+        {[
+          { title: 'Monthly Sustainability Report', date: 'Feb 2024', status: 'ready' },
+          { title: 'Revenue Summary', date: 'Feb 2024', status: 'ready' },
+          { title: 'Pickup Efficiency', date: 'Jan 2024', status: 'ready' },
+        ].map((report, idx) => (
+          <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div>
+              <p className="font-semibold">{report.title}</p>
+              <p className="text-sm text-gray-600">{report.date}</p>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">{report.status}</span>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -635,6 +821,11 @@ const BusinessDashboard = () => {
       <Route index element={<Overview />} />
       <Route path="overview" element={<Overview />} />
       <Route path="listings" element={<MyListings />} />
+      <Route path="marketplace" element={<Marketplace />} />
+      <Route path="financial" element={<Financial />} />
+      <Route path="schedule" element={<SchedulePickups />} />
+      <Route path="greenscore" element={<GreenScore />} />
+      <Route path="reports" element={<Reports />} />
       <Route path="transactions" element={<Transactions />} />
       <Route path="analytics" element={<Analytics />} />
       <Route path="settings" element={<BusinessSettings />} />

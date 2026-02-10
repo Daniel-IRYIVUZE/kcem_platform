@@ -143,7 +143,7 @@ const HomePage = () => {
                     <span className="text-sm text-gray-300">Verified Recyclers</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Shield size={16} className="text-blue-400" />
+                    <Shield size={16} className="text-cyan-400" />
                     <span className="text-sm text-gray-300">Secure Payments</span>
                   </div>
                   <div className="flex items-center gap-2">
