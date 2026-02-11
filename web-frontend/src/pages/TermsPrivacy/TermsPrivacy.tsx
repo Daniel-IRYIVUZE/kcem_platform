@@ -57,7 +57,7 @@ const TermsPrivacyPage = () => {
   const termsContent = [
     {
       title: '1. Acceptance of Terms',
-      content: 'By accessing and using the EcoTrade Rwanda   (KCEM) platform, you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you may not access the service.'
+      content: 'By accessing and using the EcoTrade Rwanda   (EcoTrade) platform, you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you may not access the service.'
     },
     {
       title: '2. User Accounts',
@@ -65,7 +65,7 @@ const TermsPrivacyPage = () => {
     },
     {
       title: '3. Service Description',
-      content: 'KCEM provides a digital B2B marketplace connecting HORECA businesses with recyclers for reverse logistics operations. We reserve the right to modify or discontinue the service at any time.'
+      content: 'EcoTrade provides a digital B2B marketplace connecting HORECA businesses with recyclers for reverse logistics operations. We reserve the right to modify or discontinue the service at any time.'
     },
     {
       title: '4. User Responsibilities',
@@ -73,15 +73,15 @@ const TermsPrivacyPage = () => {
     },
     {
       title: '5. Transactions & Payments',
-      content: 'All waste transactions are binding agreements between buyer and seller. KCEM facilitates the transaction but is not responsible for disputes regarding waste quality or payment.'
+      content: 'All waste transactions are binding agreements between buyer and seller. EcoTrade facilitates the transaction but is not responsible for disputes regarding waste quality or payment.'
     },
     {
       title: '6. Intellectual Property',
-      content: 'All content on the KCEM platform, including trademarks, logos, and software, is the property of KCEM and protected by intellectual property laws.'
+      content: 'All content on the EcoTrade platform, including trademarks, logos, and software, is the property of EcoTrade and protected by intellectual property laws.'
     },
     {
       title: '7. Limitation of Liability',
-      content: 'KCEM shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the service.'
+      content: 'EcoTrade shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the service.'
     },
     {
       title: '8. Termination',
@@ -117,7 +117,7 @@ const TermsPrivacyPage = () => {
     },
     {
       title: 'Your Rights',
-      content: 'You have the right to access, correct, or delete your personal data. Contact us at privacy@kcem.rw to exercise these rights.',
+      content: 'You have the right to access, correct, or delete your personal data. Contact us at privacy@EcoTrade.rw to exercise these rights.',
       icon: <AlertTriangle className="text-slate-400" size={18} />
     }
   ];
@@ -125,7 +125,7 @@ const TermsPrivacyPage = () => {
   const dataProtectionContent = [
     {
       title: 'Compliance',
-      content: 'KCEM complies with Rwanda\'s Data Protection Law No. 058/2021 and implements appropriate technical and organizational measures.'
+      content: 'EcoTrade complies with Rwanda\'s Data Protection Law No. 058/2021 and implements appropriate technical and organizational measures.'
     },
     {
       title: 'Geospatial Data',
@@ -145,7 +145,7 @@ const TermsPrivacyPage = () => {
     },
     {
       title: 'Contact DPO',
-      content: 'For data protection inquiries, contact our Data Protection Officer at dpo@kcem.rw'
+      content: 'For data protection inquiries, contact our Data Protection Officer at dpo@EcoTrade.rw'
     }
   ];
 
@@ -174,7 +174,7 @@ const TermsPrivacyPage = () => {
             Terms & Privacy Policy
           </h1>
           <p className="text-lg text-slate-600 max-w-3xl mx-auto">
-            Your trust is important to us. Please review our terms and privacy practices before using the KCEM platform.
+            Your trust is important to us. Please review our terms and privacy practices before using the EcoTrade platform.
           </p>
         </motion.div>
 
@@ -245,7 +245,7 @@ const TermsPrivacyPage = () => {
                 <div className="p-6">
                   <div className="mb-6">
                     <p className="text-slate-600 mb-6">
-                      This Privacy Policy describes how KCEM collects, uses, and shares your personal information when you use our platform.
+                      This Privacy Policy describes how EcoTrade collects, uses, and shares your personal information when you use our platform.
                     </p>
                   </div>
                   
@@ -398,7 +398,7 @@ const TermsPrivacyPage = () => {
                         <li>• You must be 18+ or have parental consent</li>
                         <li>• Business accounts require valid registration</li>
                         <li>• Keep your login cslateentials secure</li>
-                        <li>• Contact legal@kcem.rw for questions</li>
+                        <li>• Contact legal@EcoTrade.rw for questions</li>
                       </ul>
                     </div>
                   </div>
@@ -408,7 +408,7 @@ const TermsPrivacyPage = () => {
                 <div className="mt-6 p-4 bg-slate-50 rounded-xl">
                   <h4 className="font-medium text-slate-900 mb-2">Contact Information</h4>
                   <div className="space-y-2 text-sm text-slate-600">
-                    <div>Email: legal@kcem.rw</div>
+                    <div>Email: legal@EcoTrade.rw</div>
                     <div>Phone: +250 780 162 164</div>
                     <div>Address: Kigali Innovation City, Rwanda</div>
                   </div>
@@ -434,7 +434,7 @@ const TermsPrivacyPage = () => {
               If you have any questions about our terms or privacy practices, please don't hesitate to contact our legal team.
             </p>
             <Link
-              to="mailto:legal@kcem.rw"
+              to="mailto:legal@EcoTrade.rw"
               className="inline-flex items-center gap-2 bg-cyan-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-cyan-700 transition-all"
             >
               <Mail size={18} />
@@ -450,7 +450,7 @@ const TermsPrivacyPage = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-3">
               <Globe className="text-slate-400" size={20} />
-              <span className="text-sm text-slate-600">© 2026 KCEM. All rights reserved.</span>
+              <span className="text-sm text-slate-600">© 2026 EcoTrade. All rights reserved.</span>
             </div>
             
             <div className="flex items-center gap-6">

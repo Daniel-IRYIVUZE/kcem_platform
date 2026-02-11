@@ -67,7 +67,7 @@ EcoTrade  is a digital platform connecting waste generators (hotels, restaurants
 *Editable profile with notification preferences and role-specific options*
 ## Links
 
-- GitHub Repository: https://github.com/Daniel-IRYIVUZE/kcem_platform.git
+- GitHub Repository: https://github.com/Daniel-IRYIVUZE/EcoTrade_platform.git
 - Live Demo: https://ecotrade-rwanda.netlify.app
 - Demo Video: https://youtu.be/
 
@@ -83,8 +83,8 @@ EcoTrade  is a digital platform connecting waste generators (hotels, restaurants
 
 ```bash
 # Clone repository
-git clone https://github.com/Daniel-IRYIVUZE/kcem_platform.git
-cd kcem_platform/web-frontend
+git clone https://github.com/Daniel-IRYIVUZE/EcoTrade_platform.git
+cd EcoTrade_platform/web-frontend
 
 # Install dependencies
 npm install
@@ -99,7 +99,7 @@ npm run build
 ## Project Structure
 
 ```
-kcem_platform/
+EcoTrade_platform/
 ├── LICENSE
 ├── README.md
 └── web-frontend/
@@ -161,6 +161,6 @@ MIT License - see LICENSE file for details.
 
 ## Contact
 
-- Email: support@kcem.rw
+- Email: support@EcoTrade.rw
 - Website: https://ecotrade-rwanda.netlify.app
 - Demo Video: https://youtu.be/

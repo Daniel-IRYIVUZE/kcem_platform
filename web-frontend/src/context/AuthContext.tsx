@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Check for stored user session
-    const storedUser = localStorage.getItem('kcem_user');
+    const storedUser = localStorage.getItem('EcoTrade_user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
     
     setUser(mockUser);
-    localStorage.setItem('kcem_user', JSON.stringify(mockUser));
+    localStorage.setItem('EcoTrade_user', JSON.stringify(mockUser));
     
     // Also set individual items for navbar compatibility
     localStorage.setItem('isAuthenticated', 'true');
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('kcem_user');
+    localStorage.removeItem('EcoTrade_user');
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userRole');

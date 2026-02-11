@@ -33,11 +33,11 @@ npm run preview
 
 | Role | Email | Password | Dashboard |
 |------|-------|----------|-----------|
-| Admin | admin@kcem.com | admin123 | /dashboard/admin |
-| Business | business@kcem.com | business123 | /dashboard/business |
-| Recycler | recycler@kcem.com | recycler123 | /dashboard/recycler |
-| Driver | driver@kcem.com | driver123 | /dashboard/driver |
-| Individual | user@kcem.com | user123 | /dashboard/individual |
+| Admin | admin@EcoTrade.com | admin123 | /dashboard/admin |
+| Business | business@EcoTrade.com | business123 | /dashboard/business |
+| Recycler | recycler@EcoTrade.com | recycler123 | /dashboard/recycler |
+| Driver | driver@EcoTrade.com | driver123 | /dashboard/driver |
+| Individual | user@EcoTrade.com | user123 | /dashboard/individual |
 
 ## Platform Screenshots
 
@@ -252,6 +252,6 @@ MIT License - see LICENSE file
 
 ## Support
 
-- Email: support@kcem.rw
+- Email: support@EcoTrade.rw
 - Website: https://ecotrade-rwanda.netlify.app
 - Demo Video: https://youtu.be/

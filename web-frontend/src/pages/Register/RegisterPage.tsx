@@ -275,7 +275,7 @@ const RegisterPage = () => {
       };
       
       // Store user data in localStorage (simulating backend)
-      localStorage.setItem('kcem_user', JSON.stringify(userData));
+      localStorage.setItem('EcoTrade_user', JSON.stringify(userData));
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -957,7 +957,7 @@ const RegisterPage = () => {
                 <ShieldCheck size={24} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">KCEM Terms & Conditions</h2>
+                <h2 className="text-2xl font-bold text-slate-900">EcoTrade Terms & Conditions</h2>
                 <p className="text-slate-500">Please read carefully before proceeding</p>
               </div>
             </div>
@@ -972,7 +972,7 @@ const RegisterPage = () => {
               <div>
                 <h3 className="text-lg font-bold text-slate-900 mb-3">1. Acceptance of Terms</h3>
                 <p className="text-slate-600">
-                  By accessing and using the EcoTrade Rwanda   (KCEM) platform, you agree to be bound by these Terms of Service. These terms govern your use of our services for waste management and recycling transactions.
+                  By accessing and using the EcoTrade Rwanda   (EcoTrade) platform, you agree to be bound by these Terms of Service. These terms govern your use of our services for waste management and recycling transactions.
                 </p>
               </div>
               
@@ -1010,14 +1010,14 @@ const RegisterPage = () => {
               <div>
                 <h3 className="text-lg font-bold text-slate-900 mb-3">4. Platform Fees</h3>
                 <p className="text-slate-600">
-                  KCEM charges a service fee of 5% on successful transactions. This fee covers platform maintenance, verification services, and customer support. All fees are transparently displayed before transaction confirmation.
+                  EcoTrade charges a service fee of 5% on successful transactions. This fee covers platform maintenance, verification services, and customer support. All fees are transparently displayed before transaction confirmation.
                 </p>
               </div>
               
               <div>
                 <h3 className="text-lg font-bold text-slate-900 mb-3">5. Dispute Resolution</h3>
                 <p className="text-slate-600">
-                  Any disputes regarding waste quality, payment, or service delivery should first be resolved between parties. If unresolved, KCEM provides mediation services. Legal disputes fall under Kigali jurisdiction.
+                  Any disputes regarding waste quality, payment, or service delivery should first be resolved between parties. If unresolved, EcoTrade provides mediation services. Legal disputes fall under Kigali jurisdiction.
                 </p>
               </div>
               
@@ -1038,7 +1038,7 @@ const RegisterPage = () => {
               <div>
                 <h3 className="text-lg font-bold text-slate-900 mb-3">8. Contact Information</h3>
                 <p className="text-slate-600">
-                  For questions about these terms, contact our legal team at legal@kcem.rw or call +250 780 162 164.
+                  For questions about these terms, contact our legal team at legal@EcoTrade.rw or call +250 780 162 164.
                 </p>
               </div>
             </div>
@@ -1091,7 +1091,7 @@ const RegisterPage = () => {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-cyan-50/30 flex items-center justify-center p-4">
         <div className="max-w-6xl w-full">
           <div className="text-center mb-12">
-            <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">Join KCEM Marketplace</h1>
+            <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">Join EcoTrade Marketplace</h1>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
               Select your role to access tailored waste management solutions
             </p>

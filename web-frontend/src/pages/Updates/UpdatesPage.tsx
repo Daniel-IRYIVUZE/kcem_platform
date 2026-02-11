@@ -236,7 +236,7 @@ const UpdatesPage = () => {
     },
     {
       id: 7,
-      title: "COPED Announces Partnership with KCEM",
+      title: "COPED Announces Partnership with EcoTrade",
       date: "Jan 30, 2026",
       category: "partnership",
       source: "Press Release",

@@ -47,7 +47,7 @@ const BlogPage = () => {
     {
       id: 1,
       title: "Circular Economy in Rwanda: A New Frontier",
-      excerpt: "How Kigali is leading the continent in digital waste management and reverse logistics through innovative platforms like KCEM.",
+      excerpt: "How Kigali is leading the continent in digital waste management and reverse logistics through innovative platforms like EcoTrade.",
       category: "Sustainability",
       author: "Daniel Iryivuze",
       authorRole: "Platform Lead",
@@ -60,13 +60,13 @@ const BlogPage = () => {
       featured: true,
       tags: ["Circular Economy", "Rwanda", "Digital Transformation"],
       content: `
-        <p>The circular economy is not just a buzzword in Rwanda; it's a national strategy that's being implemented through innovative digital solutions. With KCEM, we are digitizing the flow of materials that were previously considered waste, transforming them into valuable resources.</p>
+        <p>The circular economy is not just a buzzword in Rwanda; it's a national strategy that's being implemented through innovative digital solutions. With EcoTrade, we are digitizing the flow of materials that were previously considered waste, transforming them into valuable resources.</p>
         
         <h2>The Rwandan Model</h2>
         <p>Rwanda's approach to circular economy combines strong government policy with private sector innovation. The ban on single-use plastics in 2008 was just the beginning. Today, we're seeing a comprehensive ecosystem emerge where every waste stream has value.</p>
         
         <h2>Digital Transformation in Waste Management</h2>
-        <p>Traditional waste management systems rely on linear models. KCEM introduces a digital layer that connects waste generators with recyclers in real-time, optimizing routes and maximizing value recovery.</p>
+        <p>Traditional waste management systems rely on linear models. EcoTrade introduces a digital layer that connects waste generators with recyclers in real-time, optimizing routes and maximizing value recovery.</p>
         
         <h2>Impact So Far</h2>
         <ul>
@@ -76,7 +76,7 @@ const BlogPage = () => {
           <li>New revenue streams for HORECA sector</li>
         </ul>
         
-        <p>Sustainable waste management requires a collaborative approach between the public sector, private innovators, and community participation. KCEM serves as the digital bridge connecting these stakeholders.</p>
+        <p>Sustainable waste management requires a collaborative approach between the public sector, private innovators, and community participation. EcoTrade serves as the digital bridge connecting these stakeholders.</p>
       `,
       relatedArticles: [2, 3]
     },
@@ -255,7 +255,7 @@ const BlogPage = () => {
 
   const handleShare = (platform: string) => {
     const url = window.location.href;
-    const title = selectedArticle?.title || 'KCEM Blog';
+    const title = selectedArticle?.title || 'EcoTrade Blog';
     let shareUrl = '';
     
     switch (platform) {

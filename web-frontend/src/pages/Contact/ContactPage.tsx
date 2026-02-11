@@ -56,9 +56,9 @@ const ContactPage = () => {
       icon: <Mail size={20} />,
       label: 'Email',
       items: [
-        { type: 'General Support', value: 'support@kcem.rw', response: '24 hours' },
-        { type: 'Sales & Partnerships', value: 'partnerships@kcem.rw', response: '2 business days' },
-        { type: 'Technical Issues', value: 'tech@kcem.rw', response: '12 hours' }
+        { type: 'General Support', value: 'support@EcoTrade.rw', response: '24 hours' },
+        { type: 'Sales & Partnerships', value: 'partnerships@EcoTrade.rw', response: '2 business days' },
+        { type: 'Technical Issues', value: 'tech@EcoTrade.rw', response: '12 hours' }
       ]
     },
     {
@@ -152,8 +152,8 @@ const ContactPage = () => {
       questions: [
         {
           id: 8,
-          question: 'How can my business partner with KCEM?',
-          answer: 'We offer various partnership opportunities including waste collection collaborations, technology integrations, and corporate sustainability programs. Contact our partnerships team at partnerships@kcem.rw for more information.'
+          question: 'How can my business partner with EcoTrade?',
+          answer: 'We offer various partnership opportunities including waste collection collaborations, technology integrations, and corporate sustainability programs. Contact our partnerships team at partnerships@EcoTrade.rw for more information.'
         },
         {
           id: 9,
@@ -619,7 +619,7 @@ const ContactPage = () => {
                     <div className="text-center">
                       <p className="text-gray-600 mb-3 text-sm">Still have questions?</p>
                       <a
-                        href="mailto:support@kcem.rw"
+                        href="mailto:support@EcoTrade.rw"
                         className="inline-flex items-center gap-2 bg-cyan-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-cyan-700 transition-colors text-sm"
                       >
                         <ExternalLink size={14} />

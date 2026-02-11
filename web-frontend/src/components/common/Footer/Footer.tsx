@@ -23,11 +23,11 @@ const Footer = () => {
   };
 
   const socialLinks = [
-    { icon: <Instagram size={20} />, name: 'Instagram', href: 'https://instagram.com/kcem', color: 'hover:text-pink-500' },
-    { icon: <Twitter size={20} />, name: 'Twitter', href: 'https://twitter.com/kcem', color: 'hover:text-sky-500' },
-    { icon: <Facebook size={20} />, name: 'Facebook', href: 'https://facebook.com/kcem', color: 'hover:text-cyan-600' },
-    { icon: <Linkedin size={20} />, name: 'LinkedIn', href: 'https://linkedin.com/company/kcem', color: 'hover:text-cyan-700' },
-    { icon: <Youtube size={20} />, name: 'YouTube', href: 'https://youtube.com/c/kcem', color: 'hover:text-red-600' },
+    { icon: <Instagram size={20} />, name: 'Instagram', href: 'https://instagram.com/EcoTrade', color: 'hover:text-pink-500' },
+    { icon: <Twitter size={20} />, name: 'Twitter', href: 'https://twitter.com/EcoTrade', color: 'hover:text-sky-500' },
+    { icon: <Facebook size={20} />, name: 'Facebook', href: 'https://facebook.com/EcoTrade', color: 'hover:text-cyan-600' },
+    { icon: <Linkedin size={20} />, name: 'LinkedIn', href: 'https://linkedin.com/company/EcoTrade', color: 'hover:text-cyan-700' },
+    { icon: <Youtube size={20} />, name: 'YouTube', href: 'https://youtube.com/c/EcoTrade', color: 'hover:text-red-600' },
   ];
 
   const quickLinks = [
@@ -39,7 +39,7 @@ const Footer = () => {
   ];
 
   const contactInfo = [
-    { icon: <Mail size={16} />, value: 'contact@kcem.rw', type: 'email' },
+    { icon: <Mail size={16} />, value: 'contact@EcoTrade.rw', type: 'email' },
     { icon: <Phone size={16} />, value: '+250 780 162 164', type: 'phone' },
     { icon: <MapPin size={16} />, value: 'Kigali, Rwanda', type: 'address' },
   ];

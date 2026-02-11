@@ -193,7 +193,7 @@ const AboutPage = () => {
                 </div>
                 <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 lg:mb-6">Solving the Waste Value Chain Crisis</h2>
                 <p className="text-gray-600 leading-relaxed mb-6">
-                  KCEM addresses the fundamental disconnect in Kigali's HORECA sector where valuable recyclables 
+                  EcoTrade addresses the fundamental disconnect in Kigali's HORECA sector where valuable recyclables 
                   are treated as disposal liabilities. Our platform transforms this linear model into a circular 
                   economy where waste becomes revenue and environmental responsibility becomes profitable.
                 </p>

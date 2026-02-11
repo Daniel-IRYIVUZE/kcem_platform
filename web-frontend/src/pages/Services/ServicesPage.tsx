@@ -220,35 +220,35 @@ const ServicesPage = () => {
         { 
           feature: "Monthly Disposal Costs", 
           traditional: "Rwf 50,000 - Rwf 200,000", 
-          kcem: "Rwf 0 - Revenue Generated", 
+          EcoTrade: "Rwf 0 - Revenue Generated", 
           savings: "100%+ savings",
           icon: <DollarSign size={16} />
         },
         { 
           feature: "Collection Efficiency", 
           traditional: "40-60%", 
-          kcem: "85-95%", 
+          EcoTrade: "85-95%", 
           savings: "+40% efficiency",
           icon: <TrendingUp size={16} />
         },
         { 
           feature: "Carbon Reporting", 
           traditional: "Manual estimates", 
-          kcem: "Automated tracking", 
+          EcoTrade: "Automated tracking", 
           savings: "100% accuracy",
           icon: <Leaf size={16} />
         },
         { 
           feature: "Revenue Generation", 
           traditional: "None", 
-          kcem: "Rwf 10,000 - Rwf 100,000/mo", 
+          EcoTrade: "Rwf 10,000 - Rwf 100,000/mo", 
           savings: "New income stream",
           icon: <ChartBar size={16} />
         },
         { 
           feature: "Admin Time", 
           traditional: "10-20 hours/month", 
-          kcem: "1-2 hours/month", 
+          EcoTrade: "1-2 hours/month", 
           savings: "90% cyanuction",
           icon: <Clock size={16} />
         }
@@ -260,35 +260,35 @@ const ServicesPage = () => {
         { 
           feature: "Digital Waste Listing", 
           traditional: "✗", 
-          kcem: "✓", 
+          EcoTrade: "✓", 
           savings: "Automated process",
           icon: <Upload size={16} />
         },
         { 
           feature: "Route Optimization", 
           traditional: "✗", 
-          kcem: "✓", 
+          EcoTrade: "✓", 
           savings: "AI-powecyan routing",
           icon: <Navigation size={16} />
         },
         { 
           feature: "Real-time Tracking", 
           traditional: "✗", 
-          kcem: "✓", 
+          EcoTrade: "✓", 
           savings: "Live updates",
           icon: <Map size={16} />
         },
         { 
           feature: "Automated Payments", 
           traditional: "✗", 
-          kcem: "✓", 
+          EcoTrade: "✓", 
           savings: "Secure & instant",
           icon: <Wallet size={16} />
         },
         { 
           feature: "Environmental Reporting", 
           traditional: "Manual", 
-          kcem: "Automated", 
+          EcoTrade: "Automated", 
           savings: "Verified metrics",
           icon: <FileText size={16} />
         }
@@ -799,9 +799,9 @@ const ServicesPage = () => {
                         </td>
                         <td className="p-6">
                           <div className={`inline-flex items-center gap-2 ${
-                            row.kcem.includes('✓') ? 'text-cyan-500' : 'text-slate-700'
+                            row.EcoTrade.includes('✓') ? 'text-cyan-500' : 'text-slate-700'
                           }`}>
-                            {row.kcem}
+                            {row.EcoTrade}
                           </div>
                         </td>
                         <td className="p-6">

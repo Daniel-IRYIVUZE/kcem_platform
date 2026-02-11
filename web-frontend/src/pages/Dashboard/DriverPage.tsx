@@ -72,7 +72,7 @@ const DriverDashboard = () => {
 
   const [driverProfile, setDriverProfile] = useState({
     name: 'John Mugisha',
-    email: 'john.driver@kcem.rw',
+    email: 'john.driver@EcoTrade.rw',
     phone: '+250-788-345-678',
     address: 'KN 8 Ave, Kigali',
     vehicleType: 'Pickup Truck',

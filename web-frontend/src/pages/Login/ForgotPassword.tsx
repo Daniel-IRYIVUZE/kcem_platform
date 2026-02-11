@@ -200,7 +200,7 @@ const ForgotPassword = () => {
                   </div>
                   <h2 className="text-xl font-bold text-gray-900 mb-1">Reset Your Password</h2>
                   <p className="text-gray-600 text-sm">
-                    Enter the email associated with your KCEM account to receive a verification code.
+                    Enter the email associated with your EcoTrade account to receive a verification code.
                   </p>
                 </div>
 
@@ -488,8 +488,8 @@ const ForgotPassword = () => {
         <div className="p-3 bg-gray-50 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center">
             Need help? Contact support at{' '}
-            <a href="mailto:support@kcem.rw" className="text-cyan-600 hover:underline">
-              support@kcem.rw
+            <a href="mailto:support@EcoTrade.rw" className="text-cyan-600 hover:underline">
+              support@EcoTrade.rw
             </a>
           </p>
         </div>
