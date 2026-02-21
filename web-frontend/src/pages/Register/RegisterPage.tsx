@@ -966,7 +966,7 @@ const RegisterPage = () => {
           {/* Terms Content with Scroll */}
           <div 
             ref={termsRef}
-            className="h-[400px] overflow-y-auto p-6 bg-slate-50/50"
+            className="h-[400px] overflow-y-auto p-6 bg-slate-50"
           >
             <div className="space-y-6">
               <div>
@@ -1260,7 +1260,7 @@ const RegisterPage = () => {
                 disabled={!validateStep(step) || loading}
                 className={`flex items-center gap-2 px-8 py-3 rounded-xl font-medium transition-all ${
                   validateStep(step) 
-                    ? 'bg-gradient-to-r from-cyan-600 to-cyan-600 text-white hover:shadow-lg'
+                    ? 'bg-gradient-to-r from-cyan-600 to-cyan-600 text-white hover:shadow-lg '
                     : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }`}
               >

@@ -162,7 +162,7 @@ const RecyclerDashboard = () => {
                   type="text" 
                   value={settings.name}
                   onChange={(e) => setSettings({...settings, name: e.target.value})}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full p-3 border-2 border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
 
@@ -297,7 +297,7 @@ const RecyclerDashboard = () => {
 
     return (
       <div className="fixed inset-0 bg-cyan/650 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6" onClick={onClose}>
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-white bg-opacity-90 backdrop-blur-md rounded-2xl max-w-3xl w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <div className="relative">
             <ImageWithFallback 
               src={getMaterialImage(listing.material)} 
@@ -473,9 +473,9 @@ const RecyclerDashboard = () => {
   const Marketplace = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Material Marketplace</h2>
+        <h2 className="text-2xl font-bold text-gray-900">Material Marketplace</h2>
         <div className="flex gap-3">
-          <button onClick={handleFilterPurchases} className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
+          <button onClick={handleFilterPurchases} className="px-4 py-2 border border-gray-300 bg-white text-gray-900 rounded-lg flex items-center space-x-2 hover:bg-gray-50">
             <Filter size={16} />
             <span>Filter</span>
           </button>
@@ -495,7 +495,7 @@ const RecyclerDashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {mockMarketplace.map((listing) => (
-          <div key={listing.id} className="bg-white border rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleViewListing(listing)}>
+          <div key={listing.id} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleViewListing(listing)}>
             <ImageWithFallback 
               src={getMaterialImage(listing.material)} 
               alt={listing.material} 

@@ -7,9 +7,18 @@ interface ServiceHeroSectionProps {
 
 const ServiceHeroSection = ({ roleLoginFeatures }: ServiceHeroSectionProps) => {
   return (
-    <section className="relative py-24 overflow-hidden bg-gradient-to-br from-cyan-900 via-cyan-900 to-cyan-900">
-      <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:40px_40px]"></div>
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
+    <section className="relative py-24 overflow-hidden">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <img 
+          src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=1920" 
+          alt="Waste Management Solutions" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/60"></div>
+      </div>
+
+      <div className="lg:w-11/12 max-w-7xl mx-auto px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -20,7 +29,7 @@ const ServiceHeroSection = ({ roleLoginFeatures }: ServiceHeroSectionProps) => {
             <span className="text-cyan-300">Waste Management Solutions</span>
           </h1>
           <p className="text-xl text-cyan-100 max-w-3xl mx-auto mb-12 opacity-90">
-            Tailocyan dashboards and tools for every stakeholder in Rwanda's circular economy
+            Tailored dashboards and tools for every stakeholder in Rwanda's circular economy
           </p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}

@@ -14,14 +14,14 @@ const AboutHeroSection = () => {
 
   return (
     <section className="relative py-12 md:py-20 lg:py-24 overflow-hidden">
-      <div className="absolute inset-0 bg-gray-900">
+      <div className="absolute inset-0 bg-gradient-to-r from-cyan-900/50 to-cyan-800/50">
         <img 
           src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=1920" 
           alt="Kigali City" 
           className="w-full h-full object-cover opacity-40"
         />
       </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

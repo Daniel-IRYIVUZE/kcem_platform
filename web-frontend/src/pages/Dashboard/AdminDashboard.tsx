@@ -337,14 +337,14 @@ const AdminDashboard = () => {
                   User Role
                 </label>
                 <select 
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                  className="w-full p-3 border-2 border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
                   defaultValue={selectedUser.role}
                 >
-                  <option value="business">🏢 Business / HORECA</option>
-                  <option value="recycler">♻️ Recycler</option>
-                  <option value="driver">🚚 Driver</option>
-                  <option value="individual">👤 Individual</option>
-                  <option value="admin">⚙️ Administrator</option>
+                  <option value="business">Business / HORECA</option>
+                  <option value="recycler">Recycler</option>
+                  <option value="driver">Driver</option>
+                  <option value="individual">Individual</option>
+                  <option value="admin">Administrator</option>
                 </select>
               </div>
 
@@ -353,7 +353,7 @@ const AdminDashboard = () => {
                   Additional Notes
                 </label>
                 <textarea 
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
+                  className="w-full p-3 border-2 border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
                   rows={3}
                   placeholder="Add any notes about this user..."
                 />
@@ -399,9 +399,9 @@ const AdminDashboard = () => {
     return (
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-xl sm:text-2xl font-bold">User Management</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">User Management</h2>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-            <button onClick={handleFilterUsers} className="px-4 py-2 border border-gray-300 rounded-lg flex items-center space-x-2">
+            <button onClick={handleFilterUsers} className="px-4 py-2 border border-gray-300 bg-white text-gray-900 rounded-lg flex items-center space-x-2 hover:bg-gray-50">
               <Filter size={16} />
               <span>Filter</span>
             </button>
@@ -520,11 +520,11 @@ const AdminDashboard = () => {
                     className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
                     defaultValue={selectedUser.role}
                   >
-                    <option value="business">🏢 Business / HORECA</option>
-                    <option value="recycler">♻️ Recycler</option>
-                    <option value="driver">🚚 Driver</option>
-                    <option value="individual">👤 Individual</option>
-                    <option value="admin">⚙️ Administrator</option>
+                    <option value="business">Business / HORECA</option>
+                    <option value="recycler">Recycler</option>
+                    <option value="driver">Driver</option>
+                    <option value="individual">Individual</option>
+                    <option value="admin">Administrator</option>
                   </select>
                 </div>
 
@@ -693,12 +693,12 @@ const AdminDashboard = () => {
     <div className="space-y-6">
       <h2 className="text-xl sm:text-2xl font-bold">System Configuration</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <div className="bg-white p-4 sm:p-6 rounded-lg border">
-          <h3 className="text-lg font-bold mb-4">Platform Settings</h3>
+        <div className="bg-white p-4 sm:p-6 rounded-lg border border-gray-200">
+          <h3 className="text-lg font-bold mb-4 text-gray-900">Platform Settings</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Platform Commission (%)</label>
-              <input type="number" defaultValue="10" className="w-full p-2 border rounded-lg" />
+              <label className="block text-sm font-medium mb-2 text-gray-700">Platform Commission (%)</label>
+              <input type="number" defaultValue="10" className="w-full p-2 border border-gray-300 bg-white text-gray-900 rounded-lg" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-2">Minimum Listing Amount (RWF)</label>
@@ -711,13 +711,13 @@ const AdminDashboard = () => {
             <button onClick={() => handleAction('Platform settings saved successfully!')} className="w-full p-3 bg-cyan-600 text-white rounded-lg">Save Settings</button>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-lg border">
-          <h3 className="text-lg font-bold mb-4">Email Notifications</h3>
+        <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <h3 className="text-lg font-bold mb-4 text-gray-900">Email Notifications</h3>
           <div className="space-y-3">
             {['New User Registration', 'Listing Approval Required', 'Payment Processed', 'Dispute Filed', 'System Alerts'].map((item, idx) => (
               <label key={idx} className="flex items-center space-x-3">
                 <input type="checkbox" defaultChecked className="w-4 h-4" />
-                <span>{item}</span>
+                <span className="text-gray-700">{item}</span>
               </label>
             ))}
             <button onClick={() => handleAction('Notification preferences updated.')} className="w-full p-3 bg-cyan-600 text-white rounded-lg mt-4">Update Notifications</button>

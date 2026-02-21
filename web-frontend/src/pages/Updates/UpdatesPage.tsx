@@ -267,7 +267,7 @@ const UpdatesPage = () => {
       title: 'Recycler Route Optimization v2.0',
       date: 'Feb 4, 2026',
       type: 'feature',
-      summary: 'AI-powered route optimization with real-time traffic data',
+      summary: 'Smart route optimization with real-time traffic data',
       features: [
         'Multi-vehicle routing',
         'Traffic-aware scheduling',
@@ -382,7 +382,7 @@ const UpdatesPage = () => {
       <Navbar />
 
       <div className="pt-24 pb-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <UpdatesHeroSection />
 
           <UpdatesSearchFilterSection

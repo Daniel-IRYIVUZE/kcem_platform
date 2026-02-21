@@ -79,7 +79,7 @@ const Navbar = () => {
 
   return (
     <nav className="fixed w-full z-50 bg-white/95 backdrop-blur-md border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20 items-center">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
@@ -92,7 +92,6 @@ const Navbar = () => {
             <Link to="/about" className="hover:text-cyan-600 transition-colors">About</Link>
             <Link to="/services" className="hover:text-cyan-600 transition-colors">Services</Link>
             <Link to="/marketplace" className="hover:text-cyan-600 transition-colors">Marketplace</Link>
-            {/* <Link to="/updates" className="hover:text-cyan-600 transition-colors">Updates</Link> */}
             <Link to="/blog" className="hover:text-cyan-600 transition-colors">Blog</Link>
             <Link to="/contact" className="hover:text-cyan-600 transition-colors">Contact</Link>
             
@@ -138,25 +137,26 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Toggle */}
-          <button 
-            className="md:hidden text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? <X size={28} /> : <Menu size={28} />}
-          </button>
+          <div className="md:hidden flex items-center gap-2">
+            <button 
+              className="md:hidden text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? <X size={28} /> : <Menu size={28} />}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-white border-b border-gray-100 px-4 py-6 space-y-4 animate-in slide-in-from-top duration-300">
-          <Link to="/" onClick={() => setIsOpen(false)} className="block py-2 hover:text-cyan-600">Home</Link>
-          <Link to="/about" onClick={() => setIsOpen(false)} className="block py-2 hover:text-cyan-600">About</Link>
-          <Link to="/services" onClick={() => setIsOpen(false)} className="block py-2 hover:text-cyan-600">Services</Link>
-          <Link to="/marketplace" onClick={() => setIsOpen(false)} className="block py-2 hover:text-cyan-600">Marketplace</Link>
-          <Link to="/updates" onClick={() => setIsOpen(false)} className="block py-2 hover:text-cyan-600">Updates</Link>
-          <Link to="/blog" onClick={() => setIsOpen(false)} className="block py-2 hover:text-cyan-600">Blog</Link>
-          <Link to="/contact" onClick={() => setIsOpen(false)} className="block py-2 hover:text-cyan-600">Contact</Link>
+          <Link to="/" onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 hover:text-cyan-600">Home</Link>
+          <Link to="/about" onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 hover:text-cyan-600">About</Link>
+          <Link to="/services" onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 hover:text-cyan-600">Services</Link>
+          <Link to="/marketplace" onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 hover:text-cyan-600">Marketplace</Link>
+          <Link to="/blog" onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 hover:text-cyan-600">Blog</Link>
+          <Link to="/contact" onClick={() => setIsOpen(false)} className="block py-2 text-gray-700 hover:text-cyan-600">Contact</Link>
           
           {isAuthenticated ? (
             <>
@@ -173,7 +173,7 @@ const Navbar = () => {
                 <Link 
                   to={getDashboardPath()} 
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-2 py-3 px-2 hover:bg-gray-50 rounded-lg transition-colors"
+                  className="flex items-center gap-2 py-3 px-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                 >
                   <LayoutDashboard size={20} />
                   Dashboard

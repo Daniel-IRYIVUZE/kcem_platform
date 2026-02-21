@@ -12,9 +12,9 @@ const Testimonial = ({ quote, author, role, avatar }: any) => (
     <Quote size={24} className="text-cyan-300 mb-4" />
     <p className="text-gray-700 text-base mb-4">{quote}</p>
     <div className="flex items-center gap-3">
-      <img 
-        src={avatar} 
-        alt={author} 
+      <img
+        src={avatar}
+        alt={author}
         className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
       />
       <div>
@@ -43,7 +43,7 @@ const SuccessStoriesSection = () => {
 
   return (
     <section className="py-16 sm:py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -65,7 +65,7 @@ const SuccessStoriesSection = () => {
             viewport={{ once: true }}
             className="relative"
           >
-            <div className="aspect-video bg-gray-800 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg">
+            <div className="aspect-video bg-gray-200 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg">
               <img 
                 src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=1470" 
                 alt="Hotel interior" 

@@ -440,7 +440,7 @@ const MarketplacePage = () => {
       const totalValue = offer * listing?.quantity!;
       
       // In a real app, this would be an API call
-      alert(`✅ Offer of RWF ${offer.toLocaleString()} submitted for ${listing?.title}\nTotal Value: RWF ${totalValue.toLocaleString()}\nBusiness: ${listing?.businessName}`);
+      alert(`Offer of RWF ${offer.toLocaleString()} submitted for ${listing?.title}\nTotal Value: RWF ${totalValue.toLocaleString()}\nBusiness: ${listing?.businessName}`);
       setOfferAmount('');
       setQuickOffer(null);
     }
@@ -498,7 +498,7 @@ const MarketplacePage = () => {
       <div className="pt-20 pb-12">
         {/* Header */}
         <div className="bg-gradient-to-r from-cyan-700 to-cyan-600 text-white py-6">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <button 
@@ -521,7 +521,7 @@ const MarketplacePage = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           {/* Search and Stats Bar */}
           <div className="mb-6">
             <div className="flex flex-col lg:flex-row gap-4">
@@ -534,7 +534,7 @@ const MarketplacePage = () => {
                     placeholder="Search materials, businesses, tags, or descriptions..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-white border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm text-gray-900"
                   />
                 </div>
               </div>
@@ -548,7 +548,7 @@ const MarketplacePage = () => {
                 
                 <button
                   onClick={() => setFiltersVisible(true)}
-                  className="lg:hidden inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
+                  className="lg:hidden inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm text-gray-700"
                 >
                   <Filter size={14} />
                   Filters
@@ -590,7 +590,7 @@ const MarketplacePage = () => {
                           <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${
                             selectedFilters.materials.includes(material.id)
                               ? 'bg-cyan-100 text-cyan-600'
-                              : 'bg-gray-100 text-gray-400'
+                              : 'bg-gray-100 text-gray-500'
                           }`}>
                             {material.icon}
                           </div>
@@ -618,7 +618,7 @@ const MarketplacePage = () => {
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                           selectedFilters.status === status.id
                             ? `${getStatusColor(status.id)} border border-current`
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent'
                         }`}
                       >
                         {status.label}
@@ -639,7 +639,7 @@ const MarketplacePage = () => {
                           ...prev,
                           priceRange: { ...prev.priceRange, min: parseInt(e.target.value) || 0 }
                         }))}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-cyan-500 outline-none text-sm"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-cyan-500 outline-none text-sm bg-white text-gray-900"
                         placeholder="Min"
                       />
                     </div>
@@ -651,7 +651,7 @@ const MarketplacePage = () => {
                           ...prev,
                           priceRange: { ...prev.priceRange, max: parseInt(e.target.value) || 5000 }
                         }))}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-cyan-500 outline-none text-sm"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:border-cyan-500 outline-none text-sm bg-white text-gray-900"
                         placeholder="Max"
                       />
                     </div>
@@ -703,7 +703,7 @@ const MarketplacePage = () => {
                     <button
                       onClick={() => setView('grid')}
                       className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm transition-colors ${
-                        view === 'grid' ? 'bg-white shadow-sm text-cyan-600' : 'text-gray-400 hover:text-gray-600'
+                        view === 'grid' ? 'bg-white shadow-sm text-cyan-600' : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
                       <Grid size={16} />
@@ -712,7 +712,7 @@ const MarketplacePage = () => {
                     <button
                       onClick={() => setView('list')}
                       className={`px-4 py-2 rounded-lg flex items-center gap-2 font-medium text-sm transition-colors ${
-                        view === 'list' ? 'bg-white shadow-sm text-cyan-600' : 'text-gray-400 hover:text-gray-600'
+                        view === 'list' ? 'bg-white shadow-sm text-cyan-600' : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
                       <List size={16} />
@@ -869,9 +869,9 @@ const MarketplacePage = () => {
                     animate={{ opacity: 1 }}
                     className="text-center py-12 bg-white rounded-xl border border-gray-200"
                   >
-                    <Package className="mx-auto text-gray-300 mb-4" size={48} />
-                    <h3 className="text-lg font-bold text-gray-700 mb-2">No listings found</h3>
-                    <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                    <Package className="mx-auto text-gray-400 mb-4" size={48} />
+                    <h3 className="text-lg font-bold text-gray-900 mb-2">No listings found</h3>
+                    <p className="text-gray-600 mb-6 max-w-md mx-auto">
                       Try adjusting your filters or search terms to find what you're looking for.
                     </p>
                     <button
@@ -918,7 +918,7 @@ const MarketplacePage = () => {
                   <h3 className="text-lg font-bold text-gray-900">Filters</h3>
                   <button
                     onClick={() => setFiltersVisible(false)}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
                   >
                     <X size={20} />
                   </button>
@@ -944,7 +944,7 @@ const MarketplacePage = () => {
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
                             selectedFilters.materials.includes(material.id)
                               ? 'bg-cyan-100 text-cyan-600'
-                              : 'bg-gray-100 text-gray-400'
+                              : 'bg-gray-100 text-gray-500'
                           }`}>
                             {material.icon}
                           </div>
@@ -972,7 +972,7 @@ const MarketplacePage = () => {
                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                           selectedFilters.status === status.id
                             ? `${getStatusColor(status.id)} border border-current`
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border border-transparent'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-transparent'
                         }`}
                       >
                         {status.label}
@@ -1039,7 +1039,7 @@ const MarketplacePage = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="pt-4 border-t border-gray-200">
+                <div className="p-4 border-t border-gray-200">
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={handleClearFilters}
@@ -1095,7 +1095,7 @@ const MarketplacePage = () => {
                   setSelectedListing(null);
                   setImageIndex(0);
                 }}
-                className="absolute top-4 right-4 z-20 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                className="absolute top-4 right-4 z-20 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors text-gray-700"
               >
                 <X size={18} />
               </button>
@@ -1117,13 +1117,13 @@ const MarketplacePage = () => {
                     <>
                       <button
                         onClick={() => setImageIndex(prev => prev > 0 ? prev - 1 : selectedListing.images.length - 1)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors text-gray-700"
                       >
                         <ChevronLeft size={18} />
                       </button>
                       <button
                         onClick={() => setImageIndex(prev => prev < selectedListing.images.length - 1 ? prev + 1 : 0)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors text-gray-700"
                       >
                         <ChevronRight size={18} />
                       </button>
@@ -1492,7 +1492,7 @@ const MarketplacePage = () => {
                 <h3 className="text-lg font-bold text-gray-900">Make an Offer</h3>
                 <button
                   onClick={() => setQuickOffer(null)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
                 >
                   <X size={20} />
                 </button>
@@ -1510,7 +1510,7 @@ const MarketplacePage = () => {
                       value={offerAmount}
                       onChange={(e) => setOfferAmount(e.target.value)}
                       placeholder="Enter your offer amount"
-                      className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
+                      className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all bg-white text-gray-900"
                       autoFocus
                       min="0"
                       step="10"
@@ -1519,18 +1519,18 @@ const MarketplacePage = () => {
                 </div>
                 
                 <div className="bg-gray-50 rounded-lg p-4">
-                  <div className="text-sm text-gray-600 mb-1">
+                  <div className="text-sm text-gray-700 mb-1">
                     Listing: <span className="font-medium">{listings.find(l => l.id === quickOffer)?.title}</span>
                   </div>
-                  <div className="text-sm text-gray-600 mb-1">
+                  <div className="text-sm text-gray-700 mb-1">
                     Current price: <span className="font-bold text-cyan-600">RWF {listings.find(l => l.id === quickOffer)?.pricePerUnit.toLocaleString()}/{listings.find(l => l.id === quickOffer)?.unit === 'kg' ? 'kg' : 'L'}</span>
                   </div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-700">
                     Quantity: <span className="font-medium">{listings.find(l => l.id === quickOffer)?.quantity} {listings.find(l => l.id === quickOffer)?.unit}</span>
                   </div>
                   {offerAmount && (
                     <div className="mt-2 pt-2 border-t border-gray-200">
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-700">
                         Total offer value: <span className="font-bold text-green-600">
                           RWF {(parseFloat(offerAmount) * (listings.find(l => l.id === quickOffer)?.quantity || 0)).toLocaleString()}
                         </span>
@@ -1616,14 +1616,14 @@ const GridListingCard = ({ listing, savedListings, onViewDetails, onToggleSave, 
             className={`w-8 h-8 rounded-lg flex items-center justify-center backdrop-blur-sm transition-colors ${
               savedListings.includes(listing.id)
                 ? 'bg-rose-500/90 text-white'
-                : 'bg-white/90 text-gray-700 hover:bg-white'
+                : 'bg-white/90 text-gray-600 hover:bg-white'
             }`}
           >
             <Heart size={14} className={savedListings.includes(listing.id) ? 'fill-white' : ''} />
           </button>
           <button
             onClick={onShare}
-            className="w-8 h-8 rounded-lg bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white transition-colors flex items-center justify-center"
+            className="w-8 h-8 rounded-lg bg-white/90 backdrop-blur-sm text-gray-600 hover:bg-white transition-colors flex items-center justify-center"
           >
             <Share2 size={14} />
           </button>
@@ -1689,7 +1689,7 @@ const GridListingCard = ({ listing, savedListings, onViewDetails, onToggleSave, 
         {/* Tags */}
         <div className="flex flex-wrap gap-1 mb-3">
           {listing.tags.slice(0, 2).map((tag: string, index: number) => (
-            <span key={index} className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded">
+            <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
               {tag}
             </span>
           ))}
@@ -1806,7 +1806,7 @@ const ListListingCard = ({ listing, savedListings, onViewDetails, onToggleSave, 
                   <div className="text-xs text-gray-500 mb-1">Distance</div>
                   <div className="flex items-center gap-1">
                     <MapPin size={12} className="text-gray-400" />
-                    <span className="font-bold text-gray-900">{listing.distance} km</span>
+                    <span className="font-bold text-gray-100">{listing.distance} km</span>
                   </div>
                 </div>
                 <div className="bg-gray-50 p-2 rounded-lg">

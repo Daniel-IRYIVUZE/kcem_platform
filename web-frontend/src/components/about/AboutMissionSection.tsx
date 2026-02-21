@@ -48,21 +48,18 @@ const AboutMissionSection = () => {
 
   const solutions = [
     {
-      icon: "💻",
       title: "B2B Marketplace Model",
       description: "Digital platform connecting waste generators with verified recyclers in real-time.",
       features: ["Real-time bidding", "Price transparency", "Direct transactions"]
     },
     {
-      icon: "📱",
       title: "Offline-First Architecture",
       description: "Mobile-first design ensuring functionality in low-connectivity urban environments.",
       features: ["Offline data sync", "Real-time updates", "GPS tracking"]
     },
     {
-      icon: "🗺️",
       title: "Geospatial Optimization",
-      description: "AI-powered routing algorithms that cluster collections to minimize transport costs.",
+      description: "Smart routing algorithms that cluster collections to minimize transport costs.",
       features: ["Route optimization", "Load balancing", "ETA prediction"]
     }
   ];
@@ -71,7 +68,7 @@ const AboutMissionSection = () => {
     <>
       {/* Mission & Vision Section */}
       <section className="py-12 md:py-20 lg:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -143,7 +140,7 @@ const AboutMissionSection = () => {
 
       {/* Problem We Solve Section */}
       <section className="py-12 md:py-20 lg:py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -210,7 +207,7 @@ const AboutMissionSection = () => {
 
       {/* Our Solution Section */}
       <section className="py-12 md:py-20 lg:py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -234,7 +231,6 @@ const AboutMissionSection = () => {
                 viewport={{ once: true }}
                 className="bg-white p-6 rounded-xl border border-gray-200 hover:shadow-lg transition-shadow"
               >
-                <div className="text-4xl mb-4">{solution.icon}</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">{solution.title}</h3>
                 <p className="text-gray-600 mb-4">{solution.description}</p>
                 <div className="space-y-2">

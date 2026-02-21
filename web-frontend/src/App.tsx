@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext'; // Add this import
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 // Import Layout Components
 import Sidebar from './components/layout/Sidebar';
@@ -61,10 +61,10 @@ const DashboardLayout = () => {
 
 function App() {
   return (
-    <AuthProvider> {/* Wrap with AuthProvider */}
+    <AuthProvider>
       <Router>
         <div className="min-h-screen bg-stone-50 flex flex-col font-sans antialiased">
-          <main className="flex-grow">
+        <main className="flex-grow">
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<HomePage />} />

@@ -7,8 +7,18 @@ interface MarketplaceHeroSectionProps {
 
 const MarketplaceHeroSection = ({ onBackToHome, totalListings }: MarketplaceHeroSectionProps) => {
   return (
-    <section className="bg-gradient-to-r from-cyan-700 to-cyan-600 text-white py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative overflow-hidden text-white py-12">
+      {/* Background Image */}
+      <div className="absolute inset-0">
+        <img 
+          src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=1920" 
+          alt="Marketplace and Trading" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-900/80 to-cyan-700/80"></div>
+      </div>
+
+      <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <button

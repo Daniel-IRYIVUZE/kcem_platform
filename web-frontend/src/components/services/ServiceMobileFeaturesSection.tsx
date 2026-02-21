@@ -15,7 +15,7 @@ interface ServiceMobileFeaturesSectionProps {
 const ServiceMobileFeaturesSection = ({ mobileFeatures }: ServiceMobileFeaturesSectionProps) => {
   return (
     <section className="py-24 bg-gradient-to-b from-cyan-50 to-white">
-      <div className="max-w-7xl mx-auto px-6">
+      <div className="lg:w-11/12 max-w-7xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -61,7 +61,7 @@ const ServiceMobileFeaturesSection = ({ mobileFeatures }: ServiceMobileFeaturesS
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
           viewport={{ once: true }}
-          className="mt-12 bg-gradient-to-r from-cyan-900 to-cyan-900 rounded-2xl p-8 text-white"
+            className="mt-12 bg-gradient-to-r from-cyan-900 to-cyan-900 rounded-2xl p-8 text-white"
         >
           <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
             <div>

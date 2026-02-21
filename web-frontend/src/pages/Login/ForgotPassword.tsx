@@ -227,7 +227,7 @@ const ForgotPassword = () => {
                         if (error) setError('');
                       }}
                       placeholder="name@business.rw"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm placeholder-gray-500"
                       disabled={loading}
                     />
                   </div>
@@ -306,7 +306,7 @@ const ForgotPassword = () => {
                       value={digit}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-10 h-12 text-center text-xl font-bold rounded-lg border-2 border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none"
+                      className="w-10 h-12 text-center text-xl font-bold rounded-lg border-2 border-gray-300 bg-white text-gray-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none"
                       disabled={loading}
                     />
                   ))}
@@ -403,7 +403,7 @@ const ForgotPassword = () => {
                         if (error) setError('');
                       }}
                       placeholder="New password (min. 8 characters)"
-                      className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm placeholder-gray-500"
                       disabled={loading}
                     />
                     <button
@@ -425,7 +425,7 @@ const ForgotPassword = () => {
                         if (error) setError('');
                       }}
                       placeholder="Confirm new password"
-                      className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm"
+                      className="w-full pl-10 pr-10 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm placeholder-gray-500"
                       disabled={loading}
                     />
                     <button

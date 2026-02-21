@@ -40,7 +40,7 @@ const HowItWorksSection = () => {
       icon: <Truck />,
       num: "03",
       title: "Schedule Pickup",
-      desc: "AI-powered geospatial routing optimizes collection schedules for maximum efficiency."
+      desc: "Smart geospatial routing optimizes collection schedules for maximum efficiency."
     },
     {
       icon: <Wallet />,
@@ -52,7 +52,7 @@ const HowItWorksSection = () => {
 
   return (
     <section className="py-16 sm:py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}

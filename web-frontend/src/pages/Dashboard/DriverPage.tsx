@@ -173,7 +173,7 @@ const DriverDashboard = () => {
                   type="text" 
                   value={settings.name}
                   onChange={(e) => setSettings({...settings, name: e.target.value})}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  className="w-full p-3 border-2 border-gray-300 bg-white text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
 
@@ -321,8 +321,8 @@ const DriverDashboard = () => {
           <div className="flex items-center space-x-3">
             {offlineMode ? <WifiOff className="text-cyan-600" size={24} /> : <Wifi className="text-cyan-600" size={24} />}
             <div>
-              <p className="font-medium">{offlineMode ? 'Offline Mode' : 'Online & Connected'}</p>
-              <p className="text-sm">{offlineMode ? '3 pending syncs' : 'All systems operational'}</p>
+              <p className="font-medium text-gray-900">{offlineMode ? 'Offline Mode' : 'Online & Connected'}</p>
+              <p className="text-sm text-gray-600">{offlineMode ? '3 pending syncs' : 'All systems operational'}</p>
             </div>
           </div>
           <button 
@@ -382,7 +382,7 @@ const DriverDashboard = () => {
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between">
-                    <p className="font-medium">{stop.location}</p>
+                    <p className="font-medium text-gray-900">{stop.location}</p>
                     <p className="text-sm text-gray-500">{stop.time}</p>
                   </div>
                   <p className="text-sm text-gray-600">{stop.material}</p>
@@ -456,7 +456,7 @@ const DriverDashboard = () => {
   const MyRoutes = () => (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">My Routes</h2>
+        <h2 className="text-2xl font-bold text-gray-900">My Routes</h2>
         <button onClick={handleExportSchedule} className="px-4 py-2 bg-cyan-600 text-white rounded-lg flex items-center space-x-2">
           <Download size={16} />
           <span>Export</span>
@@ -470,8 +470,8 @@ const DriverDashboard = () => {
         <StatCard title="Distance" value="30km" icon={<Navigation className="text-cyan-500" size={24} />} change="" />
       </div>
 
-      <div className="bg-white rounded-lg border p-6">
-        <h3 className="text-lg font-bold mb-4">Current Route Details</h3>
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-bold mb-4 text-gray-900">Current Route Details</h3>
         <SimpleRouteMap />
         
         <div className="mt-6 space-y-3">
@@ -486,7 +486,7 @@ const DriverDashboard = () => {
                   {stop.id}
                 </div>
                 <div>
-                  <p className="font-semibold">{stop.location}</p>
+                  <p className="font-semibold text-gray-900">{stop.location}</p>
                   <p className="text-sm text-gray-600">{stop.time} • {stop.material}</p>
                 </div>
               </div>

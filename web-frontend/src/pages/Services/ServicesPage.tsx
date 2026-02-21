@@ -21,7 +21,6 @@ import {
   ChartBar,
   Map,
   Leaf,
-  ArrowRight,
   Calendar,
   Bell,
   Camera,

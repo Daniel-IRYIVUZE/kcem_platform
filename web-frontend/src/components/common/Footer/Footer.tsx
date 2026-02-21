@@ -45,15 +45,15 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-gray-900 text-gray-300 pt-12 pb-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className="bg-gray-900 text-gray-200 pt-12 pb-8 border-t border-gray-800">
+      <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 mb-12">
           {/* Brand Column */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-2">
               <img src="/images/EcoTrade1.png" alt="EcoTrade Rwanda" className="h-30 w-30 sm:h-24 sm:w-24 object-contain" />
             </div>
-            <p className="text-sm leading-relaxed mb-6 max-w-xs">
+            <p className="text-sm leading-relaxed mb-6 max-w-xs text-gray-300">
               Empowering Kigali's HORECA industry through digital circular economy solutions.
             </p>
             <div className="flex gap-4">
@@ -63,7 +63,7 @@ const Footer = () => {
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`${social.color} cursor-pointer transition-colors hover:scale-110`}
+                  className={`text-gray-300 ${social.color} cursor-pointer transition-colors hover:scale-110`}
                   aria-label={social.name}
                 >
                   {social.icon}
@@ -80,7 +80,7 @@ const Footer = () => {
                 <li key={index}>
                   <button
                     onClick={() => handleNavigation(link.path)}
-                    className="text-sm hover:text-cyan-400 cursor-pointer transition-colors text-left"
+                    className="text-sm text-gray-300 hover:text-cyan-400 cursor-pointer transition-colors text-left"
                   >
                     {link.label}
                   </button>
@@ -99,15 +99,15 @@ const Footer = () => {
                     {info.icon}
                   </div>
                   {info.type === 'email' ? (
-                    <a href={`mailto:${info.value}`} className="hover:text-cyan-400 transition-colors">
+                    <a href={`mailto:${info.value}`} className="text-gray-300 hover:text-cyan-400 transition-colors">
                       {info.value}
                     </a>
                   ) : info.type === 'phone' ? (
-                    <a href={`tel:${info.value.replace(/\s/g, '')}`} className="hover:text-cyan-400 transition-colors">
+                    <a href={`tel:${info.value.replace(/\s/g, '')}`} className="text-gray-300 hover:text-cyan-400 transition-colors">
                       {info.value}
                     </a>
                   ) : (
-                    <span>{info.value}</span>
+                    <span className="text-gray-300">{info.value}</span>
                   )}
                 </li>
               ))}
@@ -117,9 +117,9 @@ const Footer = () => {
           {/* Newsletter Column */}
           <div>
             <h4 className="text-white font-bold mb-6 text-lg">Market Updates</h4>
-            <p className="text-xs mb-4">Subscribe for market price updates on UCO and recyclables.</p>
+            <p className="text-xs mb-4 text-gray-300">Subscribe for market price updates on UCO and recyclables.</p>
             {subscribed ? (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-green-900/30 border border-green-700/50 text-green-200 px-4 py-3 rounded-lg text-sm">
                 Thank you for subscribing!
               </div>
             ) : (
@@ -129,7 +129,7 @@ const Footer = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Your email"
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 text-gray-100 placeholder:text-gray-500"
                   required
                 />
                 <button
@@ -151,13 +151,13 @@ const Footer = () => {
               &copy; {new Date().getFullYear()} EcoTrade . All rights reserved.
             </div>
             <div className="flex gap-6 text-xs text-gray-400">
-              <Link to="/terms-privacy" className="hover:text-gray-300 transition-colors">
+              <Link to="/terms-privacy" className="hover:text-gray-200 transition-colors">
                 Privacy Policy
               </Link>
-              <Link to="/terms-privacy" className="hover:text-gray-300 transition-colors">
+              <Link to="/terms-privacy" className="hover:text-gray-200 transition-colors">
                 Terms of Service
               </Link>
-              <Link to="/terms-privacy" className="hover:text-gray-300 transition-colors">
+              <Link to="/terms-privacy" className="hover:text-gray-200 transition-colors">
                 Cookie Policy
               </Link>
             </div>

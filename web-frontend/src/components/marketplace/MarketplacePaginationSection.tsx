@@ -13,7 +13,7 @@ const MarketplacePaginationSection = ({
 }: MarketplacePaginationSectionProps) => {
   return (
     <section className="py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-center items-center gap-2">
           <button
             onClick={() => onPageChange(Math.max(currentPage - 1, 1))}

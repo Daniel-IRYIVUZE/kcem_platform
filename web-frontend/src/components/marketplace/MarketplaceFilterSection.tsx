@@ -53,7 +53,7 @@ const MarketplaceFilterSection = ({
   children
 }: MarketplaceFilterSectionProps) => {
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <section className="lg:w-11/12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div className="mb-6">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
@@ -233,7 +233,7 @@ const MarketplaceFilterSection = ({
                   <h3 className="text-lg font-bold text-gray-900">Filters</h3>
                   <button
                     onClick={() => onFiltersVisibleChange(false)}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-600"
                   >
                     <X size={20} />
                   </button>
@@ -258,7 +258,7 @@ const MarketplaceFilterSection = ({
                           <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
                             selectedFilters.materials.includes(material.id)
                               ? 'bg-cyan-100 text-cyan-600'
-                              : 'bg-gray-100 text-gray-400'
+                              : 'bg-gray-100 text-gray-500'
                           }`}
                           >
                             {material.icon}

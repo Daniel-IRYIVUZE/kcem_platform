@@ -104,7 +104,7 @@ const LoginPage = () => {
       <div className="absolute top-4 left-4 sm:top-6 sm:left-6 z-20">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 sm:px-4 py-2 rounded-xl text-slate-700 font-medium hover:bg-white hover:shadow-md transition-all border border-gray-200 text-sm sm:text-base"
+          className="inline-flex items-center gap-2 bg-white bg-opacity-90 backdrop-blur-sm px-3 sm:px-4 py-2 rounded-xl text-slate-700 font-medium hover:bg-white hover:shadow-md transition-all border border-gray-200 text-sm sm:text-base"
         >
           <Home size={16} /> 
           <span className="hidden sm:inline">Return Home</span>
@@ -201,7 +201,7 @@ const LoginPage = () => {
                   name="email"
                   type="email"
                   placeholder="Email Address"
-                  className="w-full pl-12 pr-4 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-white border-2 border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm sm:text-base"
+                  className="w-full pl-12 pr-4 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-white border-2 border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm sm:text-base text-gray-900 placeholder-gray-500"
                   value={formData.email}
                   onChange={handleInputChange}
                   disabled={loading}
@@ -215,7 +215,7 @@ const LoginPage = () => {
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Password"
-                  className="w-full pl-12 pr-12 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-white border-2 border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm sm:text-base"
+                  className="w-full pl-12 pr-12 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-white border-2 border-slate-200 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all text-sm sm:text-base text-gray-900 placeholder-gray-500"
                   value={formData.password}
                   onChange={handleInputChange}
                   disabled={loading}
@@ -284,7 +284,7 @@ const LoginPage = () => {
                   type="button"
                   onClick={() => handleDemoFill(credential)}
                   disabled={loading}
-                  className="bg-white p-2 sm:p-3 rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all text-left border border-slate-100 disabled:opacity-50"
+                    className="bg-white p-2 sm:p-3 rounded-lg hover:bg-gray-50 hover:shadow-sm transition-all text-left border border-slate-100 disabled:opacity-50"
                 >
                   <div className="font-medium text-slate-700 text-xs sm:text-sm mb-1 truncate">
                     {credential.name}
@@ -319,7 +319,7 @@ const LoginPage = () => {
           </div>
 
           {/* Mobile-only tip */}
-          <div className="mt-6 p-3 bg-gray-50/50 rounded-xl lg:hidden">
+          <div className="mt-6 p-3 bg-gray-50 rounded-xl lg:hidden">
             <p className="text-xs text-slate-500 text-center">
               <span className="font-medium">Tip:</span> Landscape mode recommended for tablets
             </p>

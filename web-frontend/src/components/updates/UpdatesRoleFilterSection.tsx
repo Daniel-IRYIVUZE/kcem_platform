@@ -1,5 +1,4 @@
-import { motion } from 'framer-motion';
-import { Users, ShoppingBag, Recycle, Truck, User, Shield } from 'lucide-react';
+import { Users } from 'lucide-react';
 
 interface Role {
   id: string;
