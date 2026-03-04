@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @variant dark (&:is(.dark *));
 
+@keyframes slide-in {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.animate-slide-in {
+  animation: slide-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
 /* ============================================================
    DARK / LIGHT THEME — Global Design Token Overrides
    EcoTrade Rwanda — Cyan/Teal palette

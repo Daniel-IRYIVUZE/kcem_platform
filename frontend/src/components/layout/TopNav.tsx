@@ -1,112 +1,160 @@
-// components/layout/TopNav.tsx
-import { useState } from 'react';
-import { Search, Bell, Sun, Moon } from 'lucide-react';
+// components/layout/TopNav.tsx — EcoTrade Rwanda
+import { useState, useRef, useEffect } from 'react';
+import { Search, Bell, Sun, Moon, Check, Trash2, X, LogOut, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { User } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useNotifications } from '../../context/NotificationContext';
 
-interface TopNavProps {
-  user: User;
+interface TopNavProps { user: User; }
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
+
+const typeColors: Record<string, string> = {
+  bid: 'bg-cyan-500', collection: 'bg-blue-500', payment: 'bg-green-500',
+  system: 'bg-purple-500', message: 'bg-indigo-500', alert: 'bg-red-500',
+};
 
 const TopNav = ({ user }: TopNavProps) => {
   const { isDark, toggleTheme } = useTheme();
-  const [notifications] = useState([
-    { id: 1, message: 'New offer received for your UCO listing', time: '2 min ago', read: false },
-    { id: 2, message: 'Pickup scheduled for tomorrow', time: '1 hour ago', read: false },
-    { id: 3, message: 'Payment confirmed - RWF 25,000', time: '3 hours ago', read: true },
-  ]);
-  const [showNotifications, setShowNotifications] = useState(false);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const { notifications, unreadCount, markRead, markAllRead, remove } = useNotifications();
+  const [showNotif, setShowNotif] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotif(false);
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setShowProfile(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleNotifClick = (id: string, link?: string) => {
+    markRead(id);
+    if (link) { setShowNotif(false); navigate(link); }
+  };
+
+  const handleLogout = () => { logout(); navigate('/login'); };
+
+  const roleDashPath: Record<string, string> = {
+    admin: '/dashboard/admin', business: '/dashboard/business',
+    recycler: '/dashboard/recycler', driver: '/dashboard/driver', individual: '/dashboard/individual',
+  };
 
   return (
-    <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 px-3 sm:px-6 py-3 sm:py-4 transition-colors duration-300">
+    <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 px-3 sm:px-6 py-3 sm:py-4 transition-colors duration-300 relative z-30">
       <div className="flex items-center justify-between gap-2 sm:gap-4">
-        {/* Logo - visible on mobile when sidebar is collapsed */}
-        <div className="flex items-center gap-2 md:hidden">
-          <img src="/images/EcoTrade.png" alt="EcoTrade Rwanda" className="h-10" />
-          <span className="text-lg font-bold text-gray-900 dark:text-white">EcoTrade Rwanda</span>
+        <div className="flex items-center gap-2 md:hidden shrink-0">
+          <img src="/images/EcoTrade.png" alt="EcoTrade Rwanda" className="h-9 object-contain" />
         </div>
-
-        {/* Search */}
-        <div className="flex-1 max-w-2xl">
+        <div className="flex-1 max-w-2xl hidden sm:block">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 dark:text-gray-400" size={18} />
-            <input
-              type="search"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input type="search" placeholder="Search listings, users, routes..." value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500" />
           </div>
         </div>
-
-        {/* Right Side Actions */}
-        <div className="flex items-center space-x-2 sm:space-x-4">
-
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-gray-700 text-gray-600 dark:text-yellow-700 hover:text-amber-500 transition-all duration-300 flex-shrink-0"
-          >
-            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button onClick={toggleTheme}
+            className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 hover:bg-amber-50 dark:hover:bg-gray-700 text-gray-600 dark:text-yellow-400 transition-all">
+            {isDark ? <Sun size={15} /> : <Moon size={15} />}
           </button>
-
-          {/* Notifications */}
-          <div className="relative">
-            <button 
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              <Bell size={20} />
+          <div ref={notifRef} className="relative">
+            <button onClick={() => { setShowNotif(v => !v); setShowProfile(false); }}
+              className="relative w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-all">
+              <Bell size={16} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {unreadCount}
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-0.5">
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </button>
-            
-            {/* Notifications Dropdown */}
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-y-auto">
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                  <h3 className="font-bold text-gray-900 dark:text-white">Notifications</h3>
+            {showNotif && (
+              <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden max-h-[480px] flex flex-col">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-700 shrink-0">
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm">
+                    Notifications
+                    {unreadCount > 0 && <span className="ml-1 text-xs font-normal text-cyan-600"> ({unreadCount} new)</span>}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {unreadCount > 0 && (
+                      <button onClick={markAllRead} className="text-xs text-cyan-600 hover:underline flex items-center gap-1">
+                        <Check size={12} /> Mark all read
+                      </button>
+                    )}
+                    <button onClick={() => setShowNotif(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                      <X size={15} />
+                    </button>
+                  </div>
                 </div>
-                <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {notifications.map((notif) => (
-                    <div key={notif.id} className={`p-4 cursor-pointer transition-colors ${!notif.read ? 'bg-cyan-50 dark:bg-cyan-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
-                      <p className="text-sm text-gray-900 dark:text-gray-100">{notif.message}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{notif.time}</p>
+                <div className="overflow-y-auto flex-1 divide-y divide-gray-100 dark:divide-gray-700">
+                  {notifications.length === 0 ? (
+                    <div className="py-10 text-center text-gray-400 text-sm">No notifications yet</div>
+                  ) : notifications.slice(0, 20).map(n => (
+                    <div key={n.id} onClick={() => handleNotifClick(n.id, n.link)}
+                      className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors group ${!n.read ? 'bg-cyan-50/60 dark:bg-cyan-900/10 hover:bg-cyan-50' : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}>
+                      <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${typeColors[n.type] || 'bg-gray-400'}`} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug">{n.title}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{n.message}</p>
+                        <p className="text-[11px] text-gray-400 mt-1">{timeAgo(n.time)}</p>
+                      </div>
+                      <button onClick={e => { e.stopPropagation(); remove(n.id); }}
+                        className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity shrink-0">
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   ))}
-                </div>
-                <div className="p-3 text-center border-t border-gray-100 dark:border-gray-700">
-                  <button onClick={() => setShowNotifications(false)} className="text-sm text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 font-medium">
-                    View All Notifications
-                  </button>
                 </div>
               </div>
             )}
           </div>
-
-          {/* User Profile */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="text-right hidden lg:block">
-              <p className="font-medium text-sm text-gray-900 dark:text-white">{user.name}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user.role}</p>
-            </div>
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-cyan-500 overflow-hidden ring-2 ring-cyan-100 dark:ring-cyan-900/50 flex items-center justify-center">
-              <img 
-                src={user.avatar || '/images/default-avatar.svg'} 
-                alt={user.name}
-                className="w-full h-full object-cover"
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/default-avatar.svg'; }}
-              />
-            </div>
+          <div ref={profileRef} className="relative">
+            <button onClick={() => { setShowProfile(v => !v); setShowNotif(false); }}
+              className="flex items-center gap-2 p-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              <div className="hidden lg:block text-right">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">{user.name}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 capitalize mt-0.5">{user.role}</p>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-cyan-600 overflow-hidden ring-2 ring-cyan-200 dark:ring-cyan-800 shrink-0 flex items-center justify-center">
+                <img src={user.avatar || '/images/default-avatar.svg'} alt={user.name} className="w-full h-full object-cover"
+                  onError={e => { (e.currentTarget as HTMLImageElement).src = '/images/default-avatar.svg'; }} />
+              </div>
+            </button>
+            {showProfile && (
+              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+                  <p className="font-semibold text-sm text-gray-900 dark:text-white">{user.name}</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{user.email}</p>
+                </div>
+                <div className="py-1">
+                  <button onClick={() => { setShowProfile(false); navigate(roleDashPath[user.role] || '/dashboard'); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <Settings size={15} /> Dashboard Settings
+                  </button>
+                  <button onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    <LogOut size={15} /> Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

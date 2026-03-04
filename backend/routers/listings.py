@@ -144,6 +144,55 @@ def get_bids(
     return db.query(models.Bid).filter(models.Bid.listing_id == listing_id).all()
 
 
+@router.post("/{listing_id}/bids/{bid_id}/accept", response_model=schemas.BidOut)
+def accept_bid(
+    listing_id: int,
+    bid_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Hotel accepts a specific bid — marks the listing as assigned."""
+    listing = db.query(models.WasteListing).filter(models.WasteListing.id == listing_id).first()
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found")
+    if listing.hotel_id != current_user.id and current_user.role != models.UserRole.admin:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    bid = db.query(models.Bid).filter(
+        models.Bid.id == bid_id, models.Bid.listing_id == listing_id
+    ).first()
+    if not bid:
+        raise HTTPException(status_code=404, detail="Bid not found")
+
+    # Mark winning bid
+    bid.status = models.BidStatus.won
+    # Mark other bids as lost
+    db.query(models.Bid).filter(
+        models.Bid.listing_id == listing_id, models.Bid.id != bid_id
+    ).update({"status": models.BidStatus.lost})
+    # Assign listing
+    listing.status = models.ListingStatus.assigned
+    listing.assigned_recycler = bid.recycler_name
+
+    db.commit()
+    db.refresh(bid)
+    return bid
+
+
+@router.get("/my", response_model=list[schemas.WasteListingOut])
+def my_listings(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Return all listings created by the current hotel user."""
+    return (
+        db.query(models.WasteListing)
+        .filter(models.WasteListing.hotel_id == current_user.id)
+        .order_by(models.WasteListing.created_at.desc())
+        .all()
+    )
+
+
 @router.patch("/{listing_id}/bids/{bid_id}", response_model=schemas.BidOut)
 def update_bid(
     listing_id: int,

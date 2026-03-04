@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { seedDataIfEmpty } from './utils/dataStore';
 import ScrollToTop from './components/common/ScrollToTop';
 
@@ -22,6 +23,7 @@ import MarketplacePage from './pages/Marketplace/MarketplacePage';
 import LoginPage from './pages/Login/LoginPage';
 import TermsPrivacyPage from './pages/TermsPrivacy/TermsPrivacy';
 import NotFoundPage from './pages/NotFound/NotFoundPage';
+import ToastContainer from './components/common/Toast/ToastContainer';
 
 // Dashboard Pages
 import AdminDashboard from './pages/Dashboard/AdminDashboard';
@@ -107,8 +109,10 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <NotificationProvider>
         <Router>
           <ScrollToTop />
+          <ToastContainer />
           <div className="min-h-screen bg-gray-50 dark:bg-gray-950 font-sans antialiased transition-colors duration-300">
             <Routes>
             {/* Public Routes */}
@@ -180,6 +184,7 @@ function App() {
           </Routes>
           </div>
         </Router>
+        </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>
   );

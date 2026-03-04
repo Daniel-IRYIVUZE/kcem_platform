@@ -1,99 +1,145 @@
-// components/marketplace/MarketplaceMap.tsx
-import { MapPin, Navigation } from 'lucide-react';
-import { useState } from 'react';
+// components/marketplace/MarketplaceMap.tsx — Real Leaflet map
+import { useEffect, useRef } from 'react';
+import 'leaflet/dist/leaflet.css';
+
+interface Listing {
+  id: string | number;
+  hotel: string;
+  type: string;
+  volume: number;
+  currentBid: number;
+  coordinates: { lat: number; lng: number };
+  quality?: string;
+}
 
 interface MarketplaceMapProps {
-  listings: any[];
-  onListingClick: (listing: any) => void;
+  listings: Listing[];
+  onListingClick: (listing: Listing) => void;
   center: { lat: number; lng: number };
 }
 
+// Waste-type colours
+const WASTE_COLORS: Record<string, string> = {
+  UCO: '#0891b2',
+  Glass: '#2563eb',
+  Paper: '#65a30d',
+  Cardboard: '#d97706',
+  Mixed: '#7c3aed',
+};
+
 const MarketplaceMap = ({ listings, onListingClick, center }: MarketplaceMapProps) => {
-  const [selectedMarker, setSelectedMarker] = useState<any>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
 
-  // This would be replaced with actual Leaflet map
+  useEffect(() => {
+    if (!mapRef.current || leafletMapRef.current) return;
+
+    const initMap = async () => {
+      const L = await import('leaflet');
+
+      const map = L.map(mapRef.current!, {
+        center: [center.lat, center.lng],
+        zoom: 13,
+        zoomControl: true,
+        attributionControl: false,
+      });
+      leafletMapRef.current = map;
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      // User location marker
+      L.circleMarker([center.lat, center.lng], {
+        radius: 8,
+        fillColor: '#3b82f6',
+        color: 'white',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.9,
+      }).addTo(map).bindPopup('<strong>Your Location</strong>');
+
+      // Listing markers
+      listings.forEach(listing => {
+        const color = WASTE_COLORS[listing.type] || '#0891b2';
+
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="
+            background:${color};
+            width:32px;height:32px;border-radius:50% 50% 50% 0;
+            transform:rotate(-45deg);border:3px solid white;
+            box-shadow:0 3px 8px rgba(0,0,0,0.3);
+            display:flex;align-items:center;justify-content:center;
+          "></div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 32],
+          popupAnchor: [0, -35],
+        });
+
+        const marker = L.marker([listing.coordinates.lat, listing.coordinates.lng], { icon })
+          .addTo(map)
+          .bindPopup(`
+            <div style="font-family:sans-serif;min-width:180px;padding:4px">
+              <p style="font-weight:700;font-size:14px;color:#0891b2;margin:0 0 4px">${listing.hotel}</p>
+              <p style="font-size:13px;color:#374151;margin:0 0 2px">
+                <strong>${listing.type}</strong> · ${listing.volume} kg · Grade ${listing.quality || 'A'}
+              </p>
+              <p style="font-size:13px;font-weight:600;color:#065f46;margin:0">
+                Current bid: RWF ${listing.currentBid.toLocaleString()}
+              </p>
+              <button onclick="window.__ecotrade_bid_${listing.id}()"
+                style="margin-top:8px;background:#0891b2;color:white;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;width:100%">
+                Place Bid
+              </button>
+            </div>
+          `);
+
+        // Wire up the bid button in popup
+        (window as any)[`__ecotrade_bid_${listing.id}`] = () => {
+          map.closePopup();
+          onListingClick(listing);
+        };
+
+        markersRef.current.push(marker);
+      });
+    };
+
+    initMap();
+
+    return () => {
+      markersRef.current = [];
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
+    };
+  }, []);
+
+  // Update markers when listings change
+  useEffect(() => {
+    if (!leafletMapRef.current || markersRef.current.length === 0) return;
+    // In a real implementation you'd diff and update markers here
+  }, [listings]);
+
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden">
-      <div className="relative h-[600px] bg-gray-100 dark:bg-gray-800">
-        {/* Map Grid */}
-        <div className="absolute inset-0" style={{
-          backgroundImage: 'linear-gradient(#e5e7eb 1px, transparent 1px), linear-gradient(90deg, #e5e7eb 1px, transparent 1px)',
-          backgroundSize: '50px 50px'
-        }}></div>
-
-        {/* Sample Markers */}
-        {listings.map((listing) => (
-          <div
-            key={listing.id}
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
-            style={{
-              top: `${50 + (listing.coordinates.lat - center.lat) * 100}%`,
-              left: `${50 + (listing.coordinates.lng - center.lng) * 100}%`
-            }}
-            onClick={() => {
-              setSelectedMarker(listing);
-              onListingClick(listing);
-            }}
-          >
-            <MapPin
-              className={`w-8 h-8 ${
-                selectedMarker?.id === listing.id
-                  ? 'text-cyan-600 fill-cyan-600'
-                  : 'text-cyan-600 fill-cyan-600/70'
-              }`}
-            />
-            
-            {/* Tooltip */}
-            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-900 px-3 py-2 rounded-xl shadow-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20">
-              <p className="font-semibold text-sm">{listing.hotel}</p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">{listing.type} • {listing.volume}kg</p>
-              <p className="text-xs font-bold text-cyan-600">RWF {listing.currentBid.toLocaleString()}</p>
-            </div>
-          </div>
-        ))}
-
-        {/* Center Marker */}
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-          <div className="w-3 h-3 bg-blue-600 rounded-full border-2 border-white shadow-lg"></div>
-        </div>
-
-        {/* Map Controls */}
-        <div className="absolute top-4 right-4 flex flex-col space-y-2">
-          <button className="bg-white dark:bg-gray-900 p-2 rounded-lg shadow-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900">
-            <Navigation className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          </button>
-        </div>
-
-        {/* Map Legend */}
-        <div className="absolute bottom-4 left-4 bg-white dark:bg-gray-800/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
-          <p className="text-xs font-semibold mb-2">Map Legend</p>
-          <div className="space-y-1">
-            <div className="flex items-center">
-              <MapPin className="w-4 h-4 text-cyan-600 mr-1" />
-              <span className="text-xs">Waste Listings</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-3 h-3 bg-blue-600 rounded-full mr-2"></div>
-              <span className="text-xs">Your Location</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Cluster Info */}
-        <div className="absolute top-4 left-4 bg-white dark:bg-gray-800/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg">
-          <p className="text-sm font-medium">{listings.length} listings in view</p>
-        </div>
-      </div>
-
-      {/* Map Footer */}
+    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+      <div ref={mapRef} className="h-[600px] w-full z-0" />
       <div className="bg-white dark:bg-gray-900 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
-            <MapPin className="w-4 h-4" /> Kigali, Rwanda
+        <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div className="flex flex-wrap gap-3">
+            {Object.entries(WASTE_COLORS).map(([type, color]) => (
+              <span key={type} className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-full" style={{ background: color }} />
+                <span className="text-gray-600 dark:text-gray-400">{type}</span>
+              </span>
+            ))}
+          </div>
+          <span className="text-gray-500 dark:text-gray-400 text-xs">
+            {listings.length} listing{listings.length !== 1 ? 's' : ''} shown · Kigali, Rwanda
           </span>
-          <button className="text-cyan-600 font-semibold hover:text-cyan-700 dark:text-cyan-400">
-            View Full Screen
-          </button>
         </div>
       </div>
     </div>
