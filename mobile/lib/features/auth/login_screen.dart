@@ -123,21 +123,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       icon: Icons.business,
                       color: const Color(0xFF0891B2),
                       onTap: () => _fillDemoCredentials(
-                          'hotel@millecollines.rw', 'hotel123'),
+                          'danieliryivuze4@gmail.com', 'hotel123'),
                     ),
                     _DemoChip(
                       label: 'Recycler Demo',
                       icon: Icons.recycling,
                       color: AppColors.primary,
                       onTap: () => _fillDemoCredentials(
-                          'recycler@greenenergy.rw', 'recycler123'),
+                          'danieliryivuze4@gmail.com', 'recycler123'),
                     ),
                     _DemoChip(
                       label: 'Driver Demo',
                       icon: Icons.local_shipping_outlined,
                       color: const Color(0xFFF59E0B),
                       onTap: () => _fillDemoCredentials(
-                          'driver@ecotrade.rw', 'driver123'),
+                          'danieliryivuze4@gmail.com', 'driver123'),
                     ),
                   ],
                 ).animate().fadeIn(duration: 400.ms, delay: 150.ms),

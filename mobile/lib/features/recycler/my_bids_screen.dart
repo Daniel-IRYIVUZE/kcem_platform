@@ -38,7 +38,7 @@ class _MyBidsScreenState extends ConsumerState<MyBidsScreen>
     final lostBids = allBids.where((b) => b.status == BidStatus.lost).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       appBar: AppBar(
         title: const Text('My Bids'),
         bottom: TabBar(
@@ -101,10 +101,10 @@ class _BidListView extends ConsumerWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.cSurf,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: type == BidStatus.won ? AppColors.primary.withOpacity(0.3) : AppColors.border,
+              color: type == BidStatus.won ? AppColors.primary.withOpacity(0.3) : context.cBorder,
               width: type == BidStatus.won ? 1.5 : 1,
             ),
           ),
@@ -207,7 +207,7 @@ class _BidListView extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -318,7 +318,7 @@ class _LostBidsView extends StatelessWidget {
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
+          decoration: BoxDecoration(color: context.cSurf, borderRadius: BorderRadius.circular(16), border: Border.all(color: context.cBorder)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -351,7 +351,7 @@ class _LostBidsView extends StatelessWidget {
               const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: context.cSurfAlt, borderRadius: BorderRadius.circular(8)),
                 child: const Row(
                   children: [
                     Icon(Icons.emoji_events, size: 16, color: AppColors.accent),

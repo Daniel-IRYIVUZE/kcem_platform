@@ -8,7 +8,9 @@ import '../shared/widgets/app_text_field.dart';
 import '../shared/widgets/eco_button.dart';
 
 class ListWasteScreen extends ConsumerStatefulWidget {
-  const ListWasteScreen({super.key});
+  final WasteListing? existingListing;
+  final VoidCallback? onDone;
+  const ListWasteScreen({super.key, this.existingListing, this.onDone});
 
   @override
   ConsumerState<ListWasteScreen> createState() => _ListWasteScreenState();
@@ -25,11 +27,43 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
   bool _useCurrentLocation = true;
   int _uploadedPhotos = 0;
   String _unit = 'kg';
+  String _selectedPickupTime = 'ASAP';
 
   final List<String> _wasteTypes = [
     'Cardboard', 'Plastic PET', 'Plastic HDPE', 'Glass',
     'Metal/Aluminum', 'Paper', 'Food Waste', 'E-Waste', 'Textiles',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    final e = widget.existingListing;
+    if (e != null) {
+      _volumeController.text = e.volume.toStringAsFixed(0);
+      _minBidController.text = e.minBid.toStringAsFixed(0);
+      _unit = e.unit;
+      _qualityScore = _qualityScoreFromQuality(e.quality);
+      _addressController.text = e.location;
+      _useCurrentLocation = false;
+      _selectedWasteType = _labelFromWasteType(e.wasteType);
+    }
+  }
+
+  String _labelFromWasteType(WasteType t) {
+    switch (t) {
+      case WasteType.glass: return 'Glass';
+      case WasteType.paperCardboard: return 'Paper';
+      default: return 'Cardboard';
+    }
+  }
+
+  double _qualityScoreFromQuality(WasteQuality q) {
+    switch (q) {
+      case WasteQuality.a: return 5;
+      case WasteQuality.b: return 3;
+      case WasteQuality.c: return 1;
+    }
+  }
 
   @override
   void dispose() {
@@ -70,41 +104,84 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
     setState(() => _isSubmitting = true);
 
     try {
-      await ref.read(listingsNotifierProvider.notifier).create(
-        businessId: auth.user!.id,
-        businessName: auth.user!.displayName,
-        wasteType: _mappedWasteType,
-        volume: volume,
-        unit: _unit,
-        quality: _mappedQuality,
-        minBid: minBid,
-        location: location,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.white, size: 18),
-                SizedBox(width: 10),
-                Text('Listing created successfully!'),
-              ],
-            ),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-          ),
+      if (widget.existingListing != null) {
+        final e = widget.existingListing!;
+        final updated = WasteListing(
+          id: e.id,
+          businessId: e.businessId,
+          businessName: e.businessName,
+          wasteType: _mappedWasteType,
+          volume: volume,
+          unit: _unit,
+          quality: _mappedQuality,
+          photos: e.photos,
+          minBid: minBid,
+          reservePrice: e.reservePrice,
+          auctionDuration: e.auctionDuration,
+          autoAcceptAbove: e.autoAcceptAbove,
+          status: e.status,
+          bids: e.bids,
+          assignedRecycler: e.assignedRecycler,
+          assignedDriver: e.assignedDriver,
+          collectionDate: e.collectionDate,
+          location: location,
+          createdAt: e.createdAt,
         );
-        // Clear fields
-        _volumeController.clear();
-        _minBidController.clear();
-        _notesController.clear();
-        setState(() {
-          _selectedWasteType = 'Cardboard';
-          _qualityScore = 3;
-          _uploadedPhotos = 0;
-          _isSubmitting = false;
-        });
+        await ref.read(listingsNotifierProvider.notifier).update(updated);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white, size: 18),
+                  SizedBox(width: 10),
+                  Text('Listing updated successfully!'),
+                ],
+              ),
+              backgroundColor: AppColors.primary,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          setState(() => _isSubmitting = false);
+          widget.onDone?.call();
+        }
+      } else {
+        await ref.read(listingsNotifierProvider.notifier).create(
+          businessId: auth.user!.id,
+          businessName: auth.user!.displayName,
+          wasteType: _mappedWasteType,
+          volume: volume,
+          unit: _unit,
+          quality: _mappedQuality,
+          minBid: minBid,
+          location: location,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white, size: 18),
+                  SizedBox(width: 10),
+                  Text('Listing created successfully!'),
+                ],
+              ),
+              backgroundColor: AppColors.primary,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          // Clear fields
+          _volumeController.clear();
+          _minBidController.clear();
+          _notesController.clear();
+          setState(() {
+            _selectedWasteType = 'Cardboard';
+            _qualityScore = 3;
+            _uploadedPhotos = 0;
+            _isSubmitting = false;
+          });
+          widget.onDone?.call();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -122,10 +199,21 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       appBar: AppBar(
-        title: const Text('List Waste'),
+        backgroundColor: context.cSurf,
+        title: Text(
+          widget.existingListing != null ? 'Edit Listing' : 'List Waste',
+          style: TextStyle(color: context.cText, fontWeight: FontWeight.w700),
+        ),
         centerTitle: true,
+        leading: widget.onDone != null
+            ? IconButton(
+                icon: Icon(Icons.arrow_back, color: context.cText),
+                onPressed: widget.onDone,
+              )
+            : null,
+        iconTheme: IconThemeData(color: context.cText),
         actions: [
           TextButton(
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
@@ -154,16 +242,16 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : AppColors.surface,
+                        color: isSelected ? AppColors.primary : context.cSurf,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected ? AppColors.primary : AppColors.border,
+                          color: isSelected ? AppColors.primary : context.cBorder,
                         ),
                       ),
                       child: Text(
                         type,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : AppColors.textPrimary,
+                          color: isSelected ? Colors.white : context.cText,
                           fontWeight: FontWeight.w500,
                           fontSize: 13,
                         ),
@@ -200,22 +288,25 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Container(
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: context.cSurf,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border),
+                          border: Border.all(color: context.cBorder),
                         ),
                         child: DropdownButton<String>(
                           value: _unit,
                           underline: const SizedBox(),
+                          dropdownColor: context.cSurf,
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           items: ['kg', 'ton', 'bags', 'units'].map((u) {
-                            return DropdownMenuItem(value: u, child: Text(u));
+                            return DropdownMenuItem(
+                              value: u,
+                              child: Text(u, style: TextStyle(color: context.cText)),
+                            );
                           }).toList(),
                           onChanged: (v) => setState(() => _unit = v!),
                         ),
@@ -253,11 +344,11 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Poor', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      Text('Poor', style: TextStyle(fontSize: 12, color: context.cTextSec)),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
+                          color: context.cPrimaryLight,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -269,7 +360,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                           ),
                         ),
                       ),
-                      const Text('Excellent', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      Text('Excellent', style: TextStyle(fontSize: 12, color: context.cTextSec)),
                     ],
                   ),
                   SliderTheme(
@@ -304,7 +395,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                       height: 100,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: AppColors.background,
+                        color: context.cSurfAlt,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: AppColors.primary.withOpacity(0.4),
@@ -320,8 +411,8 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                             _uploadedPhotos > 0
                                 ? '$_uploadedPhotos photo(s) added. Tap to add more'
                                 : 'Tap to capture or upload photos',
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
+                            style: TextStyle(
+                              color: context.cTextSec,
                               fontSize: 13,
                             ),
                           ),
@@ -381,30 +472,33 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
             _SectionCard(
               title: 'Preferred Pickup Time',
               icon: '🕐',
-              child: Row(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: ['ASAP', 'Today PM', 'Tomorrow', 'This Week']
-                    .map((t) => GestureDetector(
-                          onTap: () {},
+                    .map((t) {
+                      final isSelected = _selectedPickupTime == t;
+                      return GestureDetector(
+                          onTap: () => setState(() => _selectedPickupTime = t),
                           child: Container(
-                            margin: const EdgeInsets.only(right: 8),
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                             decoration: BoxDecoration(
-                              color: t == 'ASAP' ? AppColors.primary : AppColors.surface,
+                              color: isSelected ? AppColors.primary : context.cSurf,
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: t == 'ASAP' ? AppColors.primary : AppColors.border,
+                                color: isSelected ? AppColors.primary : context.cBorder,
                               ),
                             ),
                             child: Text(
                               t,
                               style: TextStyle(
-                                color: t == 'ASAP' ? Colors.white : AppColors.textPrimary,
+                                color: isSelected ? Colors.white : context.cText,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                          ),
-                        ))
+                          ));
+                    })
                     .toList(),
               ),
             ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 320.ms).fadeIn(),
@@ -435,19 +529,19 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                   Container(
                     height: 140,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFD4EDDA),
+                      color: context.cPrimaryLight,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.location_on, color: AppColors.primary, size: 36),
-                          SizedBox(height: 6),
+                          const Icon(Icons.location_on, color: AppColors.primary, size: 36),
+                          const SizedBox(height: 6),
                           Text(
-                            'Kigali, Rwanda',
+                            _useCurrentLocation ? 'Kigali, Rwanda' : (_addressController.text.isNotEmpty ? _addressController.text : 'Enter address above'),
                             style: TextStyle(
-                              color: AppColors.textSecondary,
+                              color: context.cTextSec,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -471,7 +565,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
             const SizedBox(height: 28),
 
             EcoButton(
-              label: 'Submit Listing',
+              label: widget.existingListing != null ? 'Update Listing' : 'Submit Listing',
               icon: Icons.check_circle_outline,
               isLoading: _isSubmitting,
               onPressed: _submitListing,
@@ -508,11 +602,12 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,12 +616,14 @@ class _SectionCard extends StatelessWidget {
             children: [
               Text(icon, style: const TextStyle(fontSize: 18)),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: context.cText,
+                  ),
                 ),
               ),
             ],

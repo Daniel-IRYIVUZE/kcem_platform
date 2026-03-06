@@ -1,9 +1,9 @@
 // Data service — seeds in-memory demo data matching frontend dataStore.ts
 // Demo credentials from AuthContext.tsx:
-//   hotel@millecollines.rw / hotel123
-//   recycler@greenenergy.rw / recycler123
-//   driver@ecotrade.rw / driver123
-//   admin@ecotrade.rw / admin123
+//   danieliryivuze4@gmail.com / hotel123
+//   danieliryivuze4@gmail.com / recycler123
+//   danieliryivuze4@gmail.com / driver123
+//   danieliryivuze4@gmail.com / admin123
 
 import '../models/models.dart';
 
@@ -16,16 +16,16 @@ class DataService {
     const AppUser(
       id: 'user-admin-1',
       name: 'Admin User',
-      email: 'admin@ecotrade.rw',
-      phone: '+250788000001',
+      email: 'danieliryivuze4@gmail.com',
+      phone: '+250780162164',
       role: UserRole.admin,
       greenScore: 100,
     ),
     const AppUser(
       id: 'user-business-1',
       name: 'Hotel Manager',
-      email: 'hotel@millecollines.rw',
-      phone: '+250788000002',
+      email: 'danieliryivuze4@gmail.com',
+      phone: '+250780162164',
       role: UserRole.business,
       businessName: 'Hôtel des Mille Collines',
       greenScore: 82,
@@ -33,8 +33,8 @@ class DataService {
     const AppUser(
       id: 'user-recycler-1',
       name: 'Recycler Manager',
-      email: 'recycler@greenenergy.rw',
-      phone: '+250788000003',
+      email: 'danieliryivuze4@gmail.com',
+      phone: '+250780162164',
       role: UserRole.recycler,
       companyName: 'GreenEnergy Recyclers Ltd',
       rating: 4.8,
@@ -43,8 +43,8 @@ class DataService {
     const AppUser(
       id: 'user-driver-1',
       name: 'Jean Pierre Habimana',
-      email: 'driver@ecotrade.rw',
-      phone: '+250788000004',
+      email: 'danieliryivuze4@gmail.com',
+      phone: '+250780162164',
       role: UserRole.driver,
       vehicleType: 'Toyota Dyna',
       vehiclePlate: 'RAD 456B',
@@ -257,7 +257,7 @@ class DataService {
         eta: '09:00',
         status: RouteStopStatus.completed,
         contactPerson: 'Robert Kagame',
-        contactPhone: '+250788111001',
+        contactPhone: '+250780162164',
         specialInstructions: 'Ring bell at service entrance',
         actualWeight: 78.5,
         completedAt: DateTime.now().subtract(const Duration(hours: 2)),
@@ -271,7 +271,7 @@ class DataService {
         eta: '11:00',
         status: RouteStopStatus.collecting,
         contactPerson: 'Marie Claire',
-        contactPhone: '+250788111002',
+        contactPhone: '+250780162164',
         specialInstructions: 'Access via side gate',
       ),
       RouteStop(
@@ -373,17 +373,20 @@ class DataService {
   ];
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  static const Map<String, String> _credentials = {
-    'admin@ecotrade.rw': 'admin123',
-    'hotel@millecollines.rw': 'hotel123',
-    'recycler@greenenergy.rw': 'recycler123',
-    'driver@ecotrade.rw': 'driver123',
-  };
-
   AppUser? login(String email, String password) {
     final lower = email.toLowerCase().trim();
-    if (_credentials[lower] == password) {
-      return _demoUsers.firstWhere((u) => u.email == lower);
+    // Accept the real email with any role-specific password, or match by role
+    if (lower == 'danieliryivuze4@gmail.com') {
+      final rolePasswords = {
+        'hotel123': UserRole.business,
+        'recycler123': UserRole.recycler,
+        'driver123': UserRole.driver,
+        'admin123': UserRole.admin,
+      };
+      if (rolePasswords.containsKey(password)) {
+        final role = rolePasswords[password]!;
+        return _demoUsers.firstWhere((u) => u.role == role);
+      }
     }
     return null;
   }

@@ -13,36 +13,94 @@ class EarningsScreen extends ConsumerStatefulWidget {
 }
 
 class _EarningsScreenState extends ConsumerState<EarningsScreen> {
-  int _selectedPeriod = 0;
+  int _selectedPeriod = 1; // default: This Week
   final List<String> _periods = ['Today', 'This Week', 'This Month'];
 
   static String _fmtRwf(num n) {
     return n.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
   }
 
-  static final List<_BarData> _weekData = [
-    _BarData('Mon', 4200),
-    _BarData('Tue', 6800),
-    _BarData('Wed', 3500),
-    _BarData('Thu', 7200),
-    _BarData('Fri', 5900),
-    _BarData('Sat', 8100),
-    _BarData('Sun', 2400),
-  ];
+  List<Transaction> _filteredTransactions(List<Transaction> all) {
+    final now = DateTime.now();
+    switch (_selectedPeriod) {
+      case 0: // Today
+        return all.where((t) =>
+            t.date.year == now.year &&
+            t.date.month == now.month &&
+            t.date.day == now.day).toList();
+      case 1: // This Week
+        final monday = now.subtract(Duration(days: now.weekday - 1));
+        final weekStart = DateTime(monday.year, monday.month, monday.day);
+        return all.where((t) => !t.date.isBefore(weekStart)).toList();
+      case 2: // This Month
+        return all.where((t) =>
+            t.date.year == now.year && t.date.month == now.month).toList();
+      default:
+        return all;
+    }
+  }
+
+  List<_BarData> _buildChartData(List<Transaction> filtered) {
+    final now = DateTime.now();
+    switch (_selectedPeriod) {
+      case 0: // Today — 6 four-hour blocks
+        const labels = ['0am', '4am', '8am', '12pm', '4pm', '8pm'];
+        return List.generate(6, (i) {
+          final sum = filtered
+              .where((t) => t.date.hour >= i * 4 && t.date.hour < i * 4 + 4)
+              .fold<double>(0, (s, t) => s + t.amount);
+          return _BarData(labels[i], sum.toInt());
+        });
+      case 1: // This Week — Mon to Sun
+        final monday = now.subtract(Duration(days: now.weekday - 1));
+        final weekStart = DateTime(monday.year, monday.month, monday.day);
+        const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        return List.generate(7, (i) {
+          final day = weekStart.add(Duration(days: i));
+          final sum = filtered
+              .where((t) =>
+                  t.date.year == day.year &&
+                  t.date.month == day.month &&
+                  t.date.day == day.day)
+              .fold<double>(0, (s, t) => s + t.amount);
+          return _BarData(dayLabels[i], sum.toInt());
+        });
+      case 2: // This Month — 4 weekly buckets
+        return List.generate(4, (i) {
+          final dayStart = i * 7 + 1;
+          final dayEnd = dayStart + 7;
+          final sum = filtered
+              .where((t) =>
+                  t.date.year == now.year &&
+                  t.date.month == now.month &&
+                  t.date.day >= dayStart &&
+                  t.date.day < dayEnd)
+              .fold<double>(0, (s, t) => s + t.amount);
+          return _BarData('W${i + 1}', sum.toInt());
+        });
+      default:
+        return [_BarData('-', 0)];
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final stats = ref.watch(driverStatsProvider);
-    final transactions = ref.watch(transactionsProvider);
+    final allTransactions = ref.watch(transactionsProvider);
     final totalEarnings = (stats['totalEarnings'] ?? 0) as num;
-    final todayEarnings = (stats['todayEarnings'] ?? 0) as num;
-    final completedStops = (stats['completedStops'] ?? 0) as num;
+
+    final filteredTx = _filteredTransactions(allTransactions);
+    final periodEarned = filteredTx.fold<double>(0, (s, t) => s + t.amount);
+    final periodCount = filteredTx.length;
+    final chartData = _buildChartData(filteredTx);
+    const periodLabels = ['Today', 'This Week', 'This Month'];
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 220,
+            expandedHeight: 240,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
@@ -57,17 +115,23 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Available Balance', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                            Text(
-                              'RWF ${_fmtRwf(totalEarnings)}',
-                              style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800),
-                            ),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Available Balance', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'RWF ${_fmtRwf(totalEarnings)}',
+                                  style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 12),
                         ElevatedButton(
                           onPressed: () => _showWithdrawSheet(context, totalEarnings),
                           style: ElevatedButton.styleFrom(
@@ -104,7 +168,7 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
                           margin: EdgeInsets.only(right: i < 2 ? 8 : 0),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: _selectedPeriod == i ? AppColors.primary : Colors.white,
+                            color: _selectedPeriod == i ? AppColors.primary : context.cSurf,
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
                           ),
@@ -126,9 +190,9 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
                   // Summary row
                   Row(
                     children: [
-                      Expanded(child: _SummaryCard(title: 'Earned', amount: 'RWF ${_fmtRwf(todayEarnings)}', subtitle: '$completedStops collections', icon: Icons.trending_up, color: AppColors.primary)),
+                      Expanded(child: _SummaryCard(title: periodLabels[_selectedPeriod], amount: 'RWF ${_fmtRwf(periodEarned)}', subtitle: '$periodCount collections', icon: Icons.trending_up, color: AppColors.primary)),
                       const SizedBox(width: 10),
-                      Expanded(child: _SummaryCard(title: 'Total', amount: 'RWF ${_fmtRwf(totalEarnings)}', subtitle: 'all time', icon: Icons.account_balance_wallet, color: AppColors.info)),
+                      Expanded(child: _SummaryCard(title: 'All Time', amount: 'RWF ${_fmtRwf(totalEarnings)}', subtitle: 'total earnings', icon: Icons.account_balance_wallet, color: AppColors.info)),
                     ],
                   ),
 
@@ -138,27 +202,47 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
                   Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: context.cSurf,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12)],
+                      border: Border.all(color: context.cBorder),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Weekly Earnings', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                        const Text('RWF 38,100 this week', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                        Text('${periodLabels[_selectedPeriod]} Earnings', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                        Text('RWF ${_fmtRwf(periodEarned)} ${periodLabels[_selectedPeriod].toLowerCase()}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                         const SizedBox(height: 20),
-                        _BarChart(data: _weekData),
+                        _BarChart(data: chartData),
                       ],
                     ),
                   ).animate().fadeIn(delay: 200.ms),
 
                   const SizedBox(height: 20),
 
-                  const Text('Transactions', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  Text(
+                    filteredTx.isEmpty ? 'Transactions' : 'Transactions (${filteredTx.length})',
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                  ),
                   const SizedBox(height: 12),
 
-                  ...transactions.map((t) => _RealTransactionTile(t: t)),
+                  if (filteredTx.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 32),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.receipt_long_outlined, size: 48, color: Colors.grey.shade400),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No transactions for ${periodLabels[_selectedPeriod].toLowerCase()}',
+                              style: const TextStyle(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ...filteredTx.map((t) => _RealTransactionTile(t: t)),
                 ],
               ),
             ),
@@ -176,9 +260,9 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -267,9 +351,9 @@ class _SummaryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12)],
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -280,9 +364,9 @@ class _SummaryCard extends StatelessWidget {
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(height: 10),
-          Text(title, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-          Text(amount, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-          Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+          Text(title, style: TextStyle(color: context.cTextSec, fontSize: 12)),
+          Text(amount, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: context.cText), overflow: TextOverflow.ellipsis, maxLines: 1),
+          Text(subtitle, style: TextStyle(color: context.cTextSec, fontSize: 11)),
         ],
       ),
     );
@@ -296,6 +380,14 @@ class _BarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final maxVal = data.map((d) => d.value).reduce((a, b) => a > b ? a : b).toDouble();
+    if (maxVal == 0) {
+      return const SizedBox(
+        height: 120,
+        child: Center(
+          child: Text('No data for this period', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+        ),
+      );
+    }
     return SizedBox(
       height: 120,
       child: Row(
@@ -342,9 +434,9 @@ class _RealTransactionTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+        border: Border.all(color: context.cBorder),
       ),
       child: Row(
         children: [

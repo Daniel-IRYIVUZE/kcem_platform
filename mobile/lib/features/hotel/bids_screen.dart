@@ -47,7 +47,7 @@ class _BidsScreenState extends ConsumerState<BidsScreen> with SingleTickerProvid
     final activeBids = sorted.where((b) => b.status == BidStatus.active).toList();
     final wonBids = sorted.where((b) => b.status == BidStatus.won).toList();
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       appBar: AppBar(
         title: const Text('Bids Received'),
         actions: [
@@ -129,9 +129,9 @@ class _BidCard extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,9 +161,13 @@ class _BidCard extends ConsumerWidget {
                       children: [
                         const Icon(Icons.star, color: AppColors.accent, size: 14),
                         const SizedBox(width: 3),
-                        Text(
-                          bid.collectionPreference,
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        Flexible(
+                          child: Text(
+                            bid.collectionPreference,
+                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -194,7 +198,7 @@ class _BidCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: context.cSurfAlt,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -252,14 +256,74 @@ class _BidCard extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: IconButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Chat with ${bid.recyclerName} — coming soon'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
+                  onPressed: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                    ),
+                    builder: (ctx) {
+                      final msgCtrl = TextEditingController();
+                      return Padding(
+                        padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(children: [
+                              const Icon(Icons.chat_bubble_outline, color: AppColors.primary, size: 22),
+                              const SizedBox(width: 10),
+                              Expanded(child: Text('Message ${bid.recyclerName}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
+                              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                            ]),
+                            const SizedBox(height: 4),
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                'Sending a message to ${bid.recyclerName} about your waste listing.',
+                                style: const TextStyle(fontSize: 13, color: AppColors.primary),
+                              ),
+                            ),
+                            TextField(
+                              controller: msgCtrl,
+                              maxLines: 3,
+                              autofocus: true,
+                              decoration: const InputDecoration(
+                                hintText: 'Type your message...',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                                const SizedBox(width: 8),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                      content: Text('Message sent to ${bid.recyclerName}'),
+                                      backgroundColor: AppColors.primary,
+                                      behavior: SnackBarBehavior.floating,
+                                    ));
+                                  },
+                                  icon: const Icon(Icons.send, size: 16),
+                                  label: const Text('Send'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                   icon: const Icon(Icons.chat_bubble_outline, size: 18),
                   padding: EdgeInsets.zero,
                 ),
@@ -352,20 +416,20 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 56, color: AppColors.textTertiary),
+          Icon(icon, size: 56, color: context.cTextTer),
           const SizedBox(height: 16),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: context.cText,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 14, color: context.cTextSec),
           ),
         ],
       ),

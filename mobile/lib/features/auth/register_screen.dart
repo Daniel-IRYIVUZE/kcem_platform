@@ -76,8 +76,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
     await ref.read(authProvider.notifier).register(
       name:         _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'New User',
-      email:        _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : 'user@ecotrade.rw',
-      phone:        _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : '+250788000000',
+      email:        _emailController.text.trim().isNotEmpty ? _emailController.text.trim() : 'danieliryivuze4@gmail.com',
+      phone:        _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : '+250780162164',
       password:     _passwordController.text.trim().isNotEmpty ? _passwordController.text.trim() : 'password123',
       role:         _selectedRole.isNotEmpty ? _selectedRole : 'hotel',
       businessName: businessName,

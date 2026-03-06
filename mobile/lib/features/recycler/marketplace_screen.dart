@@ -16,12 +16,18 @@ class MarketplaceScreen extends ConsumerStatefulWidget {
 class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
   bool _isMapView = false;
   WasteType? _selectedType;
-  final double _maxDistance = 10;
+  double _maxDistance = 50; // km — default show all
 
+  /// Deterministic pseudo-distance based on listing id hash (1–50 km)
+  double _simDistance(WasteListing l) =>
+      (l.id.hashCode.abs() % 50 + 1).toDouble();
 
   List<WasteListing> _filtered(List<WasteListing> listings) {
-    if (_selectedType == null) return listings;
-    return listings.where((l) => l.wasteType == _selectedType).toList();
+    return listings.where((l) {
+      final typeOk = _selectedType == null || l.wasteType == _selectedType;
+      final distOk = _simDistance(l) <= _maxDistance;
+      return typeOk && distOk;
+    }).toList();
   }
 
   void _showBidModal(BuildContext context, WasteListing listing) {
@@ -29,7 +35,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -44,7 +50,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: context.cBorder,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -63,7 +69,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: context.cSurfAlt,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -165,7 +171,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     final allListings = ref.watch(openListingsProvider);
     final filtered = _filtered(allListings);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       appBar: AppBar(
         title: const Text('Marketplace'),
         actions: [
@@ -223,6 +229,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                       itemBuilder: (context, index) {
                         return _ListingCard(
                           listing: filtered[index],
+                          distanceKm: _simDistance(filtered[index]).toInt(),
                           onBid: () => _showBidModal(context, filtered[index]),
                         ).animate().slideY(begin: 0.15, duration: 300.ms, delay: (index * 60).ms).fadeIn();
                       },
@@ -234,38 +241,47 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
   }
 
   void _showFilters(BuildContext context) {
+    double tempDist = _maxDistance;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Filters', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 16),
-            const Text('Max Distance', style: TextStyle(fontWeight: FontWeight.w600)),
-            Row(
-              children: [
-                Expanded(
-                  child: Slider(
-                    value: _maxDistance,
-                    min: 1,
-                    max: 50,
-                    divisions: 49,
-                    activeColor: AppColors.primary,
-                    onChanged: (v) {},
-                  ),
-                ),
-                Text('${_maxDistance.toInt()} km'),
-              ],
-            ),
-            const SizedBox(height: 12),
-            EcoButton(label: 'Apply Filters', onPressed: () => Navigator.pop(context)),
-          ],
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Filters', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Max Distance', style: TextStyle(fontWeight: FontWeight.w600)),
+                  Text('${tempDist.toInt()} km',
+                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700)),
+                ],
+              ),
+              Slider(
+                value: tempDist,
+                min: 1,
+                max: 50,
+                divisions: 49,
+                activeColor: AppColors.primary,
+                onChanged: (v) => setModalState(() => tempDist = v),
+              ),
+              const SizedBox(height: 12),
+              EcoButton(
+                label: 'Apply Filters',
+                onPressed: () {
+                  setState(() => _maxDistance = tempDist);
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -286,9 +302,9 @@ class _FilterChip extends StatelessWidget {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : AppColors.surface,
+          color: isSelected ? AppColors.primary : context.cSurf,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+          border: Border.all(color: isSelected ? AppColors.primary : context.cBorder),
         ),
         child: Text(
           label,
@@ -306,8 +322,9 @@ class _FilterChip extends StatelessWidget {
 class _ListingCard extends StatelessWidget {
   final WasteListing listing;
   final VoidCallback onBid;
+  final int distanceKm;
 
-  const _ListingCard({required this.listing, required this.onBid});
+  const _ListingCard({required this.listing, required this.onBid, required this.distanceKm});
 
   @override
   Widget build(BuildContext context) {
@@ -315,9 +332,9 @@ class _ListingCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,7 +400,7 @@ class _ListingCard extends StatelessWidget {
               const SizedBox(width: 8),
               _Tag(icon: Icons.stars_outlined, label: listing.quality.label),
               const SizedBox(width: 8),
-              _Tag(icon: Icons.location_on_outlined, label: listing.location),
+              _Tag(icon: Icons.near_me_outlined, label: '$distanceKm km'),
               const Spacer(),
               _Tag(icon: Icons.gavel_outlined, label: '${listing.activeBidCount} bids'),
             ],

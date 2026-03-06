@@ -36,7 +36,10 @@ class _HotelMainScreenState extends ConsumerState<HotelMainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _selectedIndex == 0
-          ? const _HotelHomeTab()
+          ? _HotelHomeTab(
+              onGoToProfile: () => setState(() => _selectedIndex = 4),
+              onGoToListings: () => setState(() => _selectedIndex = 1),
+            )
           : _selectedIndex == 1
               ? const _ListWasteTab()
               : _selectedIndex == 2
@@ -44,15 +47,15 @@ class _HotelMainScreenState extends ConsumerState<HotelMainScreen> {
                   : _selectedIndex == 3
                       ? const _CollectionsTab()
                       : const _HotelProfileTab(),
-      bottomNavigationBar: Container(
+      bottomNavigationBar: Builder(builder: (ctx) => Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border(top: BorderSide(color: AppColors.border)),
+          color: ctx.cSurf,
+          border: Border(top: BorderSide(color: ctx.cBorder)),
         ),
         child: NavigationBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: (index) => setState(() => _selectedIndex = index),
-          backgroundColor: AppColors.surface,
+          backgroundColor: ctx.cSurf,
           elevation: 0,
           destinations: _navItems
               .map((item) => NavigationDestination(
@@ -62,7 +65,7 @@ class _HotelMainScreenState extends ConsumerState<HotelMainScreen> {
                   ))
               .toList(),
         ),
-      ),
+      )),
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton.extended(
               onPressed: () => setState(() => _selectedIndex = 1),
@@ -86,7 +89,9 @@ class _NavItem {
 
 // ─── Hotel Home Tab ───────────────────────────────────────────────────────────
 class _HotelHomeTab extends ConsumerWidget {
-  const _HotelHomeTab();
+  final VoidCallback? onGoToProfile;
+  final VoidCallback? onGoToListings;
+  const _HotelHomeTab({this.onGoToProfile, this.onGoToListings});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -97,38 +102,44 @@ class _HotelHomeTab extends ConsumerWidget {
     final initials = (user?.displayName ?? 'H').substring(0, 1).toUpperCase();
     final greeting = _greeting();
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.cSurf,
             floating: true,
             expandedHeight: 70,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               title: Row(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '$greeting 👋',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w400,
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '$greeting 👋',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      Text(
-                        user?.displayName ?? 'Hotel',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                        Text(
+                          user?.displayName ?? 'Hotel',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   const Spacer(),
                   Stack(
@@ -152,15 +163,43 @@ class _HotelHomeTab extends ConsumerWidget {
                         ),
                     ],
                   ),
-                  CircleAvatar(
-                    radius: 18,
-                    backgroundColor: AppColors.primaryLight,
-                    child: Text(
-                      initials,
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
+                  PopupMenuButton<String>(
+                    onSelected: (val) {
+                      if (val == 'profile') onGoToProfile?.call();
+                      if (val == 'logout') ref.read(authProvider.notifier).logout();
+                    },
+                    offset: const Offset(0, 44),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    tooltip: 'Account',
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'profile',
+                        child: Row(children: [
+                          Icon(Icons.settings_outlined, size: 18),
+                          SizedBox(width: 10),
+                          Text('Settings & Profile'),
+                        ]),
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem(
+                        value: 'logout',
+                        child: Row(children: [
+                          Icon(Icons.logout, color: Colors.red, size: 18),
+                          SizedBox(width: 10),
+                          Text('Sign Out', style: TextStyle(color: Colors.red)),
+                        ]),
+                      ),
+                    ],
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: AppColors.primaryLight,
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ),
@@ -232,7 +271,7 @@ class _HotelHomeTab extends ConsumerWidget {
                 SectionHeader(
                   title: 'Active Listings',
                   actionLabel: 'See All',
-                  onAction: () {},
+                  onAction: onGoToListings,
                 ),
                 const SizedBox(height: 12),
 
@@ -305,9 +344,9 @@ class _EmptyListings extends StatelessWidget {
       height: 120,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -331,9 +370,9 @@ class _WasteListingCard extends StatelessWidget {
       width: 150,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,9 +430,9 @@ class _BidNotificationCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.cBorder),
       ),
       child: Row(
         children: [
@@ -401,7 +440,7 @@ class _BidNotificationCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppColors.primaryLight,
+              color: context.cPrimaryLight,
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.recycling, color: AppColors.primary, size: 22),
@@ -462,13 +501,351 @@ class _BidNotificationCard extends StatelessWidget {
   }
 }
 
-// ─── List Waste Tab ───────────────────────────────────────────────────────────
-class _ListWasteTab extends StatelessWidget {
+// ─── List Waste Tab (Manage Listings CRUD) ───────────────────────────────────
+class _ListWasteTab extends ConsumerStatefulWidget {
   const _ListWasteTab();
 
   @override
+  ConsumerState<_ListWasteTab> createState() => _ListWasteTabState();
+}
+
+class _ListWasteTabState extends ConsumerState<_ListWasteTab> {
+  bool _showingForm = false;
+  WasteListing? _editingListing;
+
+  @override
   Widget build(BuildContext context) {
-    return const ListWasteScreen();
+    if (_showingForm) {
+      return ListWasteScreen(
+        existingListing: _editingListing,
+        onDone: () => setState(() {
+          _showingForm = false;
+          _editingListing = null;
+        }),
+      );
+    }
+    return _ManageListingsView(
+      onAdd: () => setState(() {
+        _editingListing = null;
+        _showingForm = true;
+      }),
+      onEdit: (l) => setState(() {
+        _editingListing = l;
+        _showingForm = true;
+      }),
+    );
+  }
+}
+
+class _ManageListingsView extends ConsumerWidget {
+  final VoidCallback onAdd;
+  final ValueChanged<WasteListing> onEdit;
+  const _ManageListingsView({required this.onAdd, required this.onEdit});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final listings = ref.watch(businessListingsProvider);
+    return Scaffold(
+      backgroundColor: context.cBg,
+      appBar: AppBar(
+        backgroundColor: context.cSurf,
+        elevation: 0,
+        title: Text(
+          'My Listings',
+          style: TextStyle(color: context.cText, fontWeight: FontWeight.w700),
+        ),
+        centerTitle: true,
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: onAdd,
+        icon: const Icon(Icons.add),
+        label: const Text('Add New', style: TextStyle(fontWeight: FontWeight.w700)),
+      ),
+      body: listings.isEmpty
+          ? _EmptyManageState(onAdd: onAdd)
+          : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+              itemCount: listings.length,
+              itemBuilder: (context, index) {
+                final l = listings[index];
+                return _ManageListingCard(
+                  listing: l,
+                  onEdit: () => onEdit(l),
+                  onDelete: () => _confirmDelete(context, ref, l),
+                )
+                    .animate()
+                    .slideY(begin: 0.15, duration: 300.ms, delay: (index * 60).ms)
+                    .fadeIn();
+              },
+            ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, WidgetRef ref, WasteListing listing) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Listing?'),
+        content: Text(
+            'Permanently remove the "${listing.wasteType.label}" listing? This cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(listingsNotifierProvider.notifier).delete(listing.id);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Row(children: [
+                    Icon(Icons.delete_outline, color: Colors.white, size: 18),
+                    SizedBox(width: 10),
+                    Text('Listing deleted'),
+                  ]),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style:
+                ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Delete',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ManageListingCard extends StatelessWidget {
+  final WasteListing listing;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  const _ManageListingCard(
+      {required this.listing,
+      required this.onEdit,
+      required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = listing.status == ListingStatus.open
+        ? AppColors.primary
+        : listing.status == ListingStatus.assigned
+            ? AppColors.accent
+            : AppColors.textTertiary;
+    final statusLabel = listing.status == ListingStatus.open
+        ? 'Open'
+        : listing.status == ListingStatus.assigned
+            ? 'Assigned'
+            : listing.status.name[0].toUpperCase() +
+                listing.status.name.substring(1);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.cSurf,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.cBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: context.cPrimaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  listing.wasteType == WasteType.glass
+                      ? Icons.wine_bar_outlined
+                      : listing.wasteType == WasteType.paperCardboard
+                          ? Icons.article_outlined
+                          : Icons.delete_outline,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      listing.wasteType.label,
+                      style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: context.cText),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${listing.volume.toStringAsFixed(0)} ${listing.unit}  ·  ${listing.quality.label}',
+                      style:
+                          TextStyle(fontSize: 13, color: context.cTextSec),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 16,
+            runSpacing: 4,
+            children: [
+              _InfoChip(
+                  icon: Icons.gavel_outlined,
+                  label: '${listing.activeBidCount} bids',
+                  color: context.cTextSec),
+              _InfoChip(
+                  icon: Icons.payments_outlined,
+                  label:
+                      'Min RWF ${listing.minBid.toStringAsFixed(0)}',
+                  color: context.cTextSec),
+              _InfoChip(
+                  icon: Icons.location_on_outlined,
+                  label: listing.location,
+                  color: context.cTextSec),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  label: const Text('Edit'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline, size: 16),
+                  label: const Text('Delete'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.error,
+                    side: BorderSide(color: AppColors.error),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _InfoChip(
+      {required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: color),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(fontSize: 12, color: color)),
+      ],
+    );
+  }
+}
+
+class _EmptyManageState extends StatelessWidget {
+  final VoidCallback onAdd;
+  const _EmptyManageState({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: context.cPrimaryLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.inventory_2_outlined,
+                  size: 40, color: AppColors.primary),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'No listings yet',
+              style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: context.cText),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Create your first waste listing to start receiving bids from recyclers.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: 14, color: context.cTextSec, height: 1.5),
+            ),
+            const SizedBox(height: 28),
+            ElevatedButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('Create First Listing',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

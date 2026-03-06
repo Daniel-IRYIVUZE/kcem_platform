@@ -106,7 +106,7 @@ class _StepBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
+      color: context.cSurf,
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       child: Row(
         children: List.generate(steps.length * 2 - 1, (i) {
@@ -115,7 +115,7 @@ class _StepBar extends StatelessWidget {
             return Expanded(
               child: Container(
                 height: 2,
-                color: idx < current ? AppColors.primary : AppColors.border,
+                color: idx < current ? AppColors.primary : context.cBorder,
               ),
             );
           }
@@ -130,10 +130,10 @@ class _StepBar extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: done ? AppColors.primary : active ? AppColors.primaryLight : Colors.white,
+                  color: done ? AppColors.primary : active ? context.cPrimaryLight : context.cSurf,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: done || active ? AppColors.primary : AppColors.border,
+                    color: done || active ? AppColors.primary : context.cBorder,
                     width: 2,
                   ),
                 ),
@@ -143,7 +143,7 @@ class _StepBar extends StatelessWidget {
                       : Text('${idx + 1}', style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: active ? AppColors.primary : AppColors.textSecondary,
+                          color: active ? AppColors.primary : context.cTextSec,
                         )),
                 ),
               ),
@@ -365,9 +365,9 @@ class _WeighPhotoStep extends StatelessWidget {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.cSurf,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppColors.border, style: BorderStyle.solid),
+                            border: Border.all(color: context.cBorder, style: BorderStyle.solid),
                           ),
                           child: const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -568,9 +568,10 @@ class _Card extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color ?? Colors.white,
+        color: color ?? context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12)],
+        border: color == null ? Border.all(color: context.cBorder) : null,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
       ),
       child: child,
     );

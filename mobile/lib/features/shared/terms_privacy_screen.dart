@@ -145,12 +145,12 @@ class _TermsContent extends StatelessWidget {
           body:
               'Ecotrade reserves the right to suspend or terminate accounts that violate '
               'these terms. Users may request account deletion by contacting '
-              'legal@ecotrade.rw. Data will be retained for 3 years per regulatory requirements.',
+              'danieliryivuze4@gmail.com. Data will be retained for 3 years per regulatory requirements.',
         ),
         const SizedBox(height: 32),
         _ContactBanner(
           text: 'Questions about our Terms?',
-          email: 'legal@ecotrade.rw',
+          email: 'danieliryivuze4@gmail.com',
         ),
         const SizedBox(height: 20),
       ],
@@ -231,7 +231,7 @@ class _PrivacyContent extends StatelessWidget {
               '• Deletion: Request account and data removal\n'
               '• Portability: Export your data in JSON format\n'
               '• Objection: Opt out of marketing communications\n\n'
-              'Submit requests to privacy@ecotrade.rw',
+              'Submit requests to danieliryivuze4@gmail.com',
         ),
         _LegalSection(
           icon: Icons.cookie_outlined,
@@ -244,7 +244,7 @@ class _PrivacyContent extends StatelessWidget {
         const SizedBox(height: 32),
         _ContactBanner(
           text: 'Privacy concerns or requests?',
-          email: 'privacy@ecotrade.rw',
+          email: 'danieliryivuze4@gmail.com',
         ),
         const SizedBox(height: 20),
       ],

@@ -88,15 +88,15 @@ class SupportScreen extends StatelessWidget {
             icon: Icons.phone_outlined,
             color: AppColors.success,
             title: 'Call Support',
-            subtitle: '+250 788 ECOTRADE',
-            onTap: () => _launch(context, 'tel:+250788000000'),
+            subtitle: '+250 780 162 164',
+            onTap: () => _launch(context, 'tel:+250780162164'),
           ).animate(delay: 100.ms).fadeIn().slideY(begin: 0.1),
           _ContactTile(
             icon: Icons.email_outlined,
             color: AppColors.info,
             title: 'Email Us',
-            subtitle: 'support@ecotrade.rw',
-            onTap: () => _launch(context, 'mailto:support@ecotrade.rw'),
+            subtitle: 'danieliryivuze4@gmail.com',
+            onTap: () => _launch(context, 'mailto:danieliryivuze4@gmail.com'),
           ).animate(delay: 150.ms).fadeIn().slideY(begin: 0.1),
           _ContactTile(
             icon: Icons.message_outlined,
@@ -104,7 +104,7 @@ class SupportScreen extends StatelessWidget {
             title: 'WhatsApp',
             subtitle: 'Message us on WhatsApp',
             onTap: () =>
-                _launch(context, 'https://wa.me/250788000000'),
+                _launch(context, 'https://wa.me/250780162164'),
           ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.1),
 
           const SizedBox(height: 24),

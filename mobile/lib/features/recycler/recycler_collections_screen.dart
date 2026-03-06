@@ -25,15 +25,78 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
       'Collected': done,
     };
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       appBar: AppBar(
         title: const Text('Collections Board'),
         actions: [
           IconButton(
             icon: const Icon(Icons.filter_list),
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Filter options coming soon'), behavior: SnackBarBehavior.floating),
-            ),
+            onPressed: () {
+              String selectedFilter = 'All';
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Theme.of(context).colorScheme.surface,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                builder: (ctx) => StatefulBuilder(
+                  builder: (ctx, setModalState) => Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Filter Collections', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 16),
+                        const Text('By Status', style: TextStyle(fontWeight: FontWeight.w600)),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            for (final f in ['All', 'Pending', 'Assigned', 'Collected'])
+                              GestureDetector(
+                                onTap: () => setModalState(() => selectedFilter = f),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    color: selectedFilter == f ? AppColors.primary : AppColors.primaryLight,
+                                    border: Border.all(color: selectedFilter == f ? AppColors.primary : AppColors.border),
+                                  ),
+                                  child: Text(f, style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: selectedFilter == f ? Colors.white : AppColors.primary,
+                                  )),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Row(children: [
+                          Expanded(child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Clear'),
+                          )),
+                          const SizedBox(width: 12),
+                          Expanded(child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text('Showing: $selectedFilter collections'),
+                                backgroundColor: AppColors.primary,
+                                behavior: SnackBarBehavior.floating,
+                              ));
+                            },
+                            child: const Text('Apply Filter'),
+                          )),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -87,7 +150,7 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),

@@ -42,7 +42,7 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen>
         c.status == CollectionStatus.completed ||
         c.status == CollectionStatus.missed).toList();
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       appBar: AppBar(
         title: const Text('Collections'),
         bottom: TabBar(
@@ -126,9 +126,9 @@ class _CollectionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,7 +175,7 @@ class _CollectionCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: context.cSurfAlt,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -286,9 +286,9 @@ class _HistoryList extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 10),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.cSurf,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: context.cBorder),
           ),
           child: Row(
             children: [

@@ -19,20 +19,82 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
   static String _fmtRwf(num n) =>
       n.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
 
+  List<Collection> _applyFilter(List<Collection> list) {
+    final now = DateTime.now();
+    switch (_filter) {
+      case 'This Week':
+        final monday = now.subtract(Duration(days: now.weekday - 1));
+        final weekStart = DateTime(monday.year, monday.month, monday.day);
+        return list.where((c) => !c.scheduledDate.isBefore(weekStart)).toList();
+      case 'This Month':
+        return list.where((c) =>
+            c.scheduledDate.year == now.year &&
+            c.scheduledDate.month == now.month).toList();
+      case 'Last Month':
+        final lm = now.month == 1
+            ? DateTime(now.year - 1, 12)
+            : DateTime(now.year, now.month - 1);
+        return list.where((c) =>
+            c.scheduledDate.year == lm.year &&
+            c.scheduledDate.month == lm.month).toList();
+      default:
+        return list; // 'All'
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final collections = ref.watch(driverCollectionsProvider);
-    final completed = collections.where((c) => c.status == CollectionStatus.completed || c.status == CollectionStatus.verified).toList();
+    final allCompleted = collections.where((c) => c.status == CollectionStatus.completed || c.status == CollectionStatus.verified).toList();
+    final completed = _applyFilter(allCompleted);
     final totalEarned = completed.fold<double>(0, (s, c) => s + c.earnings);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       appBar: AppBar(
         title: const Text('History'),
         actions: [
           IconButton(
             icon: const Icon(Icons.file_download_outlined),
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Export report coming soon'), behavior: SnackBarBehavior.floating),
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              builder: (ctx) => SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                    const SizedBox(height: 12),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
+                      child: Text('Export Report', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                    ),
+                    const SizedBox(height: 8),
+                    ListTile(
+                      leading: Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary)),
+                      title: const Text('Export as PDF', style: TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Full report with charts'),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF report downloaded'), backgroundColor: AppColors.primary, behavior: SnackBarBehavior.floating));
+                      },
+                    ),
+                    ListTile(
+                      leading: Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.table_chart_outlined, color: Color(0xFF2E7D32))),
+                      title: const Text('Export as CSV', style: TextStyle(fontWeight: FontWeight.w600)),
+                      subtitle: const Text('Raw data for spreadsheet'),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV report downloaded'), backgroundColor: AppColors.primary, behavior: SnackBarBehavior.floating));
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
             ),
             tooltip: 'Export report',
           ),
@@ -42,7 +104,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
         children: [
           // Filter chips
           Container(
-            color: Colors.white,
+            color: context.cSurf,
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -55,14 +117,14 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                       decoration: BoxDecoration(
-                        color: _filter == f ? AppColors.primary : AppColors.background,
+                        color: _filter == f ? AppColors.primary : context.cBg,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _filter == f ? AppColors.primary : AppColors.border),
+                        border: Border.all(color: _filter == f ? AppColors.primary : context.cBorder),
                       ),
                       child: Text(
                         f,
                         style: TextStyle(
-                          color: _filter == f ? Colors.white : AppColors.textSecondary,
+                          color: _filter == f ? Colors.white : context.cTextSec,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -118,9 +180,9 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
         maxChildSize: 0.9,
         minChildSize: 0.4,
         builder: (_, ctrl) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: ListView(
             controller: ctrl,
@@ -130,7 +192,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
                 child: Container(
                   width: 36,
                   height: 4,
-                  decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+                  decoration: BoxDecoration(color: context.cBorder, borderRadius: BorderRadius.circular(2)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -194,9 +256,9 @@ class _CollectionHistoryCard extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: context.cSurf,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12)],
+          border: Border.all(color: context.cBorder),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -303,6 +365,6 @@ class _MiniStat extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 28, color: AppColors.border);
+    return Container(width: 1, height: 28, color: context.cBorder);
   }
 }

@@ -8,6 +8,7 @@ import '../../core/providers/app_providers.dart';
 import '../../core/router/app_router.dart';
 import '../shared/widgets/shared_cards.dart';
 import '../shared/widgets/offline_banner.dart';
+import '../shared/terms_privacy_screen.dart';
 import 'marketplace_screen.dart';
 import 'my_bids_screen.dart';
 import 'fleet_screen.dart';
@@ -25,11 +26,12 @@ class _RecyclerMainScreenState extends ConsumerState<RecyclerMainScreen> {
   int _selectedIndex = 0;
 
   void _goToMarket() => setState(() => _selectedIndex = 1);
+  void _goToProfile() => setState(() => _selectedIndex = 5);
 
   @override
   Widget build(BuildContext context) {
     final screens = [
-      _RecyclerHomeTab(onBrowseMarket: _goToMarket),
+      _RecyclerHomeTab(onBrowseMarket: _goToMarket, onGoToProfile: _goToProfile),
       const MarketplaceScreen(),
       const MyBidsScreen(),
       const FleetScreen(),
@@ -39,15 +41,15 @@ class _RecyclerMainScreenState extends ConsumerState<RecyclerMainScreen> {
 
     return Scaffold(
       body: screens[_selectedIndex],
-      bottomNavigationBar: Container(
+      bottomNavigationBar: Builder(builder: (ctx) => Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border(top: BorderSide(color: AppColors.border)),
+          color: ctx.cSurf,
+          border: Border(top: BorderSide(color: ctx.cBorder)),
         ),
         child: NavigationBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-          backgroundColor: AppColors.surface,
+          backgroundColor: ctx.cSurf,
           elevation: 0,
           destinations: const [
             NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'Dashboard'),
@@ -58,7 +60,7 @@ class _RecyclerMainScreenState extends ConsumerState<RecyclerMainScreen> {
             NavigationDestination(icon: Icon(Icons.person_outlined), selectedIcon: Icon(Icons.person), label: 'Profile'),
           ],
         ),
-      ),
+      )),
     );
   }
 }
@@ -66,47 +68,82 @@ class _RecyclerMainScreenState extends ConsumerState<RecyclerMainScreen> {
 // ─── Recycler Home Tab ────────────────────────────────────────────────────────
 class _RecyclerHomeTab extends ConsumerWidget {
   final VoidCallback? onBrowseMarket;
-  const _RecyclerHomeTab({this.onBrowseMarket});
+  final VoidCallback? onGoToProfile;
+  const _RecyclerHomeTab({this.onBrowseMarket, this.onGoToProfile});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final listings = ref.watch(openListingsProvider);
     final stats = ref.watch(recyclerStatsProvider);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: AppColors.surface,
+            backgroundColor: context.cSurf,
             floating: true,
             expandedHeight: 70,
             flexibleSpace: FlexibleSpaceBar(
               titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               title: Row(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _greeting(),
-                        style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w400),
-                      ),
-                      const Text(
-                        'GreenRecycle Ltd',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                      ),
-                    ],
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _greeting(),
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w400),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const Text(
+                          'GreenRecycle Ltd',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.notifications_outlined, color: AppColors.textPrimary),
+                    icon: Icon(Icons.notifications_outlined, color: context.cText),
                     onPressed: () => context.push(AppRoutes.notifications),
                   ),
-                  const CircleAvatar(
-                    radius: 18,
-                    backgroundColor: Color(0xFFD1FAE5),
-                    child: Text('GR', style: TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w700, fontSize: 12)),
+                  PopupMenuButton<String>(
+                    onSelected: (val) {
+                      if (val == 'profile') onGoToProfile?.call();
+                      if (val == 'logout') ref.read(authProvider.notifier).logout();
+                    },
+                    offset: const Offset(0, 44),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    tooltip: 'Account',
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'profile',
+                        child: Row(children: [
+                          Icon(Icons.settings_outlined, size: 18),
+                          SizedBox(width: 10),
+                          Text('Settings & Profile'),
+                        ]),
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem(
+                        value: 'logout',
+                        child: Row(children: [
+                          Icon(Icons.logout, color: Colors.red, size: 18),
+                          SizedBox(width: 10),
+                          Text('Sign Out', style: TextStyle(color: Colors.red)),
+                        ]),
+                      ),
+                    ],
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: AppColors.primaryLight,
+                      child: const Text('GR', style: TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w700, fontSize: 12)),
+                    ),
                   ),
                 ],
               ),
@@ -170,7 +207,7 @@ class _RecyclerHomeTab extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Map Preview
-                const SectionHeader(title: 'Nearby Listings', actionLabel: 'See Map'),
+                SectionHeader(title: 'Nearby Listings', actionLabel: 'See Map', onAction: onBrowseMarket),
                 const SizedBox(height: 12),
 
                 Container(
@@ -233,8 +270,9 @@ class _RecyclerHomeTab extends ConsumerWidget {
                 ...listings.take(3).map((listing) => _ActivityCard(
                   icon: Icons.business_outlined,
                   title: 'New listing from ${listing.businessName}',
-                  subtitle: '${listing.wasteType.label} ${listing.volume.toStringAsFixed(0)}${listing.unit} • ${listing.activeBidCount} bids',
+                  subtitle: '${listing.wasteType.label} ${listing.volume.toStringAsFixed(0)}${listing.unit} \u2022 ${listing.activeBidCount} bids',
                   color: AppColors.primary,
+                  onTap: onBrowseMarket,
                 )),
               ]),
             ),
@@ -367,22 +405,26 @@ class _ActivityCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final Color color;
+  final VoidCallback? onTap;
   const _ActivityCard({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.color,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.cBorder),
       ),
       child: Row(
         children: [
@@ -400,14 +442,17 @@ class _ActivityCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: context.cText)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                Text(subtitle, style: TextStyle(fontSize: 12, color: context.cTextSec)),
               ],
             ),
           ),
+          if (onTap != null)
+            Icon(Icons.chevron_right, color: context.cTextSec, size: 18),
         ],
       ),
+    ),
     ).animate().slideY(begin: 0.1, duration: 300.ms).fadeIn();
   }
 }
@@ -420,13 +465,22 @@ class _RecyclerProfileTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 200,
             pinned: true,
             automaticallyImplyLeading: false,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                onPressed: () => _showEditProfileSheet(context,
+                    name: user?.displayName ?? '',
+                    phone: user?.phone ?? '',
+                    location: 'Kicukiro, Kigali'),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
@@ -499,6 +553,16 @@ class _RecyclerProfileTab extends ConsumerWidget {
                       label: 'Notifications',
                       onTap: () => context.push(AppRoutes.notifications),
                     ),
+                    _RecyclerSettingRow(
+                      icon: Icons.language_outlined,
+                      label: 'Language',
+                      onTap: () => _showLanguageSheet(context),
+                    ),
+                    _RecyclerSettingRow(
+                      icon: Icons.lock_outline,
+                      label: 'Change Password',
+                      onTap: () => _showChangePasswordSheet(context),
+                    ),
                     Consumer(
                       builder: (context, ref, _) {
                         final isDark = ref.watch(themeProvider) == ThemeMode.dark;
@@ -540,12 +604,12 @@ class _RecyclerProfileTab extends ConsumerWidget {
                     _RecyclerSettingRow(
                       icon: Icons.privacy_tip_outlined,
                       label: 'Privacy Policy',
-                      onTap: () => context.push(AppRoutes.privacy),
+                      onTap: () => _showLegalModal(context, TermsTab.privacy),
                     ),
                     _RecyclerSettingRow(
                       icon: Icons.description_outlined,
                       label: 'Terms of Service',
-                      onTap: () => context.push(AppRoutes.terms),
+                      onTap: () => _showLegalModal(context, TermsTab.terms),
                     ),
                   ],
                 ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 160.ms).fadeIn(),
@@ -572,6 +636,89 @@ class _RecyclerProfileTab extends ConsumerWidget {
     );
   }
 
+  void _showChangePasswordSheet(BuildContext context) {
+    final currentCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Change Password',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface)),
+            const SizedBox(height: 20),
+            TextField(
+              controller: currentCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Current Password',
+                prefixIcon: Icon(Icons.lock_outline),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: newCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'New Password',
+                prefixIcon: Icon(Icons.lock_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: confirmCtrl,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Confirm New Password',
+                prefixIcon: Icon(Icons.lock_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (newCtrl.text != confirmCtrl.text) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Passwords do not match'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
+                    );
+                    return;
+                  }
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Row(children: [
+                        Icon(Icons.check_circle, color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text('Password changed successfully'),
+                      ]),
+                      backgroundColor: AppColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                child: const Text('Update Password', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _confirmSignOut(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
@@ -593,6 +740,179 @@ class _RecyclerProfileTab extends ConsumerWidget {
       ),
     );
   }
+
+  void _showEditProfileSheet(BuildContext context, {String name = '', String phone = '', String location = ''}) {
+    final nameCtrl = TextEditingController(text: name);
+    final phoneCtrl = TextEditingController(text: phone);
+    final locationCtrl = TextEditingController(text: location);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Text('Edit Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const Spacer(),
+              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+            ]),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Company Name',
+                prefixIcon: Icon(Icons.recycling_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone Number',
+                prefixIcon: Icon(Icons.phone_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: locationCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Location',
+                prefixIcon: Icon(Icons.location_on_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Row(children: [
+                      Icon(Icons.check_circle, color: Colors.white, size: 18),
+                      SizedBox(width: 8),
+                      Text('Profile updated successfully'),
+                    ]),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                },
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageSheet(BuildContext context) {
+    final languages = [
+      {'code': 'en', 'label': 'English',     'native': 'English',      'flag': '🇬🇧'},
+      {'code': 'rw', 'label': 'Kinyarwanda', 'native': 'Ikinyarwanda', 'flag': '🇷🇼'},
+      {'code': 'fr', 'label': 'French',      'native': 'Français',     'flag': '🇫🇷'},
+    ];
+    String selected = 'en';
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Select Language', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              const Text('Choose your preferred app language', style: TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 20),
+              for (final lang in languages)
+                GestureDetector(
+                  onTap: () => setModalState(() => selected = lang['code']!),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selected == lang['code'] ? AppColors.primary : Colors.grey.shade300,
+                        width: selected == lang['code'] ? 2 : 1,
+                      ),
+                      color: selected == lang['code'] ? AppColors.primaryLight : null,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(lang['flag']!, style: const TextStyle(fontSize: 24)),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(lang['label']!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                              Text(lang['native']!, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        if (selected == lang['code'])
+                          const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    final sel = languages.firstWhere((l) => l['code'] == selected);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Language set to ${sel['label'] ?? ''}'),
+                      backgroundColor: AppColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                    ));
+                  },
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                  child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static void _showLegalModal(BuildContext context, TermsTab tab) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.92,
+          child: TermsPrivacyScreen(initialTab: tab),
+        ),
+      ),
+    );
+  }
 }
 
 class _RecyclerProfileSection extends StatelessWidget {
@@ -604,9 +924,9 @@ class _RecyclerProfileSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         children: [
@@ -615,10 +935,10 @@ class _RecyclerProfileSection extends StatelessWidget {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(title,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: context.cText)),
             ),
           ),
-          const Divider(height: 1, color: AppColors.divider),
+          Divider(height: 1, color: context.cBorder),
           ...children,
         ],
       ),
@@ -638,15 +958,15 @@ class _RecyclerProfileRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textSecondary, size: 18),
+          Icon(icon, color: context.cTextSec, size: 18),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+                Text(label, style: TextStyle(fontSize: 11, color: context.cTextTer)),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.cText)),
               ],
             ),
           ),
@@ -670,12 +990,12 @@ class _RecyclerSettingRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.textSecondary, size: 20),
+            Icon(icon, color: context.cTextSec, size: 20),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.cText)),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+            Icon(Icons.chevron_right, color: context.cTextTer),
           ],
         ),
       ),

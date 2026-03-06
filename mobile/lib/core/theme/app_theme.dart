@@ -3,9 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
   // Primary Palette
-  static const Color primary = Color(0xFF10B981); // Emerald Green
-  static const Color primaryDark = Color(0xFF065F46); // Dark Green
-  static const Color primaryLight = Color(0xFFD1FAE5); // Light Green
+  static const Color primary = Color(0xFF06B6D4); // Cyan-500
+  static const Color primaryDark = Color(0xFF0E7490); // Cyan-700
+  static const Color primaryLight = Color(0xFFCFFAFE); // Cyan-100
   static const Color accent = Color(0xFFF59E0B); // Eco Yellow
   static const Color accentLight = Color(0xFFFEF3C7);
 
@@ -26,26 +26,26 @@ class AppColors {
 
   // Role Colors
   static const Color hotelColor = Color(0xFF8B5CF6);
-  static const Color recyclerColor = Color(0xFF10B981);
+  static const Color recyclerColor = Color(0xFF06B6D4);
   static const Color driverColor = Color(0xFF3B82F6);
 
   // Gradient
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF10B981), Color(0xFF065F46)],
+    colors: [Color(0xFF06B6D4), Color(0xFF0E7490)],
   );
 
   static const LinearGradient splashGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFF065F46), Color(0xFF10B981), Color(0xFF34D399)],
+    colors: [Color(0xFF0E7490), Color(0xFF06B6D4), Color(0xFF67E8F9)],
   );
 
   static const LinearGradient cardGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF10B981), Color(0xFF059669)],
+    colors: [Color(0xFF06B6D4), Color(0xFF0891B2)],
   );
 }
 

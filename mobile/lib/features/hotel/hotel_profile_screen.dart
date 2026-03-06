@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/router/app_router.dart';
 import '../shared/widgets/shared_cards.dart';
+import '../shared/terms_privacy_screen.dart';
 
 class HotelProfileScreen extends ConsumerWidget {
   const HotelProfileScreen({super.key});
@@ -15,7 +16,7 @@ class HotelProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).user;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       body: CustomScrollView(
         slivers: [
           // Profile header
@@ -67,9 +68,10 @@ class HotelProfileScreen extends ConsumerWidget {
             actions: [
               IconButton(
                 icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Edit profile — coming soon'), behavior: SnackBarBehavior.floating),
-                ),
+                onPressed: () => _showEditProfileSheet(context,
+                    name: user?.displayName ?? '',
+                    phone: user?.phone ?? '',
+                    location: 'KN 5 Rd, Kigali'),
               ),
             ],
           ),
@@ -113,16 +115,14 @@ class HotelProfileScreen extends ConsumerWidget {
                 _ProfileSection(
                   title: 'Payment Methods',
                   trailing: TextButton(
-                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Add payment method — coming soon'), behavior: SnackBarBehavior.floating),
-                    ),
+                    onPressed: () => _showAddPaymentSheet(context),
                     child: const Text('Add'),
                   ),
                   children: [
                     _PaymentMethodCard(
                       icon: '📱',
                       name: 'MTN Mobile Money',
-                      detail: '+250 788 *** 456',
+                      detail: '+250 780 162 164',
                       isDefault: true,
                     ),
                     _PaymentMethodCard(
@@ -146,9 +146,7 @@ class HotelProfileScreen extends ConsumerWidget {
                       icon: Icons.language_outlined,
                       label: 'Language',
                       trailing: const Text('English'),
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Language settings coming soon'), behavior: SnackBarBehavior.floating),
-                      ),
+                      onTap: () => _showLanguageSheet(context),
                     ),
                     Consumer(
                       builder: (context, ref, _) {
@@ -188,9 +186,9 @@ class HotelProfileScreen extends ConsumerWidget {
                     _SettingRow(icon: Icons.support_agent_outlined,  label: 'Contact Support',
                       onTap: () => context.push(AppRoutes.support)),
                     _SettingRow(icon: Icons.privacy_tip_outlined,    label: 'Privacy Policy',
-                      onTap: () => context.push(AppRoutes.privacy)),
+                      onTap: () => _showLegalModal(context, TermsTab.privacy)),
                     _SettingRow(icon: Icons.description_outlined,    label: 'Terms of Service',
-                      onTap: () => context.push(AppRoutes.terms)),
+                      onTap: () => _showLegalModal(context, TermsTab.terms)),
                   ],
                 ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 320.ms).fadeIn(),
 
@@ -226,7 +224,7 @@ class HotelProfileScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -298,6 +296,295 @@ class HotelProfileScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditProfileSheet(BuildContext context, {String name = '', String phone = '', String location = ''}) {
+    final nameCtrl = TextEditingController(text: name);
+    final phoneCtrl = TextEditingController(text: phone);
+    final locationCtrl = TextEditingController(text: location);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('Edit Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                const Spacer(),
+                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Business Name',
+                prefixIcon: Icon(Icons.business_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneCtrl,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone Number',
+                prefixIcon: Icon(Icons.phone_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: locationCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Location / Address',
+                prefixIcon: Icon(Icons.location_on_outlined),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Row(children: [
+                      Icon(Icons.check_circle, color: Colors.white, size: 18),
+                      SizedBox(width: 8),
+                      Text('Profile updated successfully'),
+                    ]),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                  ));
+                },
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddPaymentSheet(BuildContext context) {
+    String selectedType = 'momo';
+    final numCtrl = TextEditingController();
+    final nameCtrl = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text('Add Payment Method', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  const Spacer(),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  for (final t in [
+                    {'id': 'momo',   'label': 'MTN MoMo', 'icon': '📱'},
+                    {'id': 'airtel', 'label': 'Airtel',   'icon': '📲'},
+                    {'id': 'bank',   'label': 'Bank',     'icon': '🏦'},
+                  ])
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setModalState(() => selectedType = t['id']!),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.only(right: 6),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: selectedType == t['id'] ? AppColors.primary : Colors.grey.shade300,
+                              width: selectedType == t['id'] ? 2 : 1,
+                            ),
+                            color: selectedType == t['id'] ? AppColors.primaryLight : null,
+                          ),
+                          child: Column(
+                            children: [
+                              Text(t['icon']!, style: const TextStyle(fontSize: 22)),
+                              const SizedBox(height: 4),
+                              Text(t['label']!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: numCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: selectedType == 'bank' ? 'Account Number' : 'Phone Number',
+                  prefixIcon: Icon(selectedType == 'bank' ? Icons.credit_card_outlined : Icons.phone_outlined),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Account Holder Name',
+                  prefixIcon: Icon(Icons.person_outline),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (numCtrl.text.trim().isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('Please fill in all fields'),
+                        backgroundColor: AppColors.error,
+                        behavior: SnackBarBehavior.floating,
+                      ));
+                      return;
+                    }
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Row(children: [
+                        Icon(Icons.check_circle, color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Text('Payment method added'),
+                      ]),
+                      backgroundColor: AppColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                    ));
+                  },
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                  child: const Text('Add Payment Method', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showLanguageSheet(BuildContext context) {
+    final languages = [
+      {'code': 'en', 'label': 'English',     'native': 'English',       'flag': '🇬🇧'},
+      {'code': 'rw', 'label': 'Kinyarwanda', 'native': 'Ikinyarwanda',  'flag': '🇷🇼'},
+      {'code': 'fr', 'label': 'French',      'native': 'Français',      'flag': '🇫🇷'},
+    ];
+    String selected = 'en';
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) => Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Select Language', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              const Text('Choose your preferred app language', style: TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 20),
+              for (final lang in languages)
+                GestureDetector(
+                  onTap: () => setModalState(() => selected = lang['code']!),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: selected == lang['code'] ? AppColors.primary : Colors.grey.shade300,
+                        width: selected == lang['code'] ? 2 : 1,
+                      ),
+                      color: selected == lang['code'] ? AppColors.primaryLight : null,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(lang['flag']!, style: const TextStyle(fontSize: 24)),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(lang['label']!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                              Text(lang['native']!, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        if (selected == lang['code'])
+                          const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    final sel = languages.firstWhere((l) => l['code'] == selected);
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text('Language set to ${sel['label'] ?? ''}'),
+                      backgroundColor: AppColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                    ));
+                  },
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                  child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static void _showLegalModal(BuildContext context, TermsTab tab) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.92,
+          child: TermsPrivacyScreen(initialTab: tab),
         ),
       ),
     );
@@ -548,9 +835,9 @@ class _ProfileSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         children: [
@@ -560,9 +847,10 @@ class _ProfileSection extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
+                    color: context.cText,
                   ),
                 ),
                 const Spacer(),
@@ -570,7 +858,7 @@ class _ProfileSection extends StatelessWidget {
               ],
             ),
           ),
-          const Divider(height: 1, color: AppColors.divider),
+          Divider(height: 1, color: context.cBorder),
           ...children,
         ],
       ),
@@ -595,15 +883,15 @@ class _ProfileRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textSecondary, size: 18),
+          Icon(icon, color: context.cTextSec, size: 18),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+                Text(label, style: TextStyle(fontSize: 11, color: context.cTextTer)),
                 const SizedBox(height: 2),
-                Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.cText)),
               ],
             ),
           ),
@@ -671,8 +959,50 @@ class _PaymentMethodCard extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
-            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Payment options coming soon'), behavior: SnackBarBehavior.floating),
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (ctx) => SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 36, height: 4,
+                      decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+                    ),
+                    const SizedBox(height: 4),
+                    if (!isDefault)
+                      ListTile(
+                        leading: const Icon(Icons.star_outline, color: AppColors.accent),
+                        title: const Text('Set as Default'),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                            content: Text('Default payment method updated'),
+                            backgroundColor: AppColors.primary,
+                            behavior: SnackBarBehavior.floating,
+                          ));
+                        },
+                      ),
+                    ListTile(
+                      leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                      title: const Text('Remove Payment Method', style: TextStyle(color: AppColors.error)),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('Payment method removed'),
+                          backgroundColor: AppColors.error,
+                          behavior: SnackBarBehavior.floating,
+                        ));
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -697,12 +1027,12 @@ class _SettingRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.textSecondary, size: 20),
+            Icon(icon, color: context.cTextSec, size: 20),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+              child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: context.cText)),
             ),
-            trailing ?? const Icon(Icons.chevron_right, color: AppColors.textTertiary),
+            trailing ?? Icon(Icons.chevron_right, color: context.cTextTer),
           ],
         ),
       ),

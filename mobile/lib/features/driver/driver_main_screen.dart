@@ -27,7 +27,7 @@ class _DriverMainScreenState extends ConsumerState<DriverMainScreen> {
   @override
   Widget build(BuildContext context) {
     final screens = [
-      const _DriverHomeTab(),
+      _DriverHomeTab(onGoToProfile: () => setState(() => _selectedIndex = 4)),
       const NavigationScreen(),
       const CollectionScreen(),
       const EarningsScreen(),
@@ -36,15 +36,15 @@ class _DriverMainScreenState extends ConsumerState<DriverMainScreen> {
 
     return Scaffold(
       body: screens[_selectedIndex],
-      bottomNavigationBar: Container(
+      bottomNavigationBar: Builder(builder: (ctx) => Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          border: Border(top: BorderSide(color: AppColors.border)),
+          color: ctx.cSurf,
+          border: Border(top: BorderSide(color: ctx.cBorder)),
         ),
         child: NavigationBar(
           selectedIndex: _selectedIndex,
           onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-          backgroundColor: AppColors.surface,
+          backgroundColor: ctx.cSurf,
           elevation: 0,
           destinations: const [
             NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
@@ -54,14 +54,15 @@ class _DriverMainScreenState extends ConsumerState<DriverMainScreen> {
             NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
           ],
         ),
-      ),
+      )),
     );
   }
 }
 
 // ─── Driver Home Tab ──────────────────────────────────────────────────────────
 class _DriverHomeTab extends ConsumerWidget {
-  const _DriverHomeTab();
+  final VoidCallback? onGoToProfile;
+  const _DriverHomeTab({this.onGoToProfile});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -74,7 +75,7 @@ class _DriverHomeTab extends ConsumerWidget {
     final totalCount = route.stops.length;
     final nextStop = route.stops.where((s) => s.status == RouteStopStatus.pending || s.status == RouteStopStatus.collecting).firstOrNull;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
@@ -84,18 +85,24 @@ class _DriverHomeTab extends ConsumerWidget {
               // Header
               Row(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        greeting,
-                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                      ),
-                      Text(
-                        user?.displayName ?? 'Driver',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-                      ),
-                    ],
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          greeting,
+                          style: TextStyle(fontSize: 13, color: context.cTextSec),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          user?.displayName ?? 'Driver',
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: context.cText),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
                   const Spacer(),
                   // Online toggle
@@ -118,6 +125,44 @@ class _DriverHomeTab extends ConsumerWidget {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  // Profile avatar popup
+                  PopupMenuButton<String>(
+                    onSelected: (val) {
+                      if (val == 'profile') onGoToProfile?.call();
+                      if (val == 'logout') ref.read(authProvider.notifier).logout();
+                    },
+                    offset: const Offset(0, 44),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    tooltip: 'Account',
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'profile',
+                        child: Row(children: [
+                          Icon(Icons.settings_outlined, size: 18),
+                          SizedBox(width: 10),
+                          Text('Settings & Profile'),
+                        ]),
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem(
+                        value: 'logout',
+                        child: Row(children: [
+                          Icon(Icons.logout, color: Colors.red, size: 18),
+                          SizedBox(width: 10),
+                          Text('Sign Out', style: TextStyle(color: Colors.red)),
+                        ]),
+                      ),
+                    ],
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundColor: AppColors.primaryLight,
+                      child: Text(
+                        (user?.displayName ?? 'D').substring(0, 1).toUpperCase(),
+                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
                     ),
                   ),
                 ],
@@ -178,12 +223,11 @@ class _DriverHomeTab extends ConsumerWidget {
               const SizedBox(height: 12),
 
               if (route.stops.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border),
+                  Container(padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: context.cSurf,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: context.cBorder),
                   ),
                   child: Column(
                     children: route.stops.asMap().entries.map((e) {
@@ -310,7 +354,7 @@ class _NextStopCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.primary.withOpacity(0.4), width: 1.5),
       ),
@@ -462,7 +506,7 @@ class _RouteStop extends StatelessWidget {
               Container(
                 width: 2,
                 height: 32,
-                color: AppColors.border,
+                color: context.cBorder,
               ),
           ],
         ),

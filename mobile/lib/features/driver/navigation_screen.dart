@@ -208,7 +208,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
             right: 0,
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 20, offset: const Offset(0, -4))],
               ),
@@ -219,7 +219,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                   Container(
                     width: 36,
                     height: 4,
-                    decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+                    decoration: BoxDecoration(color: context.cBorder, borderRadius: BorderRadius.circular(2)),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -300,19 +300,36 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                                       decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
                                     ),
                                     ListTile(
-                                      leading: const Icon(Icons.share_location),
+                                      leading: const Icon(Icons.share_location, color: AppColors.primary),
                                       title: const Text('Share Location'),
-                                      onTap: () => Navigator.pop(context),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                          content: Row(children: [
+                                            Icon(Icons.check_circle, color: Colors.white, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('Location shared with dispatcher'),
+                                          ]),
+                                          backgroundColor: AppColors.primary,
+                                          behavior: SnackBarBehavior.floating,
+                                        ));
+                                      },
                                     ),
                                     ListTile(
                                       leading: const Icon(Icons.report_problem_outlined, color: AppColors.error),
                                       title: const Text('Report Issue'),
-                                      onTap: () => Navigator.pop(context),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        _showReportIssueDialog(context);
+                                      },
                                     ),
                                     ListTile(
-                                      leading: const Icon(Icons.skip_next),
+                                      leading: const Icon(Icons.skip_next, color: AppColors.warning),
                                       title: const Text('Skip Stop'),
-                                      onTap: () => Navigator.pop(context),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        _showSkipStopDialog(context);
+                                      },
                                     ),
                                   ],
                                 ),
@@ -331,6 +348,89 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReportIssueDialog(BuildContext context) {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(children: [
+          Icon(Icons.report_problem_outlined, color: AppColors.error, size: 22),
+          SizedBox(width: 10),
+          Text('Report Issue', style: TextStyle(fontWeight: FontWeight.w800)),
+        ]),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Describe the issue you are experiencing:', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'e.g. Road blocked, wrong address, business closed...',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Row(children: [
+                  Icon(Icons.check_circle, color: Colors.white, size: 18),
+                  SizedBox(width: 8),
+                  Text('Issue reported to dispatcher'),
+                ]),
+                backgroundColor: AppColors.primary,
+                behavior: SnackBarBehavior.floating,
+              ));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Submit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSkipStopDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Skip This Stop?', style: TextStyle(fontWeight: FontWeight.w800)),
+        content: const Text(
+          'Skipping a stop will notify the dispatcher and reschedule this collection. '  
+          'Are you sure you want to skip?',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Row(children: [
+                  Icon(Icons.info_outline, color: Colors.white, size: 18),
+                  SizedBox(width: 8),
+                  Text('Stop skipped — dispatcher notified'),
+                ]),
+                backgroundColor: AppColors.warning,
+                behavior: SnackBarBehavior.floating,
+              ));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
+            child: const Text('Yes, Skip', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
           ),
         ],
       ),

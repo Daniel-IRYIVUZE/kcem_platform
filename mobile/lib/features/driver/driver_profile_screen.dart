@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
+import '../shared/terms_privacy_screen.dart';
 
 class DriverProfileScreen extends ConsumerWidget {
   const DriverProfileScreen({super.key});
@@ -16,14 +17,14 @@ class DriverProfileScreen extends ConsumerWidget {
     final stats = ref.watch(driverStatsProvider);
     final name = user?.name ?? 'Driver';
     final rating = user?.rating ?? 4.9;
-    final phone = user?.phone ?? '+250 788 000 000';
+    final phone = user?.phone ?? '+250780162164';
     final email = user?.email ?? '';
     final vehicle = user?.vehicleType ?? 'Truck';
     final plate = user?.vehiclePlate ?? 'N/A';
     final totalJobs = stats['totalCollections'] ?? 0;
     final earnings = stats['totalEarnings'] ?? 0;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       body: CustomScrollView(
         slivers: [
           // Expanded header
@@ -53,11 +54,45 @@ class DriverProfileScreen extends ConsumerWidget {
                           Positioned(
                             bottom: 0,
                             right: 0,
-                            child: Container(
-                              width: 26,
-                              height: 26,
-                              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                              child: const Icon(Icons.camera_alt, color: AppColors.primary, size: 14),
+                            child: GestureDetector(
+                              onTap: () => showModalBottomSheet(
+                                context: context,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                                ),
+                                builder: (ctx) => SafeArea(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const SizedBox(height: 8),
+                                      Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+                                      ListTile(
+                                        leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+                                        title: const Text('Choose from Gallery'),
+                                        onTap: () {
+                                          Navigator.pop(ctx);
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gallery access coming soon'), behavior: SnackBarBehavior.floating));
+                                        },
+                                      ),
+                                      ListTile(
+                                        leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+                                        title: const Text('Take a Photo'),
+                                        onTap: () {
+                                          Navigator.pop(ctx);
+                                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Camera access coming soon'), behavior: SnackBarBehavior.floating));
+                                        },
+                                      ),
+                                      const SizedBox(height: 12),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              child: Container(
+                                width: 26,
+                                height: 26,
+                                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                                child: const Icon(Icons.camera_alt, color: AppColors.primary, size: 14),
+                              ),
                             ),
                           ),
                         ],
@@ -196,8 +231,8 @@ class DriverProfileScreen extends ConsumerWidget {
                     children: [
                       _SettingsItem(label: 'Help Center',     value: '', icon: Icons.help_outline,         onTap: () => context.push(AppRoutes.support)),
                       _SettingsItem(label: 'Contact Support', value: '', icon: Icons.headset_mic_outlined,  onTap: () => context.push(AppRoutes.support)),
-                      _SettingsItem(label: 'Privacy Policy',  value: '', icon: Icons.privacy_tip_outlined,  onTap: () => context.push(AppRoutes.privacy)),
-                      _SettingsItem(label: 'Terms of Service',value: '', icon: Icons.description_outlined,  onTap: () => context.push(AppRoutes.terms)),
+                      _SettingsItem(label: 'Privacy Policy',  value: '', icon: Icons.privacy_tip_outlined,  onTap: () => _showLegalModal(context, TermsTab.privacy)),
+                      _SettingsItem(label: 'Terms of Service',value: '', icon: Icons.description_outlined,  onTap: () => _showLegalModal(context, TermsTab.terms)),
                     ],
                   ).animate().fadeIn(delay: 350.ms),
 
@@ -221,6 +256,21 @@ class DriverProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showLegalModal(BuildContext context, TermsTab tab) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.92,
+          child: TermsPrivacyScreen(initialTab: tab),
+        ),
       ),
     );
   }
@@ -481,16 +531,16 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12)],
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 2),
-            child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.textSecondary)),
+            child: Text(title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: context.cTextSec)),
           ),
           ...children,
         ],
@@ -509,14 +559,66 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: Icon(icon, color: AppColors.primary, size: 20),
-      title: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-      subtitle: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: AppColors.textPrimary)),
+      title: Text(label, style: TextStyle(color: context.cTextSec, fontSize: 12)),
+      subtitle: Text(value, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: context.cText)),
       dense: true,
       trailing: IconButton(
-        icon: const Icon(Icons.edit, size: 16, color: AppColors.textSecondary),
-        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Edit profile coming soon'), behavior: SnackBarBehavior.floating),
-        ),
+        icon: Icon(Icons.edit, size: 16, color: context.cTextSec),
+        onPressed: () {
+          final ctrl = TextEditingController(text: value);
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            builder: (ctx) => Padding(
+              padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(children: [
+                    Text('Edit $label', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                    const Spacer(),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  ]),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: ctrl,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      labelText: label,
+                      prefixIcon: Icon(icon),
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Row(children: [
+                            const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                            const SizedBox(width: 8),
+                            Text('$label updated'),
+                          ]),
+                          backgroundColor: AppColors.primary,
+                          behavior: SnackBarBehavior.floating,
+                        ));
+                      },
+                      style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                      child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -625,15 +727,15 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cSurf,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12)],
+        border: Border.all(color: context.cBorder),
       ),
       child: Column(
         children: [
           Text(value, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary, fontSize: 15)),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
+          Text(label, style: TextStyle(color: context.cTextSec, fontSize: 10)),
         ],
       ),
     );
