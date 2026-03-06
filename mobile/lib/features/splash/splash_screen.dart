@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/router/app_router.dart';
+import '../../core/services/local_storage_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -28,8 +29,14 @@ class _SplashScreenState extends State<SplashScreen>
   void _navigateAfterDelay() async {
     await Future.delayed(const Duration(milliseconds: 3200));
     if (!mounted) return;
-    // TODO: Check auth state - for demo navigate to onboarding
-    context.go(AppRoutes.onboarding);
+    // If the router redirect hasn't already navigated (i.e. user is not logged in),
+    // go to onboarding on first launch or login on subsequent launches.
+    final hasSeenOnboarding = LocalStorageService.instance.hasSeenOnboarding;
+    if (hasSeenOnboarding) {
+      context.go(AppRoutes.login);
+    } else {
+      context.go(AppRoutes.onboarding);
+    }
   }
 
   @override

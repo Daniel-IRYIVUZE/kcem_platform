@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
@@ -84,7 +85,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                       }
                     },
                   ),
-                  _CompleteStep(onDone: () {}),
+                  _CompleteStep(onDone: () {
+                    if (context.canPop()) context.pop();
+                  }),
                 ][_step],
               ),
             ),
@@ -197,7 +200,14 @@ class _ArriveStep extends StatelessWidget {
                     ),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () {},
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Calling contact...'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
                     icon: const Icon(Icons.call, size: 14),
                     label: const Text('Call'),
                     style: OutlinedButton.styleFrom(

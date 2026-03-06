@@ -215,7 +215,33 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () {
+                  final amount = double.tryParse(ctrl.text.replaceAll(',', '')) ?? 0;
+                  Navigator.pop(context);
+                  if (amount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter a valid amount'),
+                        backgroundColor: AppColors.error,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Text('Withdrawal of RWF ${amount.toStringAsFixed(0)} requested!'),
+                        ],
+                      ),
+                      backgroundColor: AppColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
                 child: const Text('Request Withdrawal', style: TextStyle(fontWeight: FontWeight.w700)),
               ),

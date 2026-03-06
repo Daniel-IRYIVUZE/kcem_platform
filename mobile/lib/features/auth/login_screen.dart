@@ -61,7 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.cBg,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -144,45 +144,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 const SizedBox(height: 20),
 
-                // Demo quick-login chips
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _DemoChip(
-                      label: 'Hotel Demo',
-                      icon: Icons.business,
-                      color: const Color(0xFF0891B2),
-                      onTap: () => _fillDemoCredentials(
-                          'hotel@millecollines.rw', 'hotel123'),
-                    ),
-                    _DemoChip(
-                      label: 'Recycler Demo',
-                      icon: Icons.recycling,
-                      color: AppColors.primary,
-                      onTap: () => _fillDemoCredentials(
-                          'recycler@greenenergy.rw', 'recycler123'),
-                    ),
-                    _DemoChip(
-                      label: 'Driver Demo',
-                      icon: Icons.local_shipping_outlined,
-                      color: const Color(0xFFF59E0B),
-                      onTap: () => _fillDemoCredentials(
-                          'driver@ecotrade.rw', 'driver123'),
-                    ),
-                  ],
-                ).animate().fadeIn(duration: 400.ms, delay: 150.ms),
-
-                const SizedBox(height: 20),
-
                 // Login card
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: context.cSurf,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: context.cBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +185,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: () {},
+                          onPressed: () => context.push(AppRoutes.forgotPassword),
                           child: const Text('Forgot Password?'),
                         ),
                       ),
@@ -229,38 +197,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         isLoading: _isLoading,
                       ),
 
-                      const SizedBox(height: 20),
 
-                      // Divider
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: AppColors.border)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Text(
-                              'or continue with',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textTertiary,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: Divider(color: AppColors.border)),
-                        ],
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Google button
-                      OutlinedButton.icon(
-                        onPressed: () {},
-                        icon: const Text('G', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18, color: Color(0xFF4285F4))),
-                        label: const Text('Continue with Google'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.textPrimary,
-                          minimumSize: const Size(double.infinity, 52),
-                        ),
-                      ),
                     ],
                   ),
                 ).animate().slideY(begin: 0.2, duration: 400.ms, delay: 100.ms).fadeIn(),

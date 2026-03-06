@@ -55,6 +55,18 @@ class _FleetScreenState extends State<FleetScreen> {
     },
   ];
 
+  final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _vehicleCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _vehicleCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final active = _drivers.where((d) => d['status'] == 'active').length;
@@ -215,16 +227,18 @@ class _FleetScreenState extends State<FleetScreen> {
           children: [
             const Text('Add New Driver', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 20),
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
                 labelText: 'Driver Full Name',
                 prefixIcon: Icon(Icons.person_outline),
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              controller: _phoneCtrl,
+              decoration: const InputDecoration(
                 labelText: 'Phone Number',
                 prefixIcon: Icon(Icons.phone_outlined),
                 border: OutlineInputBorder(),
@@ -232,15 +246,61 @@ class _FleetScreenState extends State<FleetScreen> {
               keyboardType: TextInputType.phone,
             ),
             const SizedBox(height: 12),
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              controller: _vehicleCtrl,
+              decoration: const InputDecoration(
                 labelText: 'Vehicle Plate',
                 prefixIcon: Icon(Icons.directions_car_outlined),
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 20),
-            EcoButton(label: 'Send Invitation', onPressed: () => Navigator.pop(context)),
+            EcoButton(
+              label: 'Send Invitation',
+              onPressed: () {
+                final name = _nameCtrl.text.trim();
+                final phone = _phoneCtrl.text.trim();
+                if (name.isEmpty || phone.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please fill in name and phone'),
+                      backgroundColor: AppColors.error,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
+                setState(() {
+                  _drivers.add({
+                    'name': name,
+                    'phone': phone,
+                    'vehicle': _vehicleCtrl.text.isNotEmpty ? _vehicleCtrl.text : 'Vehicle TBD',
+                    'status': 'idle',
+                    'location': 'Kigali',
+                    'jobs': '0',
+                    'rating': '4.0',
+                    'todayJobs': '0',
+                  });
+                });
+                _nameCtrl.clear();
+                _phoneCtrl.clear();
+                _vehicleCtrl.clear();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        Text('Invitation sent to $name'),
+                      ],
+                    ),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -377,7 +437,9 @@ class _DriverCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Tracking ${driver['name']}...'), behavior: SnackBarBehavior.floating),
+                  ),
                   icon: const Icon(Icons.my_location, size: 14),
                   label: const Text('Track'),
                   style: OutlinedButton.styleFrom(minimumSize: const Size(0, 36)),
@@ -386,7 +448,9 @@ class _DriverCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Assign job to ${driver['name']}'), behavior: SnackBarBehavior.floating),
+                  ),
                   icon: const Icon(Icons.assignment_outlined, size: 14),
                   label: const Text('Assign'),
                   style: OutlinedButton.styleFrom(minimumSize: const Size(0, 36)),
@@ -394,7 +458,9 @@ class _DriverCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               OutlinedButton(
-                onPressed: () {},
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Calling ${driver['phone']}...'), behavior: SnackBarBehavior.floating),
+                ),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(36, 36),
                   padding: EdgeInsets.zero,

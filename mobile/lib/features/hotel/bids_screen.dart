@@ -119,12 +119,12 @@ class _BidsList extends StatelessWidget {
   }
 }
 
-class _BidCard extends StatelessWidget {
+class _BidCard extends ConsumerWidget {
   final Bid bid;
   const _BidCard({required this.bid});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -230,7 +230,7 @@ class _BidCard extends StatelessWidget {
                 child: EcoButton(
                   label: 'Accept',
                   height: 40,
-                  onPressed: () => _showAcceptDialog(context, bid),
+                  onPressed: () => _showAcceptDialog(context, ref, bid),
                 ),
               ),
               const SizedBox(width: 10),
@@ -240,7 +240,7 @@ class _BidCard extends StatelessWidget {
                   height: 40,
                   isOutlined: true,
                   backgroundColor: AppColors.error,
-                  onPressed: () {},
+                  onPressed: () => _showDeclineDialog(context, ref, bid),
                 ),
               ),
               const SizedBox(width: 10),
@@ -252,7 +252,14 @@ class _BidCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: IconButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Chat with ${bid.recyclerName} — coming soon'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.chat_bubble_outline, size: 18),
                   padding: EdgeInsets.zero,
                 ),
@@ -264,7 +271,35 @@ class _BidCard extends StatelessWidget {
     );
   }
 
-  void _showAcceptDialog(BuildContext context, Bid bid) {
+  void _showDeclineDialog(BuildContext context, WidgetRef ref, Bid bid) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Decline Bid?'),
+        content: Text('Decline bid from ${bid.recyclerName}? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Bid from ${bid.recyclerName} declined'),
+                  backgroundColor: AppColors.error,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Decline', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAcceptDialog(BuildContext context, WidgetRef ref, Bid bid) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -274,7 +309,17 @@ class _BidCard extends StatelessWidget {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () {
+              ref.read(listingsNotifierProvider.notifier).acceptBid(bid.listingId, bid.id);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Bid from ${bid.recyclerName} accepted!'),
+                  backgroundColor: AppColors.primary,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
             child: const Text('Accept'),
           ),
         ],

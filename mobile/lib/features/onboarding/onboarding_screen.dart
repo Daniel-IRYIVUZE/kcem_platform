@@ -4,6 +4,7 @@ import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/router/app_router.dart';
+import '../../core/services/local_storage_service.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -106,7 +107,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   else
                     const SizedBox(width: 60),
                   TextButton(
-                    onPressed: () => context.go(AppRoutes.login),
+                    onPressed: () {
+                      LocalStorageService.instance.markOnboardingSeen();
+                      context.go(AppRoutes.login);
+                    },
                     child: Text(
                       'Skip',
                       style: TextStyle(color: AppColors.textSecondary),
@@ -151,12 +155,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                   if (isLast) ...[
                     ElevatedButton(
-                      onPressed: () => context.go(AppRoutes.register),
+                      onPressed: () {
+                        LocalStorageService.instance.markOnboardingSeen();
+                        context.go(AppRoutes.register);
+                      },
                       child: const Text('Create Account'),
                     ),
                     const SizedBox(height: 12),
                     OutlinedButton(
-                      onPressed: () => context.go(AppRoutes.login),
+                      onPressed: () {
+                        LocalStorageService.instance.markOnboardingSeen();
+                        context.go(AppRoutes.login);
+                      },
                       child: const Text('I already have an account'),
                     ),
                   ] else

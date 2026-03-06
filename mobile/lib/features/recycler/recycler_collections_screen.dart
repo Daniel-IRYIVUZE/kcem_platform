@@ -29,7 +29,12 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
       appBar: AppBar(
         title: const Text('Collections Board'),
         actions: [
-          IconButton(icon: const Icon(Icons.filter_list), onPressed: () {}),
+          IconButton(
+            icon: const Icon(Icons.filter_list),
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Filter options coming soon'), behavior: SnackBarBehavior.floating),
+            ),
+          ),
         ],
       ),
       body: Column(

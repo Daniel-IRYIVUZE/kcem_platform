@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/router/app_router.dart';
 
 class NavigationScreen extends ConsumerStatefulWidget {
   const NavigationScreen({super.key});
@@ -12,63 +16,102 @@ class NavigationScreen extends ConsumerStatefulWidget {
 }
 
 class _NavigationScreenState extends ConsumerState<NavigationScreen> {
+  final _mapController = MapController();
+
+  // Approximate Kigali coords for route stops
+  static const _stopCoords = [
+    LatLng(-1.9620, 30.0580), // Stop 1
+    LatLng(-1.9506, 30.0585), // Stop 2
+    LatLng(-1.9440, 30.0670), // Stop 3
+    LatLng(-1.9360, 30.0780), // Stop 4
+  ];
+
+  // Driver current position (animated midpoint)
+  static const _driverPos = LatLng(-1.9490, 30.0620);
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final route = ref.watch(driverRouteProvider);
-    final stops = route.stops;
-    final nextIdx = stops.indexWhere((s) => s.status == RouteStopStatus.pending || s.status == RouteStopStatus.arrived || s.status == RouteStopStatus.collecting);
+    final stops = ref.watch(driverRouteProvider).stops;
+    final nextIdx = stops.indexWhere(
+        (s) => s.status == RouteStopStatus.pending || s.status == RouteStopStatus.arrived || s.status == RouteStopStatus.collecting);
     final nextStop = nextIdx >= 0 ? stops[nextIdx] : (stops.isNotEmpty ? stops.last : null);
     final completedCount = stops.where((s) => s.status == RouteStopStatus.completed).length;
     return Scaffold(
       body: Stack(
         children: [
-          // Full-screen map
+          // Real FlutterMap with OpenStreetMap tiles
           Positioned.fill(
-            child: Container(
-              color: const Color(0xFFD4EDDA),
-              child: Stack(
-                children: [
-                  // Grid lines
-                  ...List.generate(8, (i) => Positioned(
-                    left: i * 55.0,
-                    top: 0, bottom: 0,
-                    child: Container(width: 1, color: Colors.white.withOpacity(0.6)),
-                  )),
-                  ...List.generate(12, (i) => Positioned(
-                    top: i * 70.0,
-                    left: 0, right: 0,
-                    child: Container(height: 1, color: Colors.white.withOpacity(0.6)),
-                  )),
-
-                  // Route polyline simulation
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _RoutePainter(),
+            child: FlutterMap(
+              mapController: _mapController,
+              options: const MapOptions(
+                initialCenter: _driverPos,
+                initialZoom: 14.5,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.ecotrade.app',
+                  maxNativeZoom: 19,
+                ),
+                // Route polyline
+                PolylineLayer(
+                  polylines: [
+                    Polyline(
+                      points: _stopCoords.take(completedCount + 1 > _stopCoords.length ? _stopCoords.length : completedCount + 1).toList(),
+                      color: AppColors.primary,
+                      strokeWidth: 4,
                     ),
-                  ),
-
-                  // Stop markers — dynamically reflect completed count
-                  ...List.generate(stops.length > 4 ? 4 : stops.length, (i) {
-                    const positions = [
-                      (left: 0.25, top: 0.65),
-                      (left: 0.45, top: 0.48),
-                      (left: 0.65, top: 0.32),
-                      (left: 0.8, top: 0.2),
-                    ];
-                    final pos = positions[i];
-                    final isDone = i < completedCount;
-                    final isNext = i == completedCount;
-                    return _StopMarker(left: pos.left, top: pos.top, number: i + 1, done: isDone, isNext: isNext);
-                  }),
-
-                  // Animated current location
-                  Positioned(
-                    left: MediaQuery.of(context).size.width * 0.55,
-                    top: MediaQuery.of(context).size.height * 0.42,
+                    if (completedCount < _stopCoords.length - 1)
+                      Polyline(
+                        points: _stopCoords.sublist(completedCount > 0 ? completedCount : 0),
+                        color: AppColors.info,
+                        strokeWidth: 4,
+                        isDotted: true,
+                      ),
+                  ],
+                ),
+                // Driver marker
+                MarkerLayer(markers: [
+                  Marker(
+                    point: _driverPos,
+                    width: 60, height: 60,
                     child: _AnimatedDriverMarker(),
                   ),
-                ],
-              ),
+                  // Stop markers
+                  ...List.generate(_stopCoords.length < stops.length ? _stopCoords.length : stops.length, (i) {
+                    final isDone = i < completedCount;
+                    final isNext = i == completedCount;
+                    return Marker(
+                      point: _stopCoords[i],
+                      width: isNext ? 44 : 36,
+                      height: isNext ? 44 : 36,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isDone ? AppColors.primary : isNext ? Colors.white : Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: isDone ? AppColors.primary : isNext ? AppColors.primary : AppColors.border, width: isNext ? 2.5 : 1.5),
+                          boxShadow: isNext ? [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 12, spreadRadius: 3)] : null,
+                        ),
+                        child: Center(
+                          child: isDone
+                              ? const Icon(Icons.check, color: Colors.white, size: 16)
+                              : Text('${i + 1}', style: TextStyle(fontWeight: FontWeight.w700, color: isNext ? AppColors.primary : AppColors.textSecondary, fontSize: 13)),
+                        ),
+                      ),
+                    );
+                  }),
+                ]),
+                // OSM attribution
+                RichAttributionWidget(
+                  attributions: [TextSourceAttribution('OpenStreetMap contributors')],
+                ),
+              ],
             ),
           ),
 
@@ -83,7 +126,9 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: () {},
+                      onTap: () {
+                        if (context.canPop()) context.pop();
+                      },
                       child: Container(
                         width: 44,
                         height: 44,
@@ -141,17 +186,17 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
             ),
           ),
 
-          // Map controls
+          // Map controls — wire to MapController
           Positioned(
             top: 160,
             right: 16,
             child: Column(
               children: [
-                _MapButton(icon: Icons.add),
+                _MapButton(icon: Icons.add, onTap: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1)),
                 const SizedBox(height: 8),
-                _MapButton(icon: Icons.remove),
+                _MapButton(icon: Icons.remove, onTap: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1)),
                 const SizedBox(height: 8),
-                _MapButton(icon: Icons.my_location, color: AppColors.primary),
+                _MapButton(icon: Icons.my_location, color: AppColors.primary, onTap: () => _mapController.move(_driverPos, 14.5)),
               ],
             ),
           ),
@@ -229,7 +274,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () => context.push(AppRoutes.driverCollection),
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size(0, 52),
                               backgroundColor: AppColors.primary,
@@ -239,7 +284,41 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                         ),
                         const SizedBox(width: 10),
                         OutlinedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                              ),
+                              builder: (_) => SafeArea(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      width: 36, height: 4,
+                                      decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+                                    ),
+                                    ListTile(
+                                      leading: const Icon(Icons.share_location),
+                                      title: const Text('Share Location'),
+                                      onTap: () => Navigator.pop(context),
+                                    ),
+                                    ListTile(
+                                      leading: const Icon(Icons.report_problem_outlined, color: AppColors.error),
+                                      title: const Text('Report Issue'),
+                                      onTap: () => Navigator.pop(context),
+                                    ),
+                                    ListTile(
+                                      leading: const Icon(Icons.skip_next),
+                                      title: const Text('Skip Stop'),
+                                      onTap: () => Navigator.pop(context),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(52, 52),
                             padding: EdgeInsets.zero,
@@ -254,57 +333,6 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _StopMarker extends StatelessWidget {
-  final double left;
-  final double top;
-  final int number;
-  final bool done;
-  final bool isNext;
-
-  const _StopMarker({
-    required this.left,
-    required this.top,
-    required this.number,
-    required this.done,
-    this.isNext = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: MediaQuery.of(context).size.width * left,
-      top: MediaQuery.of(context).size.height * top,
-      child: Container(
-        width: isNext ? 40 : 32,
-        height: isNext ? 40 : 32,
-        decoration: BoxDecoration(
-          color: done ? AppColors.primary : isNext ? Colors.white : Colors.white,
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: done ? AppColors.primary : isNext ? AppColors.primary : AppColors.border,
-            width: isNext ? 2.5 : 1.5,
-          ),
-          boxShadow: isNext
-              ? [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 12, spreadRadius: 3)]
-              : null,
-        ),
-        child: Center(
-          child: done
-              ? const Icon(Icons.check, color: Colors.white, size: 16)
-              : Text(
-                  '$number',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: isNext ? AppColors.primary : AppColors.textSecondary,
-                    fontSize: 13,
-                  ),
-                ),
-        ),
       ),
     );
   }
@@ -366,54 +394,23 @@ class _AnimatedDriverMarkerState extends State<_AnimatedDriverMarker>
 class _MapButton extends StatelessWidget {
   final IconData icon;
   final Color? color;
-  const _MapButton({required this.icon, this.color});
+  final VoidCallback? onTap;
+  const _MapButton({required this.icon, this.color, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
+        ),
+        child: Icon(icon, size: 20, color: color ?? AppColors.textPrimary),
       ),
-      child: Icon(icon, size: 20, color: color ?? AppColors.textPrimary),
     );
   }
-}
-
-class _RoutePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = AppColors.info
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    final donePaint = Paint()
-      ..color = AppColors.primary
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final donePath = Path()
-      ..moveTo(size.width * 0.25, size.height * 0.65)
-      ..lineTo(size.width * 0.45, size.height * 0.48)
-      ..lineTo(size.width * 0.55, size.height * 0.42);
-
-    canvas.drawPath(donePath, donePaint);
-    canvas.drawPath(
-      Path()
-        ..moveTo(size.width * 0.55, size.height * 0.42)
-        ..lineTo(size.width * 0.65, size.height * 0.32)
-        ..lineTo(size.width * 0.8, size.height * 0.2),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

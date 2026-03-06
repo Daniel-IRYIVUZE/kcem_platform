@@ -130,6 +130,10 @@ class AppUser {
         rating: (m['rating'] ?? 0.0).toDouble(),
         completedRoutes: m['completedRoutes'] ?? 0,
       );
+
+  // JSON aliases
+  Map<String, dynamic> toJson() => toMap();
+  factory AppUser.fromJson(Map<String, dynamic> j) => AppUser.fromMap(j);
 }
 
 // ─── WasteListing ──────────────────────────────────────────────────────────
@@ -182,6 +186,67 @@ class WasteListing {
 
   int get activeBidCount =>
       bids.where((b) => b.status == BidStatus.active).length;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'businessId': businessId,
+        'businessName': businessName,
+        'wasteType': wasteType.name,
+        'volume': volume,
+        'unit': unit,
+        'quality': quality.name,
+        'photos': photos,
+        'minBid': minBid,
+        'reservePrice': reservePrice,
+        'auctionDuration': auctionDuration,
+        'autoAcceptAbove': autoAcceptAbove,
+        'status': status.name,
+        'bids': bids.map((b) => b.toJson()).toList(),
+        'assignedRecycler': assignedRecycler,
+        'assignedDriver': assignedDriver,
+        'collectionDate': collectionDate?.toIso8601String(),
+        'location': location,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory WasteListing.fromJson(Map<String, dynamic> j) => WasteListing(
+        id: j['id'] as String,
+        businessId: j['businessId'] as String,
+        businessName: j['businessName'] as String,
+        wasteType: WasteType.values.firstWhere(
+          (e) => e.name == j['wasteType'],
+          orElse: () => WasteType.mixed,
+        ),
+        volume: (j['volume'] as num).toDouble(),
+        unit: j['unit'] as String? ?? 'kg',
+        quality: WasteQuality.values.firstWhere(
+          (e) => e.name == j['quality'],
+          orElse: () => WasteQuality.a,
+        ),
+        photos: (j['photos'] as List?)?.map((e) => e as String).toList() ?? [],
+        minBid: (j['minBid'] as num).toDouble(),
+        reservePrice: j['reservePrice'] != null
+            ? (j['reservePrice'] as num).toDouble()
+            : null,
+        auctionDuration: j['auctionDuration'] as int? ?? 24,
+        autoAcceptAbove: j['autoAcceptAbove'] != null
+            ? (j['autoAcceptAbove'] as num).toDouble()
+            : null,
+        status: ListingStatus.values.firstWhere(
+          (e) => e.name == j['status'],
+          orElse: () => ListingStatus.open,
+        ),
+        bids: (j['bids'] as List? ?? [])
+            .map((e) => Bid.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList(),
+        assignedRecycler: j['assignedRecycler'] as String?,
+        assignedDriver: j['assignedDriver'] as String?,
+        collectionDate: j['collectionDate'] != null
+            ? DateTime.parse(j['collectionDate'] as String)
+            : null,
+        location: j['location'] as String,
+        createdAt: DateTime.parse(j['createdAt'] as String),
+      );
 }
 
 // ─── Bid ───────────────────────────────────────────────────────────────────
@@ -208,6 +273,34 @@ class Bid {
     this.status = BidStatus.active,
     required this.createdAt,
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'listingId': listingId,
+        'recyclerId': recyclerId,
+        'recyclerName': recyclerName,
+        'amount': amount,
+        'note': note,
+        'collectionPreference': collectionPreference,
+        'status': status.name,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory Bid.fromJson(Map<String, dynamic> j) => Bid(
+        id: j['id'] as String,
+        listingId: j['listingId'] as String,
+        recyclerId: j['recyclerId'] as String,
+        recyclerName: j['recyclerName'] as String,
+        amount: (j['amount'] as num).toDouble(),
+        note: j['note'] as String?,
+        collectionPreference:
+            j['collectionPreference'] as String? ?? 'flexible',
+        status: BidStatus.values.firstWhere(
+          (e) => e.name == j['status'],
+          orElse: () => BidStatus.active,
+        ),
+        createdAt: DateTime.parse(j['createdAt'] as String),
+      );
 }
 
 // ─── Collection ────────────────────────────────────────────────────────────

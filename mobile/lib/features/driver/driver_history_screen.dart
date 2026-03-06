@@ -31,7 +31,9 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.file_download_outlined),
-            onPressed: () {},
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Export report coming soon'), behavior: SnackBarBehavior.floating),
+            ),
             tooltip: 'Export report',
           ),
         ],

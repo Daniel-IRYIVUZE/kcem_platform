@@ -122,7 +122,36 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
             const SizedBox(height: 20),
             EcoButton(
               label: 'Submit Bid',
-              onPressed: () => Navigator.pop(context),
+              onPressed: () async {
+                final amount = double.tryParse(
+                        controller.text.replaceAll(',', '')) ??
+                    listing.minBid;
+                final auth = ref.read(authProvider);
+                if (auth.user != null) {
+                  await ref.read(bidsNotifierProvider.notifier).placeBid(
+                    listingId: listing.id,
+                    recyclerId: auth.user!.id,
+                    recyclerName: auth.user!.displayName,
+                    amount: amount,
+                  );
+                }
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.gavel, color: Colors.white, size: 16),
+                        SizedBox(width: 8),
+                        Text('Bid submitted successfully!'),
+                      ],
+                    ),
+                    backgroundColor: AppColors.primary,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
               icon: Icons.gavel,
             ),
           ],

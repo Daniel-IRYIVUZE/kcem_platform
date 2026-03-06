@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../models/models.dart';
 
@@ -11,6 +12,7 @@ class NotificationService {
   bool _initialized = false;
 
   Future<void> init() async {
+    if (kIsWeb) return; // flutter_local_notifications is not supported on web
     if (_initialized) return;
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -33,7 +35,7 @@ class NotificationService {
     required String body,
     NotificationType type = NotificationType.system,
   }) async {
-    if (!_initialized) return;
+    if (kIsWeb || !_initialized) return;
     final androidDetails = AndroidNotificationDetails(
       _channelId(type),
       _channelName(type),

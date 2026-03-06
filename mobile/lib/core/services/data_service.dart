@@ -403,8 +403,6 @@ class DataService {
   WasteListing? getListingById(String id) =>
       _listings.cast<WasteListing?>().firstWhere((l) => l?.id == id, orElse: () => null);
 
-  void addListing(WasteListing listing) => _listings.add(listing);
-
   // ── Collections ───────────────────────────────────────────────────────────
   List<Collection> getCollections() => List.unmodifiable(_collections);
 
@@ -500,5 +498,139 @@ class DataService {
       'todayEarnings': route.estimatedEarnings,
       'rating': 4.9,
     };
+  }
+
+  // ── Listings CRUD ─────────────────────────────────────────────────────────
+
+  void addListing(WasteListing listing) {
+    _listings.insert(0, listing);
+  }
+
+  void updateListing(WasteListing updated) {
+    final index = _listings.indexWhere((l) => l.id == updated.id);
+    if (index >= 0) _listings[index] = updated;
+  }
+
+  void deleteListing(String id) {
+    _listings.removeWhere((l) => l.id == id);
+  }
+
+  // ── Bids CRUD ─────────────────────────────────────────────────────────────
+
+  void addBid(Bid bid) {
+    final idx = _listings.indexWhere((l) => l.id == bid.listingId);
+    if (idx < 0) return;
+    final listing = _listings[idx];
+    final updatedBids = List<Bid>.from(listing.bids)..add(bid);
+    _listings[idx] = WasteListing(
+      id: listing.id,
+      businessId: listing.businessId,
+      businessName: listing.businessName,
+      wasteType: listing.wasteType,
+      volume: listing.volume,
+      unit: listing.unit,
+      quality: listing.quality,
+      photos: listing.photos,
+      minBid: listing.minBid,
+      reservePrice: listing.reservePrice,
+      auctionDuration: listing.auctionDuration,
+      autoAcceptAbove: listing.autoAcceptAbove,
+      status: listing.status,
+      bids: updatedBids,
+      assignedRecycler: listing.assignedRecycler,
+      assignedDriver: listing.assignedDriver,
+      collectionDate: listing.collectionDate,
+      location: listing.location,
+      createdAt: listing.createdAt,
+    );
+  }
+
+  void updateBid(Bid updated) {
+    final listingIdx = _listings.indexWhere((l) => l.id == updated.listingId);
+    if (listingIdx < 0) return;
+    final listing = _listings[listingIdx];
+    final updatedBids = listing.bids.map((b) => b.id == updated.id ? updated : b).toList();
+    _listings[listingIdx] = WasteListing(
+      id: listing.id,
+      businessId: listing.businessId,
+      businessName: listing.businessName,
+      wasteType: listing.wasteType,
+      volume: listing.volume,
+      unit: listing.unit,
+      quality: listing.quality,
+      photos: listing.photos,
+      minBid: listing.minBid,
+      reservePrice: listing.reservePrice,
+      auctionDuration: listing.auctionDuration,
+      autoAcceptAbove: listing.autoAcceptAbove,
+      status: listing.status,
+      bids: updatedBids,
+      assignedRecycler: listing.assignedRecycler,
+      assignedDriver: listing.assignedDriver,
+      collectionDate: listing.collectionDate,
+      location: listing.location,
+      createdAt: listing.createdAt,
+    );
+  }
+
+  void deleteBid(String listingId, String bidId) {
+    final idx = _listings.indexWhere((l) => l.id == listingId);
+    if (idx < 0) return;
+    final listing = _listings[idx];
+    final updatedBids = listing.bids.where((b) => b.id != bidId).toList();
+    _listings[idx] = WasteListing(
+      id: listing.id,
+      businessId: listing.businessId,
+      businessName: listing.businessName,
+      wasteType: listing.wasteType,
+      volume: listing.volume,
+      unit: listing.unit,
+      quality: listing.quality,
+      photos: listing.photos,
+      minBid: listing.minBid,
+      reservePrice: listing.reservePrice,
+      auctionDuration: listing.auctionDuration,
+      autoAcceptAbove: listing.autoAcceptAbove,
+      status: listing.status,
+      bids: updatedBids,
+      assignedRecycler: listing.assignedRecycler,
+      assignedDriver: listing.assignedDriver,
+      collectionDate: listing.collectionDate,
+      location: listing.location,
+      createdAt: listing.createdAt,
+    );
+  }
+
+  // ── Collections CRUD ──────────────────────────────────────────────────────
+
+  void addCollection(Collection collection) {
+    _collections.insert(0, collection);
+  }
+
+  void updateCollectionStatus(String id, CollectionStatus newStatus) {
+    final idx = _collections.indexWhere((c) => c.id == id);
+    if (idx < 0) return;
+    final c = _collections[idx];
+    _collections[idx] = Collection(
+      id: c.id,
+      listingId: c.listingId,
+      businessName: c.businessName,
+      businessAddress: c.businessAddress,
+      recyclerName: c.recyclerName,
+      driverName: c.driverName,
+      driverId: c.driverId,
+      wasteType: c.wasteType,
+      volume: c.volume,
+      status: newStatus,
+      scheduledDate: c.scheduledDate,
+      scheduledTime: c.scheduledTime,
+      completedAt: newStatus == CollectionStatus.completed ? DateTime.now() : c.completedAt,
+      proofPhotos: c.proofPhotos,
+      actualWeight: c.actualWeight,
+      rating: c.rating,
+      notes: c.notes,
+      location: c.location,
+      earnings: c.earnings,
+    );
   }
 }

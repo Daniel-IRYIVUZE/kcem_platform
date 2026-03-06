@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
+import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
 import '../shared/widgets/shared_cards.dart';
 import '../shared/widgets/offline_banner.dart';
@@ -207,7 +209,7 @@ class _DriverHomeTab extends ConsumerWidget {
 
               // Start route button
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () => context.push(AppRoutes.driverNavigation),
                 icon: const Icon(Icons.navigation, size: 20),
                 label: const Text('Start Navigation'),
                 style: ElevatedButton.styleFrom(
@@ -336,10 +338,12 @@ class _NextStopCard extends StatelessWidget {
               const Spacer(),
               const Icon(Icons.location_on, color: AppColors.primary, size: 16),
               const SizedBox(width: 4),
-              Text(
-                stop.location,
-                style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13),
-                overflow: TextOverflow.ellipsis,
+              Expanded(
+                child: Text(
+                  stop.location,
+                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -362,7 +366,7 @@ class _NextStopCard extends StatelessWidget {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {},
+                  onPressed: () => context.push(AppRoutes.driverNavigation),
                   icon: const Icon(Icons.navigation, size: 16),
                   label: const Text('Navigate'),
                   style: ElevatedButton.styleFrom(minimumSize: const Size(0, 42)),
@@ -370,7 +374,9 @@ class _NextStopCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               OutlinedButton.icon(
-                onPressed: () {},
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Calling customer...'), behavior: SnackBarBehavior.floating),
+                ),
                 icon: const Icon(Icons.call, size: 16),
                 label: const Text('Call'),
                 style: OutlinedButton.styleFrom(minimumSize: const Size(0, 42)),

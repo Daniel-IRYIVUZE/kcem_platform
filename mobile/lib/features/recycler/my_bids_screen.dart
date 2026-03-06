@@ -65,13 +65,13 @@ class _MyBidsScreenState extends ConsumerState<MyBidsScreen>
   }
 }
 
-class _BidListView extends StatelessWidget {
+class _BidListView extends ConsumerWidget {
   final List<Bid> bids;
   final BidStatus type;
   const _BidListView({required this.bids, required this.type});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (bids.isEmpty) {
       return Center(
         child: Column(
@@ -148,7 +148,7 @@ class _BidListView extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () => _confirmWithdraw(context, ref, bid),
                         style: OutlinedButton.styleFrom(minimumSize: const Size(0, 38), foregroundColor: AppColors.error, side: const BorderSide(color: AppColors.error)),
                         child: const Text('Withdraw'),
                       ),
@@ -156,7 +156,7 @@ class _BidListView extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () {},
+                        onPressed: () => _showReviseBid(context, ref, bid),
                         style: OutlinedButton.styleFrom(minimumSize: const Size(0, 38)),
                         child: const Text('Revise Bid'),
                       ),
@@ -168,6 +168,101 @@ class _BidListView extends StatelessWidget {
           ),
         ).animate().slideY(begin: 0.15, duration: 300.ms, delay: (index * 60).ms).fadeIn();
       },
+    );
+  }
+
+  void _confirmWithdraw(BuildContext context, WidgetRef ref, Bid bid) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Withdraw Bid?', style: TextStyle(fontWeight: FontWeight.w800)),
+        content: Text('Withdraw your bid of RWF ${bid.amount.toStringAsFixed(0)}? This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ref.read(bidsNotifierProvider.notifier).withdrawBid(bid.id);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Bid withdrawn'),
+                    backgroundColor: AppColors.error,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Withdraw', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showReviseBid(BuildContext context, WidgetRef ref, Bid bid) {
+    final ctrl = TextEditingController(text: bid.amount.toStringAsFixed(0));
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Revise Bid', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 4),
+            const Text('Enter your new bid amount', style: TextStyle(color: AppColors.textSecondary)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: ctrl,
+              keyboardType: TextInputType.number,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+              decoration: InputDecoration(
+                prefixText: 'RWF ',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Row(
+                          children: [
+                            Icon(Icons.gavel, color: Colors.white, size: 16),
+                            SizedBox(width: 8),
+                            Text('Bid revised successfully!'),
+                          ],
+                        ),
+                        backgroundColor: AppColors.primary,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                child: const Text('Submit Revised Bid', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

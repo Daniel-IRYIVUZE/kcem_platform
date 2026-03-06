@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
 
 class DriverProfileScreen extends ConsumerWidget {
@@ -108,6 +111,14 @@ class DriverProfileScreen extends ConsumerWidget {
 
                   const SizedBox(height: 20),
 
+                  // Driver QR Identity Card
+                  _DriverQrSection(
+                    userId: user?.id ?? 'driver-001',
+                    displayName: name,
+                  ).animate().fadeIn(delay: 130.ms),
+
+                  const SizedBox(height: 20),
+
                   // Personal Info
                   _Section(
                     title: 'Personal Information',
@@ -154,6 +165,24 @@ class DriverProfileScreen extends ConsumerWidget {
                       _SettingsToggle(label: 'Push Notifications', icon: Icons.notifications_outlined, enabled: true),
                       _SettingsToggle(label: 'Job Nearby Alerts', icon: Icons.pin_drop_outlined, enabled: true),
                       _SettingsToggle(label: 'Earnings Updates', icon: Icons.payments_outlined, enabled: false),
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final isDark = ref.watch(themeProvider) == ThemeMode.dark;
+                          return SwitchListTile(
+                            secondary: Icon(
+                              isDark ? Icons.dark_mode : Icons.light_mode,
+                              color: AppColors.primary,
+                              size: 20,
+                            ),
+                            title: const Text('Dark Mode',
+                                style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
+                            value: isDark,
+                            onChanged: (v) => ref.read(themeProvider.notifier).setDark(v),
+                            activeColor: AppColors.primary,
+                            dense: true,
+                          );
+                        },
+                      ),
                       _SettingsItem(label: 'Language', value: 'English', icon: Icons.language),
                       _SettingsItem(label: 'App Version', value: '1.0.0', icon: Icons.info_outline),
                     ],
@@ -165,10 +194,10 @@ class DriverProfileScreen extends ConsumerWidget {
                   _Section(
                     title: 'Support',
                     children: [
-                      _SettingsItem(label: 'Help Center', value: '', icon: Icons.help_outline, onTap: () {}),
-                      _SettingsItem(label: 'Contact Support', value: '', icon: Icons.headset_mic_outlined, onTap: () {}),
-                      _SettingsItem(label: 'Privacy Policy', value: '', icon: Icons.privacy_tip_outlined, onTap: () {}),
-                      _SettingsItem(label: 'Terms of Service', value: '', icon: Icons.description_outlined, onTap: () {}),
+                      _SettingsItem(label: 'Help Center',     value: '', icon: Icons.help_outline,         onTap: () => context.push(AppRoutes.support)),
+                      _SettingsItem(label: 'Contact Support', value: '', icon: Icons.headset_mic_outlined,  onTap: () => context.push(AppRoutes.support)),
+                      _SettingsItem(label: 'Privacy Policy',  value: '', icon: Icons.privacy_tip_outlined,  onTap: () => context.push(AppRoutes.privacy)),
+                      _SettingsItem(label: 'Terms of Service',value: '', icon: Icons.description_outlined,  onTap: () => context.push(AppRoutes.terms)),
                     ],
                   ).animate().fadeIn(delay: 350.ms),
 
@@ -226,6 +255,223 @@ class DriverProfileScreen extends ConsumerWidget {
   }
 }
 
+// ─────────────────────────────────────────────
+// Driver QR Section
+// ─────────────────────────────────────────────
+class _DriverQrSection extends StatelessWidget {
+  final String userId;
+  final String displayName;
+  const _DriverQrSection({required this.userId, required this.displayName});
+
+  void _showQrDialog(BuildContext context) {
+    final qrData = 'https://ecotrade.rw/driver/$userId';
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Driver QR Code',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(displayName, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
+                ),
+                child: QrImageView(
+                  data: qrData,
+                  version: QrVersions.auto,
+                  size: 200,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(qrData, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, size: 16),
+                    label: const Text('Close'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('QR code shared!'), behavior: SnackBarBehavior.floating),
+                      );
+                    },
+                    icon: const Icon(Icons.share_outlined, size: 16),
+                    label: const Text('Share'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final qrData = 'https://ecotrade.rw/driver/$userId';
+    return Container(
+      decoration: BoxDecoration(
+        color: context.cSurf,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.cBorder),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.qr_code_2, size: 20, color: AppColors.primary),
+              ),
+              const SizedBox(width: 12),
+              Text('Driver QR Code',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: context.cText,
+                  )),
+              const Spacer(),
+              TextButton(
+                onPressed: () => _showQrDialog(context),
+                child: const Text('Expand'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: context.cBorder),
+                ),
+                child: QrImageView(
+                  data: qrData,
+                  version: QrVersions.auto,
+                  size: 80,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(displayName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: context.cText,
+                          fontSize: 14,
+                        )),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text('Driver',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Scan to verify driver identity',
+                        style: TextStyle(fontSize: 12, color: context.cTextSec)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        _DrvQrButton(
+                          icon: Icons.share_outlined,
+                          label: 'Share',
+                          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('QR code shared!'), behavior: SnackBarBehavior.floating),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _DrvQrButton(
+                          icon: Icons.download_outlined,
+                          label: 'Save',
+                          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('QR code saved!'), behavior: SnackBarBehavior.floating),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DrvQrButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _DrvQrButton({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          border: Border.all(color: context.cBorder),
+          borderRadius: BorderRadius.circular(8),
+          color: context.cSurfAlt,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: context.cTextSec),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 12, color: context.cTextSec)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
 class _Section extends StatelessWidget {
   final String title;
   final List<Widget> children;
@@ -268,7 +514,9 @@ class _InfoRow extends StatelessWidget {
       dense: true,
       trailing: IconButton(
         icon: const Icon(Icons.edit, size: 16, color: AppColors.textSecondary),
-        onPressed: () {},
+        onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Edit profile coming soon'), behavior: SnackBarBehavior.floating),
+        ),
       ),
     );
   }

@@ -8,6 +8,7 @@ import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/auth/verify_otp_screen.dart';
+import '../../features/auth/forgot_password_screen.dart';
 import '../../features/hotel/hotel_main_screen.dart';
 import '../../features/recycler/recycler_main_screen.dart';
 import '../../features/driver/driver_main_screen.dart';
@@ -24,6 +25,9 @@ import '../../features/driver/collection_screen.dart';
 import '../../features/driver/earnings_screen.dart';
 import '../../features/driver/driver_history_screen.dart';
 import '../../features/driver/driver_profile_screen.dart';
+import '../../features/shared/terms_privacy_screen.dart';
+import '../../features/shared/notifications_screen.dart';
+import '../../features/shared/support_screen.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -31,6 +35,11 @@ class AppRoutes {
   static const String login = '/login';
   static const String register = '/register';
   static const String verifyOtp = '/verify-otp';
+  static const String forgotPassword = '/forgot-password';
+  static const String terms = '/terms';
+  static const String privacy = '/privacy';
+  static const String notifications = '/notifications';
+  static const String support = '/support';
 
   // Hotel routes
   static const String hotelHome = '/hotel';
@@ -82,17 +91,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final loggedIn = auth.isLoggedIn;
       final loc = state.matchedLocation;
       final publicPaths = [
-        AppRoutes.splash,
-        AppRoutes.onboarding,
         AppRoutes.login,
         AppRoutes.register,
         AppRoutes.verifyOtp,
+        AppRoutes.forgotPassword,
+        AppRoutes.terms,
+        AppRoutes.privacy,
       ];
       final isPublic = publicPaths.contains(loc);
-      if (!loggedIn && !isPublic) return AppRoutes.login;
-      if (loggedIn && (loc == AppRoutes.login || loc == AppRoutes.register)) {
-        return AppRoutes.homeForRole(auth.role!);
+
+      // Logged-in users: redirect away from splash, onboarding, and auth screens
+      if (loggedIn) {
+        if (loc == AppRoutes.splash ||
+            loc == AppRoutes.onboarding ||
+            isPublic) {
+          return AppRoutes.homeForRole(auth.role!);
+        }
+        return null;
       }
+
+      // Not logged-in: allow splash and onboarding freely; everything else → login
+      if (loc == AppRoutes.splash || loc == AppRoutes.onboarding) return null;
+      if (!isPublic) return AppRoutes.login;
       return null;
     },
     routes: [
@@ -115,6 +135,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.verifyOtp,
         builder: (context, state) => const VerifyOtpScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.terms,
+        builder: (context, state) => const TermsPrivacyScreen(initialTab: TermsTab.terms),
+      ),
+      GoRoute(
+        path: AppRoutes.privacy,
+        builder: (context, state) => const TermsPrivacyScreen(initialTab: TermsTab.privacy),
+      ),
+      GoRoute(
+        path: AppRoutes.notifications,
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.support,
+        builder: (context, state) => const SupportScreen(),
       ),
 
       // ── Business/Hotel Shell ────────────────────────────────────────────

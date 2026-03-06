@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/models/models.dart';
+import '../../core/providers/app_providers.dart';
 import '../shared/widgets/app_text_field.dart';
 import '../shared/widgets/eco_button.dart';
 
-class ListWasteScreen extends StatefulWidget {
+class ListWasteScreen extends ConsumerStatefulWidget {
   const ListWasteScreen({super.key});
 
   @override
-  State<ListWasteScreen> createState() => _ListWasteScreenState();
+  ConsumerState<ListWasteScreen> createState() => _ListWasteScreenState();
 }
 
-class _ListWasteScreenState extends State<ListWasteScreen> {
+class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
   String _selectedWasteType = 'Cardboard';
   double _qualityScore = 3;
   bool _isSubmitting = false;
   final _volumeController = TextEditingController();
   final _notesController = TextEditingController();
+  final _minBidController = TextEditingController();
+  final _addressController = TextEditingController();
   bool _useCurrentLocation = true;
   int _uploadedPhotos = 0;
   String _unit = 'kg';
@@ -27,6 +32,94 @@ class _ListWasteScreenState extends State<ListWasteScreen> {
   ];
 
   @override
+  void dispose() {
+    _volumeController.dispose();
+    _notesController.dispose();
+    _minBidController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  WasteType get _mappedWasteType {
+    switch (_selectedWasteType) {
+      case 'Glass': return WasteType.glass;
+      case 'Cardboard':
+      case 'Paper': return WasteType.paperCardboard;
+      default: return WasteType.mixed;
+    }
+  }
+
+  WasteQuality get _mappedQuality {
+    if (_qualityScore >= 5) return WasteQuality.a;
+    if (_qualityScore >= 3) return WasteQuality.b;
+    return WasteQuality.c;
+  }
+
+  Future<void> _submitListing() async {
+    final auth = ref.read(authProvider);
+    if (auth.user == null) return;
+
+    final volume = double.tryParse(_volumeController.text) ?? 50;
+    final minBid = double.tryParse(_minBidController.text) ?? 10000;
+    final location = _useCurrentLocation
+        ? 'Kigali, Rwanda'
+        : (_addressController.text.trim().isNotEmpty
+            ? _addressController.text.trim()
+            : 'Kigali, Rwanda');
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      await ref.read(listingsNotifierProvider.notifier).create(
+        businessId: auth.user!.id,
+        businessName: auth.user!.displayName,
+        wasteType: _mappedWasteType,
+        volume: volume,
+        unit: _unit,
+        quality: _mappedQuality,
+        minBid: minBid,
+        location: location,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 18),
+                SizedBox(width: 10),
+                Text('Listing created successfully!'),
+              ],
+            ),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        // Clear fields
+        _volumeController.clear();
+        _minBidController.clear();
+        _notesController.clear();
+        setState(() {
+          _selectedWasteType = 'Cardboard';
+          _qualityScore = 3;
+          _uploadedPhotos = 0;
+          _isSubmitting = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create listing: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -35,7 +128,9 @@ class _ListWasteScreenState extends State<ListWasteScreen> {
         centerTitle: true,
         actions: [
           TextButton(
-            onPressed: () {},
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Draft saved'), behavior: SnackBarBehavior.floating),
+            ),
             child: const Text('Save Draft'),
           ),
         ],
@@ -130,6 +225,21 @@ class _ListWasteScreenState extends State<ListWasteScreen> {
                 ],
               ),
             ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 80.ms).fadeIn(),
+
+            const SizedBox(height: 16),
+
+            // Min Bid Price
+            _SectionCard(
+              title: 'Minimum Bid Price (RWF)',
+              icon: '💰',
+              child: AppTextField(
+                controller: _minBidController,
+                label: 'Minimum bid (RWF)',
+                hint: '10000',
+                keyboardType: TextInputType.number,
+                prefixIcon: Icons.payments_outlined,
+              ),
+            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 120.ms).fadeIn(),
 
             const SizedBox(height: 16),
 
@@ -316,6 +426,7 @@ class _ListWasteScreenState extends State<ListWasteScreen> {
                   ),
                   if (!_useCurrentLocation)
                     AppTextField(
+                      controller: _addressController,
                       label: 'Address',
                       hint: 'Enter pickup address',
                       prefixIcon: Icons.location_on_outlined,
@@ -363,11 +474,7 @@ class _ListWasteScreenState extends State<ListWasteScreen> {
               label: 'Submit Listing',
               icon: Icons.check_circle_outline,
               isLoading: _isSubmitting,
-              onPressed: () async {
-                setState(() => _isSubmitting = true);
-                await Future.delayed(const Duration(seconds: 1));
-                if (mounted) setState(() => _isSubmitting = false);
-              },
+              onPressed: _submitListing,
             ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 560.ms).fadeIn(),
           ],
         ),

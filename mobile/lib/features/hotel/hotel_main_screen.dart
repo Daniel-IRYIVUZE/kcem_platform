@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/models/models.dart';
+import '../../core/router/app_router.dart';
 import '../shared/widgets/shared_cards.dart';
 import '../shared/widgets/offline_banner.dart';
 import 'list_waste_screen.dart';
@@ -133,7 +135,7 @@ class _HotelHomeTab extends ConsumerWidget {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.notifications_outlined, color: AppColors.textPrimary),
-                        onPressed: () {},
+                        onPressed: () => context.push(AppRoutes.notifications),
                       ),
                       if (unread > 0)
                         Positioned(

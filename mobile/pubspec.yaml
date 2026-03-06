@@ -52,6 +52,7 @@ dependencies:
   percent_indicator: ^4.2.3
   fl_chart: ^0.67.0
   timeline_tile: ^2.0.0
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
