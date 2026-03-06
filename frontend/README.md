@@ -49,8 +49,8 @@ npm --version
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/Daniel-IRYIVUZE/kcem_platform.git
-cd kcem_platform/frontend
+git clone https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git
+cd EcoTrade_Rwanda/frontend
 ```
 
 2. Install project dependencies:

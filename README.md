@@ -8,7 +8,7 @@ The platform consists of three codebases:
 - Mobile Application — a Flutter app for Android, iOS, and Windows
 - Backend API — a FastAPI REST API server (currently in development)
 
-GitHub: https://github.com/Daniel-IRYIVUZE/kcem_platform.git
+GitHub: https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git
 Live Demo: https://ecotrade-rwanda.netlify.app
 
 ---
@@ -46,7 +46,7 @@ The platform tracks environmental impact metrics including CO2 savings, water sa
 ## Repository Structure
 
 ```
-kcem_platform/
+EcoTrade_Rwanda/
 ├── README.md              # This file — combined platform overview
 ├── LICENSE
 ├── frontend/              # React + TypeScript web application
@@ -321,7 +321,7 @@ gunicorn app.main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 - Email: contact@ecotrade.rw
 - Phone: +250 780 162 164
 - Website: https://ecotrade-rwanda.netlify.app
-- GitHub: https://github.com/Daniel-IRYIVUZE/kcem_platform.git
+- GitHub: https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git
 
 ---
 

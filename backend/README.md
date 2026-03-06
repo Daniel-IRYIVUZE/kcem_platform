@@ -48,8 +48,8 @@ pip --version
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/Daniel-IRYIVUZE/kcem_platform.git
-cd kcem_platform/backend
+git clone https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git
+cd EcoTrade_Rwanda/backend
 ```
 
 2. Create a Python virtual environment:

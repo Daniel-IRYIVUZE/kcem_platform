@@ -50,8 +50,8 @@ Run `flutter doctor` and resolve any issues reported before continuing.
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/Daniel-IRYIVUZE/kcem_platform.git
-cd kcem_platform/mobile
+git clone https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git
+cd EcoTrade_Rwanda/mobile
 ```
 
 2. Install Flutter dependencies:
