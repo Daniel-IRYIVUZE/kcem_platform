@@ -16,44 +16,44 @@ const metrics = [
   {
     icon: Recycle,
     label: 'Waste Diverted',
-    value: 1500,
+    value: 16098,
     suffix: ' kg',
     color: 'bg-cyan-600'
   },
   {
     icon: TreePine,
     label: 'CO₂ Emissions Saved',
-    value: 750,
+    value: 24147,
     suffix: ' kg',
     color: 'bg-cyan-600'
   },
   {
     icon: Droplets,
     label: 'Water Saved',
-    value: 3500,
+    value: 80490,
     suffix: ' L',
     color: 'bg-blue-600'
   },
   {
     icon: Factory,
     label: 'Partner Recyclers',
-    value: 2,
+    value: 13,
     suffix: '',
-    color: 'from-purple-500 to-indigo-500'
+    color: 'bg-purple-500'
   },
   {
     icon: Users,
     label: 'Hotels Engaged',
-    value: 5,
+    value: 13,
     suffix: '',
     color: 'bg-yellow-700'
   },
   {
     icon: TrendingUp,
     label: 'Revenue Generated',
-    value: 650000,
+    value: 125073408,
     suffix: ' RWF',
-    format: (val: number) => (val / 1000).toFixed(0) + 'K',
+    format: (val: number) => (val / 1000000).toFixed(0) + 'M',
     color: 'bg-amber-500'
   }
 ];

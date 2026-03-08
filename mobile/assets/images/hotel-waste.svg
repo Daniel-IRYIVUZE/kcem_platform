@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#f0fdfa"/>
+  <g transform="translate(50, 50)">
+    <!-- Building -->
+    <rect x="80" y="40" width="120" height="100" fill="#e0e7ff" stroke="#4f46e5" stroke-width="2"/>
+    <!-- Windows -->
+    <rect x="90" y="50" width="15" height="15" fill="#fbbf24"/>
+    <rect x="115" y="50" width="15" height="15" fill="#fbbf24"/>
+    <rect x="140" y="50" width="15" height="15" fill="#fbbf24"/>
+    <rect x="165" y="50" width="15" height="15" fill="#fbbf24"/>
+    <rect x="90" y="75" width="15" height="15" fill="#fbbf24"/>
+    <rect x="115" y="75" width="15" height="15" fill="#fbbf24"/>
+    <rect x="140" y="75" width="15" height="15" fill="#fbbf24"/>
+    <rect x="165" y="75" width="15" height="15" fill="#fbbf24"/>
+    <rect x="90" y="100" width="15" height="15" fill="#fbbf24"/>
+    <rect x="115" y="100" width="15" height="15" fill="#fbbf24"/>
+    <rect x="140" y="100" width="15" height="15" fill="#fbbf24"/>
+    <rect x="165" y="100" width="15" height="15" fill="#fbbf24"/>
+    <!-- Door -->
+    <rect x="125" y="125" width="20" height="15" fill="#78350f"/>
+    <!-- Recycle bins -->
+    <rect x="10" y="120" width="20" height="20" fill="#10b981"/>
+    <rect x="35" y="120" width="20" height="20" fill="#fbbf24"/>
+    <rect x="60" y="120" width="20" height="20" fill="#3b82f6"/>
+  </g>
+</svg>

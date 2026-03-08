@@ -1,26 +1,26 @@
 // components/dashboard/business/_shared.tsx
-import { getAll } from '../../../utils/dataStore';
-import type { WasteListing, PlatformUser } from '../../../utils/dataStore';
+// Data is fetched from the backend API, not from mock data
 
-export const getHotelProfile = () => {
-  const all = getAll<WasteListing>('listings');
-  const users = getAll<PlatformUser>('users');
-  const hotel = users.find(u => u.role === 'business') || ({ name: 'Hotel Mille Collines', location: 'KG 2 Ave, Kigali', greenScore: 92 } as any);
-  return { name: hotel.name, location: hotel.location || 'Nyarugenge, Kigali', totalListings: all.length, activeListings: all.filter(l => l.status === 'open').length, totalRevenue: 342000, monthlyRevenue: 57000, greenScore: hotel.greenScore || 78, memberSince: hotel.joinDate || '2025-08-29', collectionsCompleted: 2, pendingCollections: all.filter(l => l.status === 'assigned').length };
+// DEPRECATED: These are placeholders to maintain backward compatibility
+// Use backend API hooks to fetch real data
+export const hotelProfile = {
+  name: 'Hotel',
+  location: 'Kigali',
+  totalListings: 0,
+  activeListings: 0,
+  totalRevenue: 0,
+  monthlyRevenue: 0,
+  greenScore: 0,
+  memberSince: new Date().toISOString(),
+  collectionsCompleted: 0,
+  pendingCollections: 0,
 };
-export const hotelProfile = getHotelProfile();
 
-export const revenueTrend = {
-  labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-  datasets: [{ data: [35000, 40000, 45000, 50000, 55000, 60000, 65000], borderColor: '#0891b2', backgroundColor: '#0891b2' }],
-};
-
-export const wasteBreakdown = {
-  labels: ['UCO', 'Glass', 'Paper/Cardboard', 'Organic Waste'],
-  datasets: [{ data: [40, 25, 20, 15] }],
-};
+export const revenueTrend = { labels: [], datasets: [] };
+export const wasteBreakdown = { labels: [], datasets: [] };
 
 export const StatusBadge = ({ status }: { status: string }) => {
+
   const styles: Record<string, string> = {
     active: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200', completed: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200', confirmed: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200',
     pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300', scheduled: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200',

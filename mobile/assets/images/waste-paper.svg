@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="95" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <!-- Stack of papers -->
+  <g transform="translate(50, 60)">
+    <!-- Bottom sheet -->
+    <rect x="0" y="30" width="60" height="50" fill="#92400e" stroke="#78350f" stroke-width="1"/>
+    <!-- Middle sheets -->
+    <rect x="5" y="22" width="60" height="50" fill="#b45309" stroke="#92400e" stroke-width="1"/>
+    <!-- Top sheets -->
+    <rect x="10" y="14" width="60" height="50" fill="#d97706" stroke="#b45309" stroke-width="1"/>
+    <!-- Top sheet -->
+    <rect x="15" y="6" width="60" height="50" fill="#f59e0b" stroke="#d97706" stroke-width="1.5"/>
+    <!-- Crease line -->
+    <line x1="45" y1="6" x2="45" y2="56" stroke="#dc2626" stroke-width="1" opacity="0.5"/>
+  </g>
+</svg>

@@ -1,8 +1,7 @@
 // pages/dashboard/admin/OverviewSection.tsx
 import { Users, Package, DollarSign, Activity, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getAll } from '../../../utils/dataStore';
-import type { PlatformUser, WasteListing, Transaction } from '../../../utils/dataStore';
+import { usersAPI, listingsAPI, transactionsAPI } from '../../../services/api';
 
 const AdminOverviewSection = () => {
   const [stats, setStats] = useState({
@@ -14,25 +13,25 @@ const AdminOverviewSection = () => {
   });
 
   useEffect(() => {
-    const users = getAll<PlatformUser>('users');
-    const listings = getAll<WasteListing>('listings');
-    const transactions = getAll<Transaction>('transactions');
-    
-    const today = new Date().toDateString();
-    const todayListings = listings.filter(l => 
-      new Date(l.createdAt).toDateString() === today
-    ).length;
-
-    const completedTransactions = transactions.filter(t => t.status === 'completed');
-    const totalRevenue = completedTransactions.reduce((sum, t) => sum + t.amount, 0);
-    const disputes = transactions.filter(t => t.status === 'disputed').length;
-
-    setStats({
-      totalRevenue,
-      activeUsers: users.filter(u => u.status === 'active').length,
-      listingsToday: todayListings,
-      pendingDisputes: disputes,
-      systemHealth: 99.2
+    Promise.all([
+      usersAPI.list({ limit: 500 }).catch(() => []),
+      listingsAPI.list({ limit: 500 }).catch(() => []),
+      transactionsAPI.list({ limit: 500 }).catch(() => []),
+    ]).then(([users, listings, transactions]) => {
+      const today = new Date().toDateString();
+      const todayListings = listings.filter(l =>
+        new Date(l.created_at).toDateString() === today
+      ).length;
+      const completedTransactions = transactions.filter(t => t.status === 'completed');
+      const totalRevenue = completedTransactions.reduce((sum, t) => sum + (t.amount || 0), 0);
+      const disputes = transactions.filter(t => t.status === 'disputed').length;
+      setStats({
+        totalRevenue,
+        activeUsers: users.filter(u => u.status === 'active').length,
+        listingsToday: todayListings,
+        pendingDisputes: disputes,
+        systemHealth: 99.2,
+      });
     });
   }, []);
 

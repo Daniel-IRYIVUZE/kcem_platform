@@ -7,7 +7,7 @@ const testimonials = [
     id: 1,
     name: 'Jean Pierre',
     role: 'Operations Manager',
-    company: 'Mille Collines Business',
+    company: 'Hotel des Mille Collines',
     type: 'business',
     content: 'EcoTrade transformed our waste management. We went from paying RWF 50,000 monthly to earning RWF 30,000. The platform is incredibly easy to use.',
     rating: 5,
@@ -21,7 +21,7 @@ const testimonials = [
     id: 2,
     name: 'Agathe Uwase',
     role: 'Sustainability Director',
-    company: 'Marriott Business',
+    company: 'Kigali Marriott Hotel',
     type: 'business',
     content: 'The real-time tracking and instant payments have revolutionized how we handle our recycling program. Our Green Score improved by 40%.',
     rating: 5,
@@ -35,7 +35,7 @@ const testimonials = [
     id: 3,
     name: 'Mucyo Kagame',
     role: 'General Manager',
-    company: 'Serena Business',
+    company: 'Kigali Serena Hotel',
     type: 'business',
     content: 'Our Green Score improved dramatically, and we now have verifiable data for our sustainability reports. Highly recommended.',
     rating: 5,
@@ -49,14 +49,14 @@ const testimonials = [
     id: 4,
     name: 'Marie Claire',
     role: 'Operations Lead',
-    company: 'GreenEnergy Recyclers',
+    company: 'Certified EcoTrade Recycler',
     type: 'recycler',
     content: 'The supply pipeline dashboard gives us real-time visibility into available materials. Route optimization saved us 40% on fuel costs.',
     rating: 5,
     image: '/images/default-avatar.svg',
     metrics: {
       savings: '40% fuel',
-      volume: '1247T/month'
+      volume: '0.1T/month'
     }
   },
   {

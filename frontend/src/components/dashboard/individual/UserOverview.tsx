@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAll } from '../../../utils/dataStore';
-import type { WasteListing, PlatformUser, RecyclingEvent } from '../../../utils/dataStore';
+import { listingsAPI, usersAPI, type WasteListing } from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import { ShoppingCart, Package, TrendingUp, BarChart3, Recycle, Leaf, Trophy } from 'lucide-react';
 import StatCard from '../StatCard';
 import Widget from '../Widget';
@@ -10,27 +10,24 @@ import { userProfile, recyclingHistory, userOrders, impactTrend, wasteByType, St
 
 export default function UserOverview() {
   const navigate = useNavigate();
+  const { user: authUser } = useAuth();
   const [liveListings, setLiveListings] = useState<WasteListing[]>([]);
-  const [liveUser, setLiveUser] = useState<PlatformUser | null>(null);
-  const [totalRecycled, setTotalRecycled] = useState(userProfile.totalRecycled);
+  const totalRecycled = userProfile.totalRecycled;
 
   const load = useCallback(() => {
-    setLiveListings(getAll<WasteListing>('listings').filter(l => l.status === 'open').slice(0, 3));
-    const u = getAll<PlatformUser>('users').find(u => u.role === 'individual');
-    if (u) setLiveUser(u);
-    const events = getAll<RecyclingEvent>('recyclingEvents').filter(e => e.userId === 'U011');
-    if (events.length) setTotalRecycled(events.reduce((s, e) => s + e.weight, 0));
+    listingsAPI.list({ status: 'open', limit: 3 }).then(setLiveListings).catch(() => {});
+    usersAPI.me().catch(() => {});
   }, []);
 
-  useEffect(() => { load(); window.addEventListener('ecotrade_data_change', load); return () => window.removeEventListener('ecotrade_data_change', load); }, [load]);
+  useEffect(() => { load(); }, [load]);
 
-  const greenScore = liveUser?.greenScore ?? userProfile.greenScore;
+  const greenScore = userProfile.greenScore;
   const co2Saved = (totalRecycled * 1.3).toFixed(0);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">Welcome, {liveUser?.name ?? userProfile.name}!</h1><p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Your eco-friendly dashboard</p></div>
+        <div><h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome, {authUser?.name || userProfile.name}!</h1><p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Your eco-friendly dashboard</p></div>
         <button className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm hover:bg-cyan-700"><ShoppingCart size={16} /> Browse Marketplace</button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -85,8 +82,8 @@ export default function UserOverview() {
           <div className="space-y-3">
             {liveListings.map(l => (
               <div key={l.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-                <div><p className="text-sm font-medium">{l.wasteType} — {l.volume} {l.unit}</p><p className="text-xs text-gray-500 dark:text-gray-400">{l.hotelName} · {l.location}</p></div>
-                <div className="text-right"><p className="text-sm font-semibold text-cyan-600">RWF {l.minBid.toLocaleString()}</p><p className="text-xs text-gray-400 dark:text-gray-500">{Array.isArray(l.bids) ? l.bids.length : 0} bids</p></div>
+                <div><p className="text-sm font-medium">{l.waste_type} — {l.volume} {l.unit}</p><p className="text-xs text-gray-500 dark:text-gray-400">{l.hotel_name} · Kigali</p></div>
+                <div className="text-right"><p className="text-sm font-semibold text-cyan-600">RWF {(l.min_bid ?? 0).toLocaleString()}</p><p className="text-xs text-gray-400 dark:text-gray-500">{l.bid_count || 0} bids</p></div>
               </div>
             ))}
           </div>

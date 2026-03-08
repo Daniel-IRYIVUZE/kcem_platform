@@ -150,7 +150,7 @@ const TermsPrivacyPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-cyan-50/30 dark:from-gray-950 dark:to-gray-950 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-50 dark:bg-gray-950 transition-colors duration-300">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white dark:bg-gray-800/90 dark:bg-gray-900/95 backdrop-blur-sm border-b border-slate-200 dark:border-gray-800">
         <div className="lg:w-11/12 max-w-11/12 mx-auto px-4 sm:px-6 lg:px-8 py-4">

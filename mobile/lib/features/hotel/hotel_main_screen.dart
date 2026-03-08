@@ -67,13 +67,10 @@ class _HotelMainScreenState extends ConsumerState<HotelMainScreen> {
         ),
       )),
       floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton.extended(
+          ? FloatingActionButton(
               onPressed: () => setState(() => _selectedIndex = 1),
-              icon: const Icon(Icons.add),
-              label: const Text(
-                'List Waste',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
+              tooltip: 'List Waste',
+              child: const Icon(Icons.add, size: 28),
             )
           : null,
     );
@@ -108,102 +105,105 @@ class _HotelHomeTab extends ConsumerWidget {
           SliverAppBar(
             backgroundColor: context.cSurf,
             floating: true,
-            expandedHeight: 70,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              title: Row(
-                children: [
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '$greeting 👋',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w400,
+            toolbarHeight: 72,
+            automaticallyImplyLeading: false,
+            flexibleSpace: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$greeting,',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          user?.displayName ?? 'Hotel',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                          Text(
+                            user?.displayName ?? 'Hotel',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  Stack(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.notifications_outlined, color: AppColors.textPrimary),
-                        onPressed: () => context.push(AppRoutes.notifications),
+                        ],
                       ),
-                      if (unread > 0)
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.error,
-                              shape: BoxShape.circle,
+                    ),
+                    const Spacer(),
+                    Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications_outlined, color: AppColors.textPrimary),
+                          onPressed: () => context.push(AppRoutes.notifications),
+                        ),
+                        if (unread > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.error,
+                                shape: BoxShape.circle,
+                              ),
                             ),
                           ),
+                      ],
+                    ),
+                    PopupMenuButton<String>(
+                      onSelected: (val) {
+                        if (val == 'profile') onGoToProfile?.call();
+                        if (val == 'logout') ref.read(authProvider.notifier).logout();
+                      },
+                      offset: const Offset(0, 44),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      tooltip: 'Account',
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'profile',
+                          child: Row(children: [
+                            Icon(Icons.settings_outlined, size: 18),
+                            SizedBox(width: 10),
+                            Text('Settings & Profile'),
+                          ]),
                         ),
-                    ],
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (val) {
-                      if (val == 'profile') onGoToProfile?.call();
-                      if (val == 'logout') ref.read(authProvider.notifier).logout();
-                    },
-                    offset: const Offset(0, 44),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    tooltip: 'Account',
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
-                        value: 'profile',
-                        child: Row(children: [
-                          Icon(Icons.settings_outlined, size: 18),
-                          SizedBox(width: 10),
-                          Text('Settings & Profile'),
-                        ]),
-                      ),
-                      const PopupMenuDivider(),
-                      const PopupMenuItem(
-                        value: 'logout',
-                        child: Row(children: [
-                          Icon(Icons.logout, color: Colors.red, size: 18),
-                          SizedBox(width: 10),
-                          Text('Sign Out', style: TextStyle(color: Colors.red)),
-                        ]),
-                      ),
-                    ],
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: AppColors.primaryLight,
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                        const PopupMenuDivider(),
+                        const PopupMenuItem(
+                          value: 'logout',
+                          child: Row(children: [
+                            Icon(Icons.logout, color: Colors.red, size: 18),
+                            SizedBox(width: 10),
+                            Text('Sign Out', style: TextStyle(color: Colors.red)),
+                          ]),
+                        ),
+                      ],
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: AppColors.primaryLight,
+                        child: Text(
+                          initials,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -232,7 +232,7 @@ class _HotelHomeTab extends ConsumerWidget {
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
-                  childAspectRatio: 1.4,
+                  childAspectRatio: 1.15,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
@@ -559,7 +559,7 @@ class _ManageListingsView extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: onAdd,
         icon: const Icon(Icons.add),
-        label: const Text('Add New', style: TextStyle(fontWeight: FontWeight.w700)),
+        label: const Text('', style: TextStyle(fontWeight: FontWeight.w700)),
       ),
       body: listings.isEmpty
           ? _EmptyManageState(onAdd: onAdd)

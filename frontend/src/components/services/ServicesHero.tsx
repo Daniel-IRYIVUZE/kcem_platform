@@ -3,7 +3,7 @@ import { Sparkles } from 'lucide-react';
 
 const ServicesHero = () => {
   return (
-    <section className="relative text-white overflow-hidden" style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 30%, #0e7490 70%, #0369a1 100%)' }}>
+    <section className="relative text-white overflow-hidden" style={{ background: '#0f89ab' }}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 left-0 w-96 h-96 bg-white dark:bg-gray-900 rounded-full mix-blend-overlay filter blur-3xl"></div>

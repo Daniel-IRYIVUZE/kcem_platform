@@ -38,7 +38,7 @@ export default function EcoImpactPanel({
       label: 'Trees Equivalent',
       value: treesEquivalent,
       unit: '',
-      color: '#065f46',
+      color: '#0f89ab',
     },
     {
       icon: <Globe size={20} />,
@@ -64,10 +64,10 @@ export default function EcoImpactPanel({
   ];
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-2xl border border-emerald-200 dark:border-emerald-900/40 p-5 ${className}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-2xl border border-cyan-200 dark:border-cyan-900/40 p-5 ${className}`}>
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-          <Leaf size={16} className="text-emerald-600" />
+        <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-900/30">
+          <Leaf size={16} className="text-cyan-600" />
         </div>
         <div>
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Environmental Impact</h3>

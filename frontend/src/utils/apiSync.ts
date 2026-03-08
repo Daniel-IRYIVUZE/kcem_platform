@@ -1,6 +1,6 @@
 // utils/apiSync.ts — Syncs real backend data into localStorage dataStore
 // Called on login when the backend is online. Falls back gracefully if offline.
-import { listingsAPI, collectionsAPI, transactionsAPI, usersAPI, routesAPI } from '../services/api';
+import { listingsAPI, collectionsAPI, transactionsAPI, usersAPI, routesAPI, bidsAPI, inventoryAPI } from '../services/api';
 import { saveAll } from './dataStore';
 import type {
   WasteListing as DSListing,
@@ -18,8 +18,10 @@ function toRole(r: string): DSUser['role'] {
 /** Fetch data from the API and write it into the localStorage dataStore. */
 export async function syncFromAPI(userRole: string): Promise<void> {
   try {
-    // ── Listings ────────────────────────────────────────────────────────────
-    const apiListings = await listingsAPI.list({ limit: 100 });
+    // ── Listings — business users only see their own listings ────────────────
+    const apiListings = userRole === 'business'
+      ? await listingsAPI.mine()
+      : await listingsAPI.list({ limit: 100 });
     const dsListings: DSListing[] = apiListings.map(l => ({
       id: String(l.id),
       businessId: String(l.hotel_id),
@@ -80,8 +82,10 @@ export async function syncFromAPI(userRole: string): Promise<void> {
   } catch { /* offline */ }
 
   try {
-    // ── Transactions ─────────────────────────────────────────────────────────
-    const apiTxs = await transactionsAPI.list({ limit: 100 });
+    // ── Transactions — use /mine for non-admin roles ─────────────────────────
+    const apiTxs = userRole === 'admin'
+      ? await transactionsAPI.list({ limit: 100 })
+      : await transactionsAPI.mine({ limit: 100 });
     const dsTxs: DSTx[] = apiTxs.map(t => ({
       id: String(t.id),
       listingId: t.listing_id ? String(t.listing_id) : '',
@@ -153,6 +157,19 @@ export async function syncFromAPI(userRole: string): Promise<void> {
         })),
       }));
       saveAll('routes', dsRoutes);
+    } catch { /* offline */ }
+  }
+
+  // Recycler-specific: sync own bids and inventory
+  if (userRole === 'recycler') {
+    try {
+      const apiBids = await bidsAPI.mine({ limit: 100 });
+      saveAll('recycler_bids', apiBids);
+    } catch { /* offline */ }
+
+    try {
+      const apiInv = await inventoryAPI.mine();
+      saveAll('recycler_inventory', apiInv);
     } catch { /* offline */ }
   }
 

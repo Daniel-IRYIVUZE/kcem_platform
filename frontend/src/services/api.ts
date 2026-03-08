@@ -88,25 +88,36 @@ export interface WasteListing {
   id: number;
   hotel_id: number;
   hotel_name: string;
+  image_url?: string;
+  title: string;
+  description?: string;
   waste_type: string;
   volume: number;
   unit: string;
-  quality: string;
+  quality?: string;
   min_bid: number;
-  reserve_price?: number;
-  auction_duration: string;
-  auto_accept_above?: number;
+  bid_count: number;
+  highest_bid: number;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
   special_instructions?: string;
+  notes?: string;
   contact_person?: string;
   status: string;
   location?: string;
+  is_urgent?: boolean;
+  view_count?: number;
+  created_at: string;
+  expires_at?: string;
+  // Legacy/optional fields for backward-compat
+  reserve_price?: number;
+  auction_duration?: string;
   assigned_recycler?: string;
   assigned_driver?: string;
   collection_date?: string;
   collection_time?: string;
   actual_weight?: number;
-  created_at: string;
-  expires_at?: string;
 }
 
 export interface Bid {
@@ -254,6 +265,64 @@ export interface AuditLog {
   created_at: string;
 }
 
+export interface Notification {
+  id: number;
+  user_id: number;
+  type: string;
+  title: string;
+  body: string;
+  link?: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface BlogPost {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt: string;
+  content: string;
+  featured_image?: string;
+  category: string;
+  tags?: string;
+  is_published: boolean;
+  is_featured: boolean;
+  view_count: number;
+  author_id: number;
+  author_name: string;
+  author_email: string;
+  author_display_name?: string;
+  published_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BlogPostCreate {
+  title: string;
+  slug?: string;
+  excerpt: string;
+  content: string;
+  featured_image?: string;
+  category: string;
+  tags?: string;
+  is_published?: boolean;
+  is_featured?: boolean;
+  author_display_name?: string;
+}
+
+export interface BlogPostUpdate {
+  title?: string;
+  slug?: string;
+  excerpt?: string;
+  content?: string;
+  featured_image?: string;
+  category?: string;
+  tags?: string;
+  is_published?: boolean;
+  is_featured?: boolean;
+  author_display_name?: string;
+}
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export const authAPI = {
@@ -292,6 +361,15 @@ export const usersAPI = {
     request<APIUser>(`/users/${id}/suspend`, { method: 'POST' }),
 
   me: () => request<APIUser>('/users/me'),
+
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request<APIUser>('/users/me/avatar', {
+      method: 'POST',
+      body: formData,
+    }, true);
+  },
 };
 
 // ─── Listings ─────────────────────────────────────────────────────────────────
@@ -318,18 +396,44 @@ export const listingsAPI = {
     request<WasteListing>('/listings', { method: 'POST', body: JSON.stringify(data) }),
 
   update: (id: number, data: Partial<WasteListing>) =>
-    request<WasteListing>(`/listings/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    request<WasteListing>(`/listings/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   delete: (id: number) => request<void>(`/listings/${id}`, { method: 'DELETE' }),
 
+  mine: () => request<WasteListing[]>('/listings/mine'),
+
   // Bids on a listing
-  getBids: (listingId: number) => request<Bid[]>(`/listings/${listingId}/bids`),
+  getBids: (listingId: number) => request<Bid[]>(`/bids/listing/${listingId}`),
 
   placeBid: (listingId: number, data: { amount: number; note?: string; collection_preference?: string }) =>
-    request<Bid>(`/listings/${listingId}/bids`, { method: 'POST', body: JSON.stringify(data) }),
+    request<Bid>('/bids', {
+      method: 'POST',
+      body: JSON.stringify({
+        listing_id: listingId,
+        amount: data.amount,
+        notes: data.note,
+      }),
+    }),
 
-  acceptBid: (listingId: number, bidId: number) =>
-    request<Bid>(`/listings/${listingId}/bids/${bidId}/accept`, { method: 'POST' }),
+  acceptBid: (_listingId: number, bidId: number) =>
+    request<Bid>(`/bids/${bidId}/accept`, { method: 'POST' }),
+};
+
+export const bidsAPI = {
+  mine: (params?: { skip?: number; limit?: number }) => {
+    const q = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params || {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+      )
+    ).toString();
+    return request<Bid[]>(`/bids/mine${q ? `?${q}` : ''}`);
+  },
+
+  withdraw: (bidId: number) =>
+    request<Bid>(`/bids/${bidId}/withdraw`, { method: 'POST' }),
+
+  increase: (bidId: number, amount: number) =>
+    request<Bid>(`/bids/${bidId}/increase`, { method: 'PATCH', body: JSON.stringify({ amount }) }),
 };
 
 // ─── Transactions ─────────────────────────────────────────────────────────────
@@ -347,6 +451,11 @@ export const transactionsAPI = {
 
   update: (id: number, data: { status?: string; receipt?: string }) =>
     request<Transaction>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+
+  mine: (params?: { status?: string; skip?: number; limit?: number }) => {
+    const q = new URLSearchParams(params as Record<string, string>).toString();
+    return request<Transaction[]>(`/transactions/mine${q ? `?${q}` : ''}`);
+  },
 };
 
 // ─── Collections ─────────────────────────────────────────────────────────────
@@ -358,7 +467,7 @@ export const collectionsAPI = {
         Object.entries(params || {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
       )
     ).toString();
-    return request<Collection[]>(`/collections${q ? `?${q}` : ''}`);
+    return request<Collection[]>(`/collections/mine${q ? `?${q}` : ''}`);
   },
 
   get: (id: number) => request<Collection>(`/collections/${id}`),
@@ -367,7 +476,19 @@ export const collectionsAPI = {
     request<Collection>('/collections', { method: 'POST', body: JSON.stringify(data) }),
 
   updateStatus: (id: number, data: { status: string; actual_weight?: number; rating?: number; notes?: string }) =>
-    request<Collection>(`/collections/${id}/status`, { method: 'PUT', body: JSON.stringify(data) }),
+    request<Collection>(`/collections/${id}/advance`, { method: 'POST', body: JSON.stringify(data) }),
+
+  assignDriver: (id: number, data: { driver_id: number; vehicle_id: number }) =>
+    request<Collection>(`/collections/${id}/assign-driver`, { method: 'POST', body: JSON.stringify(data) }),
+
+  uploadProof: (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request<{ id: number; image_url?: string }>(`/collections/${id}/proofs`, {
+      method: 'POST',
+      body: formData,
+    }, true);
+  },
 };
 
 // ─── Support Tickets ──────────────────────────────────────────────────────────
@@ -463,7 +584,230 @@ export const auditAPI = {
     request<AuditLog>('/audit', { method: 'POST', body: JSON.stringify(data) }),
 };
 
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export const notificationsAPI = {
+  list: (params?: { skip?: number; limit?: number }) => {
+    const q = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params || {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
+      )
+    ).toString();
+    return request<Notification[]>(`/notifications${q ? `?${q}` : ''}`);
+  },
+
+  unreadCount: () =>
+    request<{ count: number }>('/notifications/unread-count'),
+
+  markRead: (id: number) =>
+    request<{ ok: boolean }>(`/notifications/${id}/read`, { method: 'POST' }),
+
+  markAllRead: () =>
+    request<{ marked: number }>('/notifications/read-all', { method: 'POST' }),
+};
+
+// ─── Blog Posts ───────────────────────────────────────────────────────────────
+
+export const blogAPI = {
+  // Public endpoints
+  list: (params?: {
+    skip?: number;
+    limit?: number;
+    category?: string;
+    search?: string;
+    featured_only?: boolean;
+  }) => {
+    const q = new URLSearchParams(params as Record<string, string>).toString();
+    return request<BlogPost[]>(`/blog${q ? `?${q}` : ''}`);
+  },
+
+  getBySlug: (slug: string) =>
+    request<BlogPost>(`/blog/slug/${slug}`),
+
+  getById: (id: number) =>
+    request<BlogPost>(`/blog/${id}`),
+
+  getCategories: () =>
+    request<string[]>('/blog/categories'),
+
+  // Admin endpoints
+  listAll: (params?: { skip?: number; limit?: number }) => {
+    const q = new URLSearchParams(params as Record<string, string>).toString();
+    return request<BlogPost[]>(`/blog/admin/all${q ? `?${q}` : ''}`);
+  },
+
+  create: (data: BlogPostCreate) =>
+    request<BlogPost>('/blog', { method: 'POST', body: JSON.stringify(data) }),
+
+  update: (id: number, data: BlogPostUpdate) =>
+    request<BlogPost>(`/blog/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  delete: (id: number) =>
+    request<void>(`/blog/${id}`, { method: 'DELETE' }),
+
+  publish: (id: number) =>
+    request<BlogPost>(`/blog/${id}/publish`, { method: 'POST' }),
+
+  unpublish: (id: number) =>
+    request<BlogPost>(`/blog/${id}/unpublish`, { method: 'POST' }),
+
+  toggleFeatured: (id: number) =>
+    request<BlogPost>(`/blog/${id}/toggle-featured`, { method: 'POST' }),
+};
+
+// ─── Hotels ───────────────────────────────────────────────────────────────────
+
+export interface HotelProfile {
+  id: number;
+  user_id: number;
+  hotel_name: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  phone?: string;
+  stars?: number;
+  room_count?: number;
+  green_score: number;
+  total_waste_listed?: number;
+  total_revenue?: number;
+  rating?: number;
+  is_verified?: boolean;
+  created_at: string;
+}
+
+export const hotelsAPI = {
+  me: () => request<HotelProfile>('/hotels/me'),
+  list: (params?: { skip?: number; limit?: number }) => {
+    const q = new URLSearchParams(params as Record<string, string>).toString();
+    return request<HotelProfile[]>(`/hotels${q ? `?${q}` : ''}`);
+  },
+  get: (id: number) => request<HotelProfile>(`/hotels/${id}`),
+  update: (data: Partial<HotelProfile>) =>
+    request<HotelProfile>('/hotels/me', { method: 'PATCH', body: JSON.stringify(data) }),
+};
+
+// ─── Recyclers ────────────────────────────────────────────────────────────────
+
+export interface RecyclerProfile {
+  id: number;
+  user_id: number;
+  company_name: string;
+  description?: string;
+  address?: string;
+  city?: string;
+  phone?: string;
+  waste_types_handled?: string;
+  storage_capacity?: number;
+  fleet_size?: number;
+  green_score: number;
+  total_collected?: number;
+  total_spent?: number;
+  rating?: number;
+  active_bids?: number;
+  is_verified?: boolean;
+  created_at: string;
+}
+
+export const recyclersAPI = {
+  me: () => request<RecyclerProfile>('/recyclers/me'),
+  list: (params?: { skip?: number; limit?: number }) => {
+    const q = new URLSearchParams(params as Record<string, string>).toString();
+    return request<RecyclerProfile[]>(`/recyclers${q ? `?${q}` : ''}`);
+  },
+  get: (id: number) => request<RecyclerProfile>(`/recyclers/${id}`),
+};
+
+// ─── Inventory ────────────────────────────────────────────────────────────────
+
+export interface InventoryItem {
+  id: number;
+  recycler_id: number;
+  material_type: string;
+  current_stock: number;
+  capacity: number;
+  unit: string;
+  last_updated: string;
+  created_at: string;
+}
+
+export const inventoryAPI = {
+  mine: () => request<InventoryItem[]>('/inventory/mine'),
+};
+
+// ─── Drivers ──────────────────────────────────────────────────────────────────
+
+export interface DriverProfile {
+  id: number;
+  user_id: number;
+  recycler_id?: number;
+  vehicle_id?: number;
+  license_number?: string;
+  phone?: string;
+  status: 'available' | 'on_route' | 'off_duty';
+  current_lat?: number;
+  current_lng?: number;
+  rating: number;
+  total_trips: number;
+  is_verified: boolean;
+  created_at: string;
+  // Enriched fields (added client-side or from user join)
+  name?: string;
+  vehicle_type?: string;
+  plate_number?: string;
+}
+
+export const driversAPI = {
+  list: (params?: { skip?: number; limit?: number }) => {
+    const q = new URLSearchParams(params as Record<string, string> || {}).toString();
+    return request<DriverProfile[]>(`/drivers${q ? `?${q}` : ''}`);
+  },
+  available: () => request<DriverProfile[]>('/drivers/available'),
+  get: (id: number) => request<DriverProfile>(`/drivers/${id}`),
+  me: () => request<DriverProfile>('/drivers/me'),
+  setAvailability: (available: boolean) =>
+    request<DriverProfile>('/drivers/me/availability', {
+      method: 'PATCH',
+      body: JSON.stringify({ available }),
+    }),
+};
+
+// ─── Hotel driver request ─────────────────────────────────────────────────────
+
+export const hotelCollectionAPI = {
+  requestDriver: (collectionId: number, data: { driver_id: number; vehicle_id?: number }) =>
+    request<Collection>(`/collections/${collectionId}/request-driver`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
 // ─── Health check ─────────────────────────────────────────────────────────────
 
 export const healthCheck = () =>
   fetch(`${API_BASE.replace('/api', '')}/health`).then(r => r.json()).catch(() => null);
+
+// ─── Public stats ─────────────────────────────────────────────────────────────
+
+export interface PlatformStats {
+  hotels: number;
+  recyclers: number;
+  drivers: number;
+  total_volume_kg: number;
+  total_listings: number;
+  total_transactions: number;
+  total_revenue_rwf: number;
+}
+
+export interface ActivityItem {
+  type: string;
+  name: string;
+  action: string;
+  waste: string;
+  created_at: string | null;
+}
+
+export const statsAPI = {
+  get: () => request<PlatformStats>('/stats/'),
+  recentActivity: (limit = 8) => request<ActivityItem[]>(`/stats/recent-activity?limit=${limit}`),
+};
+

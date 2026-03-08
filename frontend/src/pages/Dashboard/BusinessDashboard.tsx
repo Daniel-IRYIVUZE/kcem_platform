@@ -11,6 +11,7 @@ import BusinessSettings from '../../components/dashboard/business/BusinessSettin
 import BusinessReports from '../../components/dashboard/business/BusinessReports';
 import BusinessMessages from '../../components/dashboard/business/BusinessMessages';
 import BusinessLocation from '../../components/dashboard/business/BusinessLocation';
+import BusinessDrivers from '../../components/dashboard/business/BusinessDrivers';
 
 /* ─── Main: BusinessDashboard Router ────────────────────────── */
 const BusinessDashboard = () => (
@@ -27,6 +28,7 @@ const BusinessDashboard = () => (
     <Route path="reports" element={<BusinessReports />} />
     <Route path="messages" element={<BusinessMessages />} />
     <Route path="location" element={<BusinessLocation />} />
+    <Route path="drivers" element={<BusinessDrivers />} />
     <Route path="*" element={<BusinessOverview />} />
   </Routes>
 );

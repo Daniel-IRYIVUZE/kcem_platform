@@ -1,10 +1,21 @@
 // components/home/CTASection.tsx
-import { ArrowRight, Mail, Phone } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowRight, Mail, Phone, LayoutDashboard } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const CTASection = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const getDashPath = () => {
+    const m: Record<string, string> = {
+      admin: '/dashboard/admin', business: '/dashboard/business',
+      recycler: '/dashboard/recycler', driver: '/dashboard/driver', individual: '/dashboard/individual',
+    };
+    return m[user?.role || ''] || '/dashboard';
+  };
   return (
-    <section className="py-20 text-white relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 40%, #0e7490 80%, #0369a1 100%)' }}>
+    <section className="py-20 text-white relative overflow-hidden" style={{ background: '#0f89ab' }}>
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-0 left-0 w-96 h-96 bg-white dark:bg-gray-900 rounded-full mix-blend-overlay filter blur-3xl"></div>
@@ -22,13 +33,24 @@ const CTASection = () => {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <Link
-            to="/login"
-            className="bg-white dark:bg-gray-900 text-cyan-800 dark:text-cyan-300 px-8 py-4 rounded-xl font-semibold hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center justify-center"
-          >
-            Get Started Today
-            <ArrowRight className="ml-2 w-5 h-5" />
-          </Link>
+          {user ? (
+            <button
+              onClick={() => navigate(getDashPath())}
+              className="bg-white dark:bg-gray-900 text-cyan-800 dark:text-cyan-300 px-8 py-4 rounded-xl font-semibold hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center justify-center"
+            >
+              <LayoutDashboard className="mr-2 w-5 h-5" />
+              Go to Dashboard
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </button>
+          ) : (
+            <Link
+              to="/login"
+              className="bg-white dark:bg-gray-900 text-cyan-800 dark:text-cyan-300 px-8 py-4 rounded-xl font-semibold hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 inline-flex items-center justify-center"
+            >
+              Get Started Today
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Link>
+          )}
           
           <Link
             to="/contact"

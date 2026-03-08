@@ -3,7 +3,7 @@
 
 /* ============================================================
    ECOTRADE RWANDA — DESIGN SYSTEM TOKENS
-   Primary: Cyan  |  Secondary: Dark Cyan #065F46
+   Primary: Cyan  |  Secondary: Dark Cyan #0f89ab
    Accent: Eco Yellow #F59E0B  |  BG: Light Gray #F9FAFB
    ============================================================ */
 
@@ -246,7 +246,23 @@
   input[type="radio"] {
     @apply border-gray-300 dark:border-gray-600;
   }
+@keyframes slide {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
 
+.animate-slide {
+  animation: slide 20s linear infinite;
+  width: fit-content;
+}
+
+.animate-slide:hover {
+  animation-play-state: paused;
+}
   /* ---- Tables ---- */
   table {
     @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
@@ -315,32 +331,6 @@
            hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer;
   }
 
-  /* Muted text */
-  .text-muted { @apply text-gray-500 dark:text-gray-400; }
-
-  /* Dividers */
-  .divider { @apply border-gray-200 dark:border-gray-700; }
-
-  /* Eco color utilities */
-  .eco-primary   { @apply text-cyan-600 dark:text-cyan-400; }
-  .eco-secondary { @apply text-cyan-800 dark:text-cyan-300; }
-  .eco-accent    { @apply text-amber-500; }
-  .eco-bg        { @apply bg-cyan-600; }
-  .eco-bg-light  { @apply bg-cyan-50 dark:bg-cyan-900/20; }
-
-  /* Status pill tokens */
-  .badge-open       { @apply bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300; }
-  .badge-pending    { @apply bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300; }
-  .badge-active     { @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300; }
-  .badge-completed  { @apply bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300; }
-  .badge-suspended  { @apply bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300; }
-  .badge-en-route   { @apply bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300; }
-
-  /* SaaS table row */
-  .table-row-interactive {
-    @apply hover:bg-cyan-50 dark:hover:bg-cyan-900/10 transition-colors duration-100 cursor-pointer;
-  }
-
   /* Button variants */
   .btn-primary {
     @apply px-4 py-2.5 bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800
@@ -359,9 +349,9 @@
            transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2;
   }
   .btn-success {
-    @apply px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800
+    @apply px-4 py-2.5 bg-cyan-600 hover:bg-cyan-700 active:bg-cyan-800
            text-white text-sm font-semibold rounded-lg shadow-sm
-           transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2;
+           transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2;
   }
   .btn-ghost {
     @apply px-4 py-2 text-gray-600 dark:text-gray-300 text-sm font-medium rounded-lg
@@ -399,7 +389,7 @@
 
   /* Live indicator dot */
   .live-dot {
-    @apply w-2 h-2 bg-emerald-500 rounded-full;
+    @apply w-2 h-2 bg-cyan-500 rounded-full;
     animation: pulse-dot 1.4s ease-in-out infinite;
   }
 

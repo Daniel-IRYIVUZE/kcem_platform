@@ -1,8 +1,7 @@
 // components/home/LiveImpactTicker.tsx
 import { useEffect, useState } from 'react';
 import { Activity, Droplet, Package, Truck } from 'lucide-react';
-import { getAll } from '../../utils/dataStore';
-import type { WasteListing, Collection } from '../../utils/dataStore';
+import { statsAPI } from '../../services/api';
 
 interface ActivityItem {
   type: 'hotel' | 'recycler' | 'driver';
@@ -12,76 +11,47 @@ interface ActivityItem {
   time: string;
 }
 
+const FALLBACK_ACTIVITIES: ActivityItem[] = [
+  { type: 'hotel', name: 'Hotel des Mille Collines', action: 'listed', waste: '200kg Used Cooking Oil', time: 'just now' },
+  { type: 'hotel', name: 'Kigali Marriott Hotel', action: 'listed', waste: '150kg Glass', time: '3 min ago' },
+  { type: 'hotel', name: 'Kigali Serena Hotel', action: 'listed', waste: '300kg Metal Scraps', time: '7 min ago' },
+  { type: 'recycler', name: 'Certified Recycler', action: 'bid on', waste: '120kg Paper Cardboard', time: '10 min ago' },
+  { type: 'hotel', name: 'Radisson Blu Kigali', action: 'listed', waste: '80kg Organic Waste', time: '15 min ago' },
+  { type: 'hotel', name: 'Novotel Kigali', action: 'listed', waste: '250kg Plastic', time: '20 min ago' },
+];
 
 const LiveImpactTicker = () => {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    const loadActivities = () => {
-      const listings = getAll<WasteListing>('listings');
-      const collections = getAll<Collection>('collections');
-
-      const newActivities: ActivityItem[] = [];
-
-      // Recent listings
-      listings.slice(-2).forEach(l => {
-        const age = Date.now() - new Date(l.createdAt).getTime();
-        const timeAgo = age < 3600000 ? `${Math.floor(age/60000)}m ago` : `${Math.floor(age/3600000)}h ago`;
-        newActivities.push({
-          type: 'hotel',
-          name: l.businessName || 'Unknown Hotel',
-          action: 'listed',
-          waste: `${l.volume} ${l.unit} ${l.wasteType}`,
-          time: timeAgo,
-        });
-      });
-
-      // Recent bids
-      listings.forEach(l => {
-        const bids = Array.isArray(l.bids) ? l.bids : [];
-        if (bids.length > 0) {
-          const lastBid = bids[bids.length - 1];
-          const age = Date.now() - new Date(lastBid.createdAt).getTime();
-          const timeAgo = age < 3600000 ? `${Math.floor(age/60000)}m ago` : `${Math.floor(age/3600000)}h ago`;
-          newActivities.push({
-            type: 'recycler',
-            name: lastBid.recyclerName,
-            action: 'bid on',
-            waste: `${l.volume} ${l.unit} ${l.wasteType}`,
-            time: timeAgo,
+    const loadActivities = async () => {
+      try {
+        const data = await statsAPI.recentActivity(8);
+        if (data.length > 0) {
+          const now = Date.now();
+          const items: ActivityItem[] = data.map(d => {
+            const ageMs = d.created_at ? now - new Date(d.created_at).getTime() : 0;
+            const mins = Math.floor(ageMs / 60000);
+            const hrs = Math.floor(ageMs / 3600000);
+            const timeAgo = ageMs < 60000 ? 'just now' : hrs > 0 ? `${hrs}h ago` : `${mins}m ago`;
+            return {
+              type: 'hotel' as const,
+              name: d.name,
+              action: d.action,
+              waste: d.waste,
+              time: timeAgo,
+            };
           });
+          setActivities(items);
+        } else {
+          setActivities(FALLBACK_ACTIVITIES);
         }
-      });
-
-      // Recent collections
-      collections.slice(-2).forEach(c => {
-        const age = Date.now() - new Date(c.scheduledDate).getTime();
-        const timeAgo = age < 3600000 ? `${Math.floor(age/60000)}m ago` : `${Math.floor(age/3600000)}h ago`;
-        newActivities.push({
-          type: 'driver',
-          name: c.driverName,
-          action: `collected ${c.volume} kg`,
-          waste: `from ${c.businessName}`,
-          time: timeAgo,
-        });
-      });
-
-      // Use seed activities if no real data
-      if (newActivities.length === 0) {
-        newActivities.push(
-          { type: 'hotel', name: 'Mille Collines', action: 'listed', waste: '200kg UCO', time: 'just now' },
-          { type: 'recycler', name: 'GreenEnergy', action: 'bid on', waste: '150kg Glass', time: '2 min ago' },
-          { type: 'driver', name: 'Jean Pierre', action: 'completed collection', waste: '200L UCO', time: '5 min ago' }
-        );
+      } catch {
+        setActivities(FALLBACK_ACTIVITIES);
       }
-
-      setActivities(newActivities.slice(0, 6));
     };
-
     loadActivities();
-    window.addEventListener('ecotrade_data_change', loadActivities);
-    return () => window.removeEventListener('ecotrade_data_change', loadActivities);
   }, []);
 
   useEffect(() => {

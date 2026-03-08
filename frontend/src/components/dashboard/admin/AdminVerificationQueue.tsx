@@ -1,43 +1,40 @@
 // pages/dashboard/admin/VerificationQueue.tsx
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, Eye, X, UserCheck } from 'lucide-react';
-import { getAll, update } from '../../../utils/dataStore';
-import type { PlatformUser } from '../../../utils/dataStore';
+import { usersAPI, type APIUser } from '../../../services/api';
 
 export default function AdminVerificationQueue() {
-  const [pending, setPending] = useState<PlatformUser[]>([]);
-  const [selected, setSelected] = useState<PlatformUser | null>(null);
+  const [pending, setPending] = useState<APIUser[]>([]);
+  const [selected, setSelected] = useState<APIUser | null>(null);
   const [note, setNote] = useState('');
   const [flash, setFlash] = useState<string | null>(null);
 
-  const load = () => {
-    const allUsers = getAll<PlatformUser>('users');
-    setPending(allUsers.filter(u => !u.verified || u.status === 'pending'));
-  };
+  const load = () =>
+    usersAPI.list({ status: 'pending', limit: 200 })
+      .then(setPending)
+      .catch(() => {});
 
-  useEffect(() => { 
-    load(); 
-    window.addEventListener('ecotrade_data_change', load); 
-    return () => window.removeEventListener('ecotrade_data_change', load); 
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const toast = (msg: string) => { 
     setFlash(msg); 
     setTimeout(() => setFlash(null), 2500); 
   };
 
-  const handleApprove = (u: PlatformUser) => {
-    update<PlatformUser>('users', u.id, { status: 'active', verified: true });
-    toast(`✓ ${u.name} approved`); 
-    setSelected(null); 
-    load();
+  const handleApprove = (u: APIUser) => {
+    usersAPI.approve(u.id).then(() => {
+      toast(`✓ ${u.full_name} approved`);
+      setPending(prev => prev.filter(x => x.id !== u.id));
+      setSelected(null);
+    }).catch(() => toast('Approve failed'));
   };
 
-  const handleReject = (u: PlatformUser) => {
-    update<PlatformUser>('users', u.id, { status: 'suspended', verified: false });
-    toast(`✗ ${u.name} rejected`); 
-    setSelected(null); 
-    load();
+  const handleReject = (u: APIUser) => {
+    usersAPI.suspend(u.id).then(() => {
+      toast(`✗ ${u.full_name} rejected`);
+      setPending(prev => prev.filter(x => x.id !== u.id));
+      setSelected(null);
+    }).catch(() => toast('Reject failed'));
   };
 
   const roleColors: Record<string, string> = {
@@ -89,10 +86,10 @@ export default function AdminVerificationQueue() {
             >
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold">
-                  {u.name.charAt(0)}
+                  {(u.full_name ?? '?').charAt(0)}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{u.name}</h3>
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{u.full_name}</h3>
                   <p className="text-xs text-gray-400 dark:text-gray-500">{u.email}</p>
                 </div>
               </div>
@@ -106,11 +103,11 @@ export default function AdminVerificationQueue() {
                 </div>
                 <div className="flex justify-between">
                   <span>Phone:</span>
-                  <span>{u.phone}</span>
+                  <span>{u.phone || '—'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Location:</span>
-                  <span>{u.location}</span>
+                  <span>Kigali</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Status:</span>
@@ -120,7 +117,7 @@ export default function AdminVerificationQueue() {
                 </div>
                 <div className="flex justify-between">
                   <span>Submitted:</span>
-                  <span>{new Date(u.joinDate).toLocaleDateString()}</span>
+                  <span>{new Date(u.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
 
@@ -155,7 +152,7 @@ export default function AdminVerificationQueue() {
           <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-xl border border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center p-5 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
-                Verify: {selected.name}
+                Verify: {selected.full_name}
               </h3>
               <button 
                 onClick={() => setSelected(null)} 
@@ -168,13 +165,13 @@ export default function AdminVerificationQueue() {
             <div className="p-5 space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  ['Name', selected.name],
+                  ['Name', selected.full_name],
                   ['Email', selected.email],
-                  ['Phone', selected.phone],
+                  ['Phone', selected.phone || '—'],
                   ['Role', selected.role],
-                  ['Location', selected.location],
+                  ['Location', 'Kigali'],
                   ['Status', selected.status],
-                  ['Joined', new Date(selected.joinDate).toLocaleDateString()]
+                  ['Joined', new Date(selected.created_at).toLocaleDateString()]
                 ].map(([k, v]) => (
                   <div key={String(k)}>
                     <span className="text-gray-500 dark:text-gray-400">{String(k)}:</span>{' '}

@@ -3,11 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
-import { seedDataIfEmpty } from './utils/dataStore';
 import ScrollToTop from './components/common/ScrollToTop';
-
-// Seed initial data on app load
-seedDataIfEmpty();
 
 // Import Layout Components
 import Sidebar from './components/layout/Sidebar';
@@ -71,12 +67,14 @@ const DashboardLayout = () => {
   if (!user) return <Navigate to="/login" replace />;
   
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950 transition-colors duration-300" style={{ height: '100dvh' }}>
       <Sidebar userRole={user.role} />
-      <div className="flex-1 flex flex-col overflow-hidden w-full">
+      <div className="flex-1 flex flex-col min-h-0 w-full">
         <TopNav user={user} />
-        <main className="flex-1 overflow-y-auto p-3 sm:p-6 bg-gray-50 dark:bg-gray-950">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-950">
+          <div className="h-full p-3 sm:p-6">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

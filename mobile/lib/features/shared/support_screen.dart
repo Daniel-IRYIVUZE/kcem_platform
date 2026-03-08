@@ -666,7 +666,7 @@ class _LiveChatSheetState extends State<_LiveChatSheet> {
   final _scrollCtrl = ScrollController();
   final List<_ChatMsg> _messages = [
     _ChatMsg(
-        text: 'Hi there! 👋 Welcome to Ecotrade Support. How can I help you today?',
+        text: 'Hi there! Welcome to Ecotrade Support. How can I help you today?',
         isAgent: true,
         time: DateTime.now().subtract(const Duration(seconds: 5))),
   ];
@@ -991,7 +991,7 @@ class _RatingDialogState extends State<_RatingDialog> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text(
-                                    'Thanks for your rating! ⭐'),
+                                    'Thanks for your rating!'),
                                 duration: Duration(seconds: 3)),
                           );
                         },

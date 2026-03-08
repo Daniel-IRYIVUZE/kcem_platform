@@ -1,30 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getAll, update as dsUpdate, downloadCSV } from '../../../utils/dataStore';
-import type { Collection } from '../../../utils/dataStore';
+import { useState, useEffect } from 'react';
+import { collectionsAPI, type Collection } from '../../../services/api';
 import { Truck, Activity, Clock, CheckCircle, Download } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
 import { StatusBadge } from './_shared';
 
+function exportCSV(name: string, cols: string[], rows: (string|number)[][]) {
+  const csv = [cols.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv])); a.download = `${name}.csv`; a.click();
+}
+
 export default function RecyclerActiveCollections() {
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [loading, setLoading]         = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const load = useCallback(() => setCollections(getAll<Collection>('collections')), []);
-  useEffect(() => { load(); window.addEventListener('ecotrade_data_change', load); return () => window.removeEventListener('ecotrade_data_change', load); }, [load]);
+  useEffect(() => {
+    collectionsAPI.list({ limit: 200 } as Parameters<typeof collectionsAPI.list>[0])
+      .then(data => setCollections(Array.isArray(data) ? data : []))
+      .catch(() => setCollections([]))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const filtered = statusFilter === 'all' ? collections : collections.filter(c => c.status === statusFilter);
-  const inProgress = collections.filter(c => c.status === 'en-route' || c.status === 'collected').length;
+  const filtered    = statusFilter === 'all' ? collections : collections.filter(c => c.status === statusFilter);
+  const inProgress  = collections.filter(c => c.status === 'en-route' || c.status === 'collected').length;
 
-  const handleUpdateStatus = (id: string, newStatus: Collection['status']) => {
-    const updates: Partial<Collection> = { status: newStatus };
-    if (newStatus === 'completed') updates.completedAt = new Date().toISOString();
-    dsUpdate<Collection>('collections', id, updates);
-  };
-
-  const handleExport = () => downloadCSV('collections',
-    ['ID', 'Hotel', 'Recycler', 'Driver', 'Type', 'Volume', 'Status', 'Date', 'Earnings'],
-    filtered.map(c => [c.id, c.hotelName || c.businessName || 'N/A', c.recyclerName, c.driverName, c.wasteType, String(c.volume), c.status, c.scheduledDate, String(c.earnings)]));
+  const handleExport = () => exportCSV('collections',
+    ['ID','Hotel','Recycler','Driver','Type','Volume','Status','Date','Earnings'],
+    filtered.map(c => [c.id, c.hotel_name||'N/A', c.recycler_name||'', c.driver_name||'', c.waste_type||'', c.volume||0, c.status, c.scheduled_date||'', c.earnings||0]));
 
   return (
     <div className="space-y-6">
@@ -36,10 +39,10 @@ export default function RecyclerActiveCollections() {
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <StatCard title="Total" value={collections.length} icon={<Truck size={22} />} color="cyan" />
-        <StatCard title="In Progress" value={inProgress} icon={<Activity size={22} />} color="blue" />
-        <StatCard title="Scheduled" value={collections.filter(c => c.status === 'scheduled').length} icon={<Clock size={22} />} color="purple" />
-        <StatCard title="Completed" value={collections.filter(c => c.status === 'completed').length} icon={<CheckCircle size={22} />} color="orange" />
+        <StatCard title="Total"      value={loading ? '…' : collections.length}                                       icon={<Truck       size={22} />} color="cyan"   />
+        <StatCard title="In Progress" value={loading ? '…' : inProgress}                                              icon={<Activity    size={22} />} color="blue"   />
+        <StatCard title="Scheduled"   value={loading ? '…' : collections.filter(c => c.status === 'scheduled').length} icon={<Clock       size={22} />} color="purple" />
+        <StatCard title="Completed"   value={loading ? '…' : collections.filter(c => c.status === 'completed').length} icon={<CheckCircle size={22} />} color="orange" />
       </div>
       <div className="flex gap-2 flex-wrap">
         {['all', 'scheduled', 'en-route', 'collected', 'verified', 'completed', 'missed'].map(s => (
@@ -47,28 +50,25 @@ export default function RecyclerActiveCollections() {
         ))}
       </div>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
-        <DataTable
-          columns={[
-            { key: 'id', label: 'ID', render: (v: string) => <span className="font-mono text-xs">{v}</span> },
-            { key: 'hotelName', label: 'Hotel' },
-            { key: 'driverName', label: 'Driver' },
-            { key: 'wasteType', label: 'Type', render: (v: string) => <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium">{v}</span> },
-            { key: 'volume', label: 'Volume', render: (v: number, r: Collection) => <span>{v} {r.wasteType === 'UCO' ? 'L' : 'kg'}</span> },
-            { key: 'status', label: 'Status', render: (v: string) => <StatusBadge status={v} /> },
-            { key: 'scheduledDate', label: 'Date' },
-            { key: 'earnings', label: 'Earnings', render: (v: number) => <span className="font-semibold text-green-600 dark:text-green-400">RWF {v.toLocaleString()}</span> },
-            { key: 'id', label: 'Actions', render: (v: string, r: Collection) => (
-              <div className="flex gap-1">
-                {r.status === 'scheduled' && <button onClick={() => handleUpdateStatus(v, 'en-route')} className="px-2 py-1 text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-700 rounded font-medium">Start</button>}
-                {r.status === 'en-route' && <button onClick={() => handleUpdateStatus(v, 'collected')} className="px-2 py-1 text-xs bg-green-50 dark:bg-green-900/20 text-green-700 rounded font-medium">Collected</button>}
-                {r.status === 'collected' && <button onClick={() => handleUpdateStatus(v, 'completed')} className="px-2 py-1 text-xs bg-purple-50 dark:bg-purple-900/20 text-purple-700 rounded font-medium">Complete</button>}
-              </div>
-            )},
-          ]}
-          data={filtered}
-          pageSize={6}
-        />
-        {filtered.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No collections found.</p>}
+        {loading ? (
+          <div className="text-center py-12 text-gray-400 dark:text-gray-500">Loading collections…</div>
+        ) : (
+          <DataTable
+            columns={[
+              { key: 'id',             label: 'ID',       render: (v: number) => <span className="font-mono text-xs">#{v}</span> },
+              { key: 'hotel_name',     label: 'Hotel' },
+              { key: 'driver_name',    label: 'Driver' },
+              { key: 'waste_type',     label: 'Type',     render: (v: string) => <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium">{v}</span> },
+              { key: 'volume',         label: 'Volume',   render: (v: number, r: Collection) => <span>{v ?? 0} {r.waste_type === 'UCO' ? 'L' : 'kg'}</span> },
+              { key: 'status',         label: 'Status',   render: (v: string) => <StatusBadge status={v} /> },
+              { key: 'scheduled_date', label: 'Date' },
+              { key: 'earnings',       label: 'Earnings', render: (v: number) => <span className="font-semibold text-green-600 dark:text-green-400">RWF {(v||0).toLocaleString()}</span> },
+            ]}
+            data={filtered}
+            pageSize={6}
+          />
+        )}
+        {!loading && filtered.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No collections found.</p>}
       </div>
     </div>
   );

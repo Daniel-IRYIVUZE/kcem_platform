@@ -1,6 +1,6 @@
 # EcoTrade Rwanda — Web Frontend
 
-EcoTrade Rwanda is a production-ready React and TypeScript circular economy marketplace platform. It connects waste generators such as hotels and restaurants with recyclers and drivers in Kigali, Rwanda. The frontend provides multi-role dashboards, offline-first data management through localStorage, and a fully responsive UI with dark mode support.
+EcoTrade Rwanda is a production-ready React and TypeScript circular economy marketplace platform. It connects waste generators such as hotels and restaurants with recyclers and drivers in Kigali, Rwanda. The frontend provides multi-role dashboards, connects to the FastAPI backend for live data, falls back to localStorage in offline mode, and features a fully responsive UI with dark mode support.
 
 Live Demo: https://ecotrade-rwanda.netlify.app
 
@@ -23,7 +23,7 @@ Live Demo: https://ecotrade-rwanda.netlify.app
 
 ## Introduction
 
-The EcoTrade Rwanda web frontend is a multi-role dashboard platform built with React 19 and TypeScript. It supports five user roles: Admin, Business, Recycler, Driver, and Individual. All application data is stored in the browser's localStorage with seed data auto-generated on first load, which means the app works fully without a backend connection.
+The EcoTrade Rwanda web frontend is a multi-role dashboard platform built with React 19 and TypeScript. It supports five user roles: Admin, Business, Recycler, Driver, and Individual. The app connects to the FastAPI backend at `http://localhost:8000/api` when available and falls back to localStorage-seeded data when the backend is unreachable, making it usable both with and without a running server.
 
 ---
 
@@ -103,15 +103,17 @@ npm run lint
 
 ## Demo Login Credentials
 
-Use the following credentials to log in and explore each role's dashboard. The OTP code for two-factor authentication is 123456 for all accounts.
+Use the following credentials to log in and explore each role's dashboard.
 
-| Role       | Email                    | Password     | Dashboard Path           |
-|------------|--------------------------|--------------|--------------------------|
-| Admin      | admin@ecotrade.rw        | admin123     | /dashboard/admin         |
-| Business   | business@ecotrade.rw     | business123  | /dashboard/business      |
-| Recycler   | recycler@ecotrade.rw     | recycler123  | /dashboard/recycler      |
-| Driver     | driver@ecotrade.rw       | driver123    | /dashboard/driver        |
-| Individual | marieclaire@gmail.com    | user123      | /dashboard/individual    |
+| Role | Email | Password | Dashboard Path |
+|------------|--------------------------------|--------------|---------------------------|
+| Admin | admin@ecotrade.rw | Password123! | /dashboard/admin |
+| Business | hotel@kigali.rw | Password123! | /dashboard/business |
+| Recycler | recycler@greencycle.rw | Password123! | /dashboard/recycler |
+| Driver | driver@greencycle.rw | Password123! | /dashboard/driver |
+| Individual | individual@example.com | Password123! | /dashboard/individual |
+
+> These credentials work against the live backend. Run `python seed_comprehensive.py` in the backend directory first.
 
 ---
 
@@ -168,18 +170,18 @@ frontend/
 
 ## Technology Stack
 
-| Layer         | Technology        | Version  |
+| Layer | Technology | Version |
 |---------------|-------------------|----------|
-| Framework     | React             | 19.2.0   |
-| Language      | TypeScript        | 5.0      |
-| Build Tool    | Vite              | 7.2.5    |
-| Styling       | TailwindCSS       | 4.1      |
-| Routing       | React Router      | 7.13     |
-| Animations    | Framer Motion     | Latest   |
-| Charts        | Chart.js          | Latest   |
-| Maps          | Leaflet.js        | Latest   |
-| State         | React Context API | Built-in |
-| Storage       | localStorage      | Built-in |
+| Framework | React | 19.2.0 |
+| Language | TypeScript | 5.0 |
+| Build Tool | Vite | 7.2.5 |
+| Styling | TailwindCSS | 4.1 |
+| Routing | React Router | 7.13 |
+| Animations | Framer Motion | Latest |
+| Charts | Chart.js | Latest |
+| Maps | Leaflet.js + react-leaflet | Latest |
+| State | React Context API | Built-in |
+| Storage | localStorage (offline fallback) | Built-in |
 
 ---
 
@@ -200,9 +202,11 @@ frontend/
 - Green Score sustainability metrics
 
 ### Recycler Dashboard
-- Marketplace to purchase available waste listings
-- Inventory management and processing status
-- Supplier network and logistics planning
+- Marketplace to browse and bid on available waste listings
+- **Interactive Leaflet map** with hotel clustering by business name, colored pins per waste type, cyan distance lines with km labels, and `maxZoom: 13` so clusters are visible before zooming
+- Marketplace list toggles between card view and map view
+- Distance and waste-type filter chips
+- Inventory management and supplier network
 - Financial dashboard with payment history
 
 ### Driver Dashboard
@@ -254,9 +258,8 @@ vercel --prod
 
 ## Known Issues
 
-- There are 22 non-blocking TypeScript build warnings related to `hotelName` versus `businessName` property mapping. These do not affect runtime functionality.
-- Real-time features are unavailable in offline mode and are planned for a future release.
 - localStorage data is cleared in private/incognito browsing mode upon exit.
+- Real-time push features (WebSocket) are not yet implemented; the page must be refreshed to see new bids from other users.
 
 ---
 

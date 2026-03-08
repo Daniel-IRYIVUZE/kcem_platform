@@ -7,7 +7,7 @@ interface MarketplaceStatsProps {
 
 const MarketplaceStats = ({ listings }: MarketplaceStatsProps) => {
   const totalVolume = listings.reduce((acc, curr) => acc + curr.volume, 0);
-  const uniqueRecyclers = 2; // Active recyclers on platform
+  const uniqueBusinesses = new Set(listings.map((l: any) => l.business || l.hotel_name)).size;
   const activeBids = listings.reduce((acc, curr) => acc + curr.bidCount, 0);
 
   return (
@@ -28,8 +28,8 @@ const MarketplaceStats = ({ listings }: MarketplaceStatsProps) => {
             <Factory className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">Active Recyclers</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{uniqueRecyclers}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400 truncate">Active Businesses</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{uniqueBusinesses}</p>
           </div>
         </div>
 
@@ -39,7 +39,7 @@ const MarketplaceStats = ({ listings }: MarketplaceStatsProps) => {
           </div>
           <div className="min-w-0">
             <p className="text-xs text-gray-600 dark:text-gray-400 truncate">Total Volume</p>
-            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{totalVolume} kg</p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{Math.round(totalVolume).toLocaleString()} kg</p>
           </div>
         </div>
 

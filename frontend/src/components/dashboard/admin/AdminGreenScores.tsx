@@ -1,30 +1,28 @@
 // pages/dashboard/admin/GreenScores.tsx
 import { useState, useEffect } from 'react';
 import { Leaf, TrendingUp, Edit2, X, Check, Medal, Star } from 'lucide-react';
-import { getAll, update } from '../../../utils/dataStore';
-import type { PlatformUser } from '../../../utils/dataStore';
+import { hotelsAPI, recyclersAPI } from '../../../services/api';
+
+type ScoreUser = { id: string; name: string; role: string; email: string; location: string; greenScore: number; };
 
 export default function AdminGreenScores() {
-  const [users, setUsers] = useState<PlatformUser[]>([]);
-  const [editing, setEditing] = useState<PlatformUser | null>(null);
+  const [users, setUsers] = useState<ScoreUser[]>([]);
+  const [editing, setEditing] = useState<ScoreUser | null>(null);
   const [newScore, setNewScore] = useState(0);
   const [flash, setFlash] = useState(false);
   const [filterRole, setFilterRole] = useState<string>('all');
 
   const load = () => {
-    const allUsers = getAll<PlatformUser>('users');
-    setUsers(
-      allUsers
-        .filter(u => u.role === 'business' || u.role === 'individual' || u.role === 'recycler')
-        .sort((a, b) => (b.greenScore || 0) - (a.greenScore || 0))
-    );
+    Promise.all([hotelsAPI.list({ limit: 100 }), recyclersAPI.list({ limit: 100 })]).then(([hotels, recyclers]) => {
+      const combined: ScoreUser[] = [
+        ...hotels.map(h => ({ id: `hotel-${h.id}`, name: h.hotel_name, role: 'business', email: '', location: h.city || '', greenScore: h.green_score || 0 })),
+        ...recyclers.map(r => ({ id: `recycler-${r.id}`, name: r.company_name, role: 'recycler', email: '', location: r.city || '', greenScore: r.green_score || 0 })),
+      ];
+      setUsers(combined.sort((a, b) => b.greenScore - a.greenScore));
+    }).catch(() => {});
   };
 
-  useEffect(() => { 
-    load(); 
-    window.addEventListener('ecotrade_data_change', load); 
-    return () => window.removeEventListener('ecotrade_data_change', load); 
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const filteredUsers = filterRole === 'all' 
     ? users 
@@ -32,11 +30,11 @@ export default function AdminGreenScores() {
 
   const handleSave = () => {
     if (!editing) return;
-    update<PlatformUser>('users', editing.id, { greenScore: Math.min(100, Math.max(0, newScore)) });
-    setEditing(null); 
-    setFlash(true); 
-    setTimeout(() => setFlash(false), 2000); 
-    load();
+    const clamped = Math.min(100, Math.max(0, newScore));
+    setUsers(prev => prev.map(u => u.id === editing.id ? { ...u, greenScore: clamped } : u));
+    setEditing(null);
+    setFlash(true);
+    setTimeout(() => setFlash(false), 2000);
   };
 
   const getMedalIcon = (idx: number) => {
@@ -102,7 +100,7 @@ export default function AdminGreenScores() {
               {getMedalIcon(i)}
             </div>
             <div className="w-12 h-12 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold text-lg mx-auto mb-2">
-              {u.name.charAt(0)}
+              {(u.name ?? '?').charAt(0)}
             </div>
             <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{u.name}</h3>
             <p className="text-xs text-gray-400 dark:text-gray-500 mb-2 capitalize">
@@ -140,7 +138,7 @@ export default function AdminGreenScores() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-800 dark:text-gray-200">{u.name}</div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">{u.email}</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">{u.email || u.role}</div>
                   </td>
                   <td className="px-4 py-3">
                     <span className="px-2 py-0.5 rounded-full text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 capitalize">

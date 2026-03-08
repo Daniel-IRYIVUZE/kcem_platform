@@ -1,7 +1,6 @@
 // components/dashboard/business/BusinessRevenue.tsx
 import { useState, useEffect } from 'react';
-import { getAll } from '../../../utils/dataStore';
-import type { Transaction, PlatformUser } from '../../../utils/dataStore';
+import { transactionsAPI, type Transaction } from '../../../services/api';
 import { DollarSign, TrendingUp, BarChart3, Clock } from 'lucide-react';
 import StatCard from '../StatCard';
 import Widget from '../Widget';
@@ -10,32 +9,25 @@ import { revenueTrend } from './_shared';
 
 export default function BusinessRevenue() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = () => {
-      const users = getAll<PlatformUser>('users');
-      const hotel = users.find(u => u.role === 'business');
-      const hotelName = hotel?.name || 'Mille Collines Business';
-      
-      const allTransactions = getAll<Transaction>('transactions');
-      // Filter transactions where this business is the seller (from field)
-      const businessTransactions = allTransactions.filter(t => t.from === hotelName);
-      setTransactions(businessTransactions);
-    };
-    load();
-    window.addEventListener('ecotrade_data_change', load);
-    return () => window.removeEventListener('ecotrade_data_change', load);
+    transactionsAPI.mine({ limit: 200 } as Parameters<typeof transactionsAPI.mine>[0])
+      .then(data => setTransactions(Array.isArray(data) ? data : []))
+      .catch(() => setTransactions([]))
+      .finally(() => setLoading(false));
   }, []);
 
-  const totalRevenue = transactions.filter(t => t.status === 'completed').reduce((s, t) => s + t.amount, 0);
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const thisMonth = transactions.filter(t => t.status === 'completed' && t.date?.startsWith(currentMonth)).reduce((s, t) => s + t.amount, 0);
-  const avgPerListing = transactions.length > 0 ? Math.round(totalRevenue / transactions.length) : 0;
-  const pendingPayouts = transactions.filter(t => t.status === 'pending').reduce((s, t) => s + t.amount, 0);
+  const completed      = transactions.filter(t => t.status === 'completed');
+  const totalRevenue   = completed.reduce((s, t) => s + (t.amount || 0), 0);
+  const currentMonth   = new Date().toISOString().slice(0, 7);
+  const thisMonth      = completed.filter(t => t.created_at?.startsWith(currentMonth)).reduce((s, t) => s + (t.amount || 0), 0);
+  const avgPerListing  = completed.length > 0 ? Math.round(totalRevenue / completed.length) : 0;
+  const pendingPayouts = transactions.filter(t => t.status === 'pending').reduce((s, t) => s + (t.amount || 0), 0);
 
   const wasteTypeRevenue: Record<string, number> = {};
   transactions.forEach(t => {
-    wasteTypeRevenue[t.wasteType] = (wasteTypeRevenue[t.wasteType] || 0) + t.amount;
+    wasteTypeRevenue[t.waste_type || 'Other'] = (wasteTypeRevenue[t.waste_type || 'Other'] || 0) + (t.amount || 0);
   });
 
   const revenueByType = {
@@ -48,6 +40,7 @@ export default function BusinessRevenue() {
 
   return (
     <div className="space-y-6">
+      {loading ? <div className="text-center py-12 text-gray-400 dark:text-gray-500">Loading revenue data…</div> : null}
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Revenue</h1>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <StatCard title="Total Revenue" value={`RWF ${(totalRevenue / 1000).toFixed(0)}K`} icon={<DollarSign size={22} />} color="cyan" change={totalRevenue > 0 ? '+18%' : '0%'} />

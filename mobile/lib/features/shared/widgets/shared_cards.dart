@@ -116,13 +116,19 @@ class GreenScoreCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '🌱 Green Score',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+                const Row(
+                  children: [
+                    Icon(Icons.eco_rounded, color: Colors.white70, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      'Green Score',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(

@@ -123,7 +123,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                     shape: BoxShape.circle,
                   ),
                   child: const Center(
-                    child: Text('✉️', style: TextStyle(fontSize: 36)),
+                    child: Icon(Icons.mark_email_unread_rounded, color: AppColors.primary, size: 36),
                   ),
                 ),
               ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),

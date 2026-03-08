@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAll, downloadCSV } from '../../../utils/dataStore';
-import type { Collection } from '../../../utils/dataStore';
+import { collectionsAPI, type Collection } from '../../../services/api';
+import { downloadCSV } from '../../../utils/dataStore';
 import { CheckCircle, Package, Star, DollarSign, Download } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
@@ -8,21 +8,23 @@ import { completedJobs } from './_shared';
 
 export default function DriverCompletedJobs() {
   const [completedCols, setCompletedCols] = useState<Collection[]>([]);
-  const load = useCallback(() => setCompletedCols(getAll<Collection>('collections').filter(c => c.status === 'completed')), []);
-  useEffect(() => { load(); window.addEventListener('ecotrade_data_change', load); return () => window.removeEventListener('ecotrade_data_change', load); }, [load]);
+  const load = useCallback(() => {
+    collectionsAPI.list({ status: 'completed', limit: 100 }).then(setCompletedCols).catch(() => {});
+  }, []);
+  useEffect(() => { load(); }, [load]);
 
   const tableData = completedCols.length > 0
     ? completedCols.map(c => ({
-        id: c.id, date: c.completedAt?.split('T')[0] ?? c.scheduledDate,
-        route: c.location.split(',')[0] ?? 'Kigali', stops: 1,
-        totalWeight: `${c.actualWeight ?? c.volume} kg`,
-        duration: '2h', earnings: `RWF ${c.earnings.toLocaleString()}`,
+        id: c.id, date: c.completed_at?.split('T')[0] ?? c.scheduled_date,
+        route: (c.location || 'Kigali').split(',')[0], stops: 1,
+        totalWeight: `${c.actual_weight ?? c.volume} kg`,
+        duration: '2h', earnings: `RWF ${(c.earnings ?? 0).toLocaleString()}`,
         rating: c.rating ?? 4.8, issues: c.notes || 'None',
       }))
     : completedJobs;
 
-  const totalEarnings = completedCols.length > 0 ? completedCols.reduce((s, c) => s + c.earnings, 0) : 333000;
-  const totalWeight = completedCols.length > 0 ? (completedCols.reduce((s, c) => s + (c.actualWeight ?? c.volume), 0) / 1000).toFixed(1) + 't' : '10.1t';
+  const totalEarnings = completedCols.length > 0 ? completedCols.reduce((s, c) => s + (c.earnings ?? 0), 0) : 333000;
+  const totalWeight = completedCols.length > 0 ? (completedCols.reduce((s, c) => s + (c.actual_weight ?? c.volume), 0) / 1000).toFixed(1) + 't' : '10.1t';
   const avgRating = completedCols.length > 0 ? (completedCols.reduce((s, c) => s + (c.rating ?? 4.8), 0) / completedCols.length).toFixed(1) : '4.8';
 
   return (

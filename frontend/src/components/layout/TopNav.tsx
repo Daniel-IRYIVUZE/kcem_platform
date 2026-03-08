@@ -60,7 +60,6 @@ const TopNav = ({ user }: TopNavProps) => {
     <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 px-3 sm:px-6 py-3 sm:py-4 transition-colors duration-300 relative z-30">
       <div className="flex items-center justify-between gap-2 sm:gap-4">
         <div className="flex items-center gap-2 md:hidden shrink-0">
-          <img src="/images/EcoTrade.png" alt="EcoTrade Rwanda" className="h-9 object-contain" />
         </div>
         <div className="flex-1 max-w-2xl hidden sm:block">
           <div className="relative">
@@ -107,15 +106,15 @@ const TopNav = ({ user }: TopNavProps) => {
                   {notifications.length === 0 ? (
                     <div className="py-10 text-center text-gray-400 text-sm">No notifications yet</div>
                   ) : notifications.slice(0, 20).map(n => (
-                    <div key={n.id} onClick={() => handleNotifClick(n.id, n.link)}
-                      className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors group ${!n.read ? 'bg-cyan-50/60 dark:bg-cyan-900/10 hover:bg-cyan-50' : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}>
-                      <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${typeColors[n.type] || 'bg-gray-400'}`} />
+                    <div key={String(n.id)} onClick={() => handleNotifClick(String(n.id), n.link || '')}
+                      className={`flex items-start gap-3 px-4 py-3 cursor-pointer transition-colors group ${!(n.read || n.is_read) ? 'bg-cyan-50/60 dark:bg-cyan-900/10 hover:bg-cyan-50' : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}>
+                      <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${typeColors[String(n.type || '')] || 'bg-gray-400'}`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-snug">{n.title}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{n.message}</p>
-                        <p className="text-[11px] text-gray-400 mt-1">{timeAgo(n.time)}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{n.body || n.message || ''}</p>
+                        <p className="text-[11px] text-gray-400 mt-1">{timeAgo(String(n.created_at || n.time || new Date()))}</p>
                       </div>
-                      <button onClick={e => { e.stopPropagation(); remove(n.id); }}
+                      <button onClick={e => { e.stopPropagation(); remove(String(n.id)); }}
                         className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-opacity shrink-0">
                         <Trash2 size={13} />
                       </button>

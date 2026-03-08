@@ -7,7 +7,7 @@ const socialPosts = [
     icon: Twitter,
     color: 'text-blue-400',
     username: '@EcoTradeRW',
-    content: 'Excited to announce that we\'ve diverted 1,247 tons of waste from Nduba landfill! Thanks to our 156 partner hotels and 23 recyclers. #CircularEconomy #Kigali',
+    content: 'Excited to announce that we\'ve diverted 0.1 tons of waste from Nduba landfill! Thanks to our 12 partner hotels and 23 recyclers. #CircularEconomy #Kigali',
     time: '2h ago',
     likes: 234,
     retweets: 89,

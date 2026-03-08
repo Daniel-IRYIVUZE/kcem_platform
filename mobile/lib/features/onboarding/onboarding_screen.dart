@@ -19,7 +19,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<OnboardingData> _pages = [
     OnboardingData(
-      emoji: '🌿',
+      icon: Icons.eco_rounded,
       bgColor: const Color(0xFFECFDF5),
       accentColor: AppColors.primary,
       headline: 'Turn Waste\ninto Value',
@@ -27,7 +27,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       isHero: true,
     ),
     OnboardingData(
-      emoji: '🏨',
+      icon: Icons.business_outlined,
       bgColor: const Color(0xFFF5F3FF),
       accentColor: AppColors.hotelColor,
       headline: 'For Hotels\n& Businesses',
@@ -36,7 +36,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       features: ['Earn from waste', 'Easy pickup scheduling', 'Track revenue'],
     ),
     OnboardingData(
-      emoji: '♻️',
+      icon: Icons.recycling_rounded,
       bgColor: const Color(0xFFECFDF5),
       accentColor: AppColors.recyclerColor,
       headline: 'For Recyclers\n& Processors',
@@ -45,7 +45,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       features: ['Direct sourcing', 'Quality assured', 'Bulk deals'],
     ),
     OnboardingData(
-      emoji: '🚛',
+      icon: Icons.local_shipping_rounded,
       bgColor: const Color(0xFFEFF6FF),
       accentColor: AppColors.driverColor,
       headline: 'For Drivers\n& Collectors',
@@ -54,7 +54,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       features: ['Flexible hours', 'Route optimization', 'Instant pay'],
     ),
     OnboardingData(
-      emoji: '⚡',
+      icon: Icons.rocket_launch_rounded,
       bgColor: const Color(0xFFFFFBEB),
       accentColor: AppColors.accent,
       headline: 'Everything\nYou Need',
@@ -185,7 +185,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 class OnboardingData {
-  final String emoji;
+  final IconData icon;
   final Color bgColor;
   final Color accentColor;
   final String headline;
@@ -195,7 +195,7 @@ class OnboardingData {
   final List<String> features;
 
   const OnboardingData({
-    required this.emoji,
+    required this.icon,
     required this.bgColor,
     required this.accentColor,
     required this.headline,
@@ -239,48 +239,51 @@ class _OnboardingPage extends StatelessWidget {
                 curve: Curves.easeOut,
               ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 16),
 
           // Text content
           Expanded(
             flex: 3,
-            child: Column(
-              children: [
-                Text(
-                  data.headline,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    height: 1.15,
-                    letterSpacing: -0.5,
-                  ),
-                ).animate().slideY(begin: 0.3, duration: 400.ms, delay: 100.ms).fadeIn(),
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  Text(
+                    data.headline,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      height: 1.15,
+                      letterSpacing: -0.5,
+                    ),
+                  ).animate().slideY(begin: 0.3, duration: 400.ms, delay: 100.ms).fadeIn(),
 
-                const SizedBox(height: 12),
+                  const SizedBox(height: 8),
 
-                Text(
-                  data.subheadline,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.textSecondary,
-                    height: 1.6,
-                  ),
-                ).animate().slideY(begin: 0.3, duration: 400.ms, delay: 200.ms).fadeIn(),
+                  Text(
+                    data.subheadline,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
+                  ).animate().slideY(begin: 0.3, duration: 400.ms, delay: 200.ms).fadeIn(),
 
-                if (data.features.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment: WrapAlignment.center,
-                    children: data.features.map((f) => _FeatureChip(label: f, color: data.accentColor)).toList(),
-                  ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
+                  if (data.features.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.center,
+                      children: data.features.map((f) => _FeatureChip(label: f, color: data.accentColor)).toList(),
+                    ).animate().fadeIn(duration: 400.ms, delay: 300.ms),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
@@ -298,7 +301,6 @@ class _HeroIllustration extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Background circles
         for (int i = 0; i < 3; i++)
           Container(
             width: 80.0 + (i * 70),
@@ -308,8 +310,7 @@ class _HeroIllustration extends StatelessWidget {
               color: data.accentColor.withOpacity(0.08 - (i * 0.02)),
             ),
           ),
-        // Emoji
-        Text(data.emoji, style: const TextStyle(fontSize: 80)),
+        Icon(data.icon, size: 80, color: data.accentColor),
       ],
     );
   }
@@ -332,7 +333,7 @@ class _RoleIllustration extends StatelessWidget {
             shape: BoxShape.circle,
           ),
           child: Center(
-            child: Text(data.emoji, style: const TextStyle(fontSize: 58)),
+            child: Icon(data.icon, size: 58, color: data.accentColor),
           ),
         ),
       ],
@@ -344,13 +345,13 @@ class _FeatureGrid extends StatelessWidget {
   final Color accentColor;
   const _FeatureGrid({required this.accentColor});
 
-  final List<Map<String, dynamic>> features = const [
-    {'icon': '📱', 'label': 'Offline Mode'},
-    {'icon': '📍', 'label': 'Live Tracking'},
-    {'icon': '💳', 'label': 'Instant Payments'},
-    {'icon': '🌱', 'label': 'Green Score'},
-    {'icon': '🛡️', 'label': 'Secure & Safe'},
-    {'icon': '📊', 'label': 'Analytics'},
+  static const List<Map<String, dynamic>> features = [
+    {'icon': Icons.phone_android_rounded,    'label': 'Offline Mode',      'color': Color(0xFF0891B2)},
+    {'icon': Icons.location_on_rounded,      'label': 'Live Tracking',     'color': Color(0xFFDC2626)},
+    {'icon': Icons.payment_rounded,          'label': 'Instant Payments',  'color': Color(0xFF059669)},
+    {'icon': Icons.eco_rounded,              'label': 'Green Score',       'color': Color(0xFF16A34A)},
+    {'icon': Icons.shield_rounded,           'label': 'Secure & Safe',     'color': Color(0xFF7C3AED)},
+    {'icon': Icons.bar_chart_rounded,        'label': 'Analytics',         'color': Color(0xFFF59E0B)},
   ];
 
   @override
@@ -381,10 +382,14 @@ class _FeatureGrid extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(features[index]['icon'], style: const TextStyle(fontSize: 28)),
+                Icon(
+                  features[index]['icon'] as IconData,
+                  size: 28,
+                  color: features[index]['color'] as Color,
+                ),
                 const SizedBox(height: 6),
                 Text(
-                  features[index]['label'],
+                  features[index]['label'] as String,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 11,

@@ -2,56 +2,133 @@
 import { useEffect, useState } from 'react';
 import { MapPin, Eye, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getAll } from '../../utils/dataStore';
-import type { WasteListing } from '../../utils/dataStore';
+import { listingsAPI, type Bid } from '../../services/api';
 
 
 const MarketplacePreview = () => {
   const navigate = useNavigate();
   const [listings, setListings] = useState<any[]>([]);
+  const [stats, setStats] = useState({
+    totalActive: 0,
+    totalVolume: 0,
+    activeRecyclers: 0,
+    avgPrice: 0,
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = () => {
-      const dbListings = getAll<WasteListing>('listings').filter(l => l.status === 'open').slice(0, 4);
-      const imageMap: Record<string, string> = {
-        'UCO': 'https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=400',
-        'Glass': 'https://images.unsplash.com/photo-1527965498000-2d5b54c4e28c?w=400',
-        'Paper/Cardboard': 'https://images.unsplash.com/photo-1607582278229-2f688c009b02?w=400',
-        'Mixed': 'https://images.unsplash.com/photo-1527090526205-beaac8dc3a62?w=400',
-      };
-      
-      setListings(dbListings.map(l => {
-        const bids = Array.isArray(l.bids) ? l.bids : [];
-        const topBid = [...bids].sort((a, b) => b.amount - a.amount)[0];
-        const expiresAt = new Date(l.expiresAt).getTime();
-        const minutesLeft = Number.isFinite(expiresAt) ? Math.max(0, Math.floor((expiresAt - Date.now()) / 60000)) : 0;
-        const timeLeft = minutesLeft > 0 ? `${Math.floor(minutesLeft/60)}h ${minutesLeft%60}m` : 'Expired';
-        return {
-          id: l.id,
-          hotel: l.businessName || l.hotelName || 'Unknown Hotel',
-          type: l.wasteType,
-          volume: `${l.volume ?? 0} ${l.unit ?? 'kg'}`,
-          location: l.location || 'Kigali',
-          distance: '2.3 km',
-          timeLeft,
-          image: imageMap[l.wasteType as string] || imageMap['Mixed'],
-          bidCount: bids.length,
-          currentBid: `RWF ${(topBid?.amount || l.minBid || 0).toLocaleString()}`,
-          _id: l.id,
-        };
-      }));
-    };
-    load();
-    window.addEventListener('ecotrade_data_change', load);
-    return () => window.removeEventListener('ecotrade_data_change', load);
-  }, []);
+    const loadListings = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all listings from backend
+        const allListings = await listingsAPI.list();
+        const openListings = allListings
+          .filter(l => String(l.status).toLowerCase() === 'open')
+          .slice(0, 4);
 
-  // Get stats from real data
-  const allListings = getAll<WasteListing>('listings');
-  const totalActive = allListings.filter(l => l.status === 'open').length;
-  const totalVolume = (allListings.reduce((s, l) => s + (l.volume || 0), 0) / 1000).toFixed(1);
-  const activeRecyclers = new Set(allListings.flatMap(l => (Array.isArray(l.bids) ? l.bids : []).map(b => b.recyclerName))).size;
-  const avgPrice = Math.round(allListings.reduce((s, l) => s + (l.minBid || 0), 0) / Math.max(allListings.length, 1));
+        // Fetch bids for each listing
+        const imageMap: Record<string, string> = {
+          'uco': 'https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=400',
+          'UCO': 'https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=400',
+          'glass': 'https://images.unsplash.com/photo-1527965498000-2d5b54c4e28c?w=400',
+          'Glass': 'https://images.unsplash.com/photo-1527965498000-2d5b54c4e28c?w=400',
+          'paper': 'https://images.unsplash.com/photo-1607582278229-2f688c009b02?w=400',
+          'Paper/Cardboard': 'https://images.unsplash.com/photo-1607582278229-2f688c009b02?w=400',
+          'plastic': 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=400',
+          'Plastic': 'https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=400',
+          'mixed': 'https://images.unsplash.com/photo-1527090526205-beaac8dc3a62?w=400',
+          'Mixed': 'https://images.unsplash.com/photo-1527090526205-beaac8dc3a62?w=400',
+        };
+
+        const processedListings = await Promise.all(
+          openListings.map(async (listing) => {
+            try {
+              const bids = await listingsAPI.getBids(listing.id);
+              const topBid = [...bids].sort((a, b) => b.amount - a.amount)[0];
+              
+              const expiresAt = listing.expires_at ? new Date(listing.expires_at).getTime() : Date.now();
+              const minutesLeft = Math.max(0, Math.floor((expiresAt - Date.now()) / 60000));
+              const timeLeft = minutesLeft > 0 ? `${Math.floor(minutesLeft / 60)}h ${minutesLeft % 60}m` : 'Expired';
+              const typeKey = listing.waste_type?.toLowerCase() || 'mixed';
+              const imageKey = Object.keys(imageMap).find(k => k.toLowerCase() === typeKey) || 'Mixed';
+
+              return {
+                id: listing.id,
+                hotel: listing.hotel_name || 'Unknown Hotel',
+                type: listing.waste_type,
+                volume: `${Math.round(listing.volume ?? 0).toLocaleString()} ${listing.unit ?? 'kg'}`,
+                location: listing.location || listing.address || 'Kigali',
+                distance: '2.3 km',
+                timeLeft,
+                image: imageMap[imageKey] || imageMap['Mixed'],
+                bidCount: bids.length,
+                currentBid: `RWF ${Math.round(topBid?.amount || listing.min_bid || 0).toLocaleString()}`,
+                minBid: listing.min_bid,
+                _id: listing.id,
+              };
+            } catch {
+              // If bids fetch fails, return listing without bids
+              const expiresAt = listing.expires_at ? new Date(listing.expires_at).getTime() : Date.now();
+              const minutesLeft = Math.max(0, Math.floor((expiresAt - Date.now()) / 60000));
+              const timeLeft = minutesLeft > 0 ? `${Math.floor(minutesLeft / 60)}h ${minutesLeft % 60}m` : 'Expired';
+              const typeKey = listing.waste_type?.toLowerCase() || 'mixed';
+              const imageKey = Object.keys(imageMap).find(k => k.toLowerCase() === typeKey) || 'Mixed';
+
+              return {
+                id: listing.id,
+                hotel: listing.hotel_name || 'Unknown Hotel',
+                type: listing.waste_type,
+                volume: `${Math.round(listing.volume ?? 0).toLocaleString()} ${listing.unit ?? 'kg'}`,
+                location: listing.location || listing.address || 'Kigali',
+                distance: '2.3 km',
+                timeLeft,
+                image: imageMap[imageKey] || imageMap['Mixed'],
+                bidCount: 0,
+                currentBid: `RWF ${Math.round(listing.min_bid || 0).toLocaleString()}`,
+                minBid: listing.min_bid,
+                _id: listing.id,
+              };
+            }
+          })
+        );
+
+        setListings(processedListings);
+
+        // Calculate stats from all listings
+        const totalActive = allListings.filter(l => String(l.status).toLowerCase() === 'open').length;
+        const totalVolumeKg = allListings.reduce((s, l) => s + (l.volume || 0), 0);
+        const totalVolume = Math.round(totalVolumeKg / 1000);
+        
+        // Count unique recyclers from all bids
+        const allBids: Bid[] = [];
+        for (const listing of allListings) {
+          try {
+            const bids = await listingsAPI.getBids(listing.id);
+            allBids.push(...bids);
+          } catch {
+            // Skip if bid fetch fails
+          }
+        }
+        const activeRecyclers = new Set(allBids.map(b => b.recycler_id)).size;
+        const avgPrice = Math.round(allListings.reduce((s, l) => s + (l.min_bid || 0), 0) / Math.max(allListings.length, 1));
+
+        setStats({
+          totalActive,
+          totalVolume,
+          activeRecyclers,
+          avgPrice,
+        });
+      } catch (err) {
+        console.error('Failed to load marketplace preview:', err);
+        setListings([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadListings();
+  }, []);
 
   return (
     <section className="py-20 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
@@ -77,7 +154,12 @@ const MarketplacePreview = () => {
 
         {/* Listings Grid */}
         <div className="grid lg:grid-cols-4 gap-6">
-          {listings.length > 0 ? listings.map((listing) => (
+          {loading ? (
+            <div className="col-span-full text-center py-12">
+              <p className="text-gray-500 dark:text-gray-400">Loading listings...</p>
+            </div>
+          ) : listings.length > 0 ? (
+            listings.map((listing) => (
             <div
               key={listing._id}
               className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 overflow-hidden group"
@@ -135,7 +217,8 @@ const MarketplacePreview = () => {
                 </div>
               </div>
             </div>
-          )) : (
+            ))
+          ) : (
             <div className="col-span-full text-center py-12">
               <p className="text-gray-500 dark:text-gray-400">No active listings available</p>
             </div>
@@ -156,19 +239,19 @@ const MarketplacePreview = () => {
         {/* Quick Stats - Real Data */}
         <div className="mt-12 grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-cyan-600">{totalActive}</div>
+            <div className="text-2xl font-bold text-cyan-600">{stats.totalActive}</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Active Listings</div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-cyan-600">{totalVolume}</div>
+            <div className="text-2xl font-bold text-cyan-600">{stats.totalVolume}</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Tons Available</div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-cyan-600">{activeRecyclers}</div>
+            <div className="text-2xl font-bold text-cyan-600">{stats.activeRecyclers}</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Active Recyclers</div>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center">
-            <div className="text-2xl font-bold text-cyan-600">{(avgPrice / 1000).toFixed(0)}K</div>
+            <div className="text-2xl font-bold text-cyan-600">{(stats.avgPrice / 1000).toFixed(0)}K</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Avg. Min Bid</div>
           </div>
         </div>

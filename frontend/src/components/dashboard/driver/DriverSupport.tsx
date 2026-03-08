@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { create, generateId } from '../../../utils/dataStore';
-import type { SupportTicket } from '../../../utils/dataStore';
+import { supportAPI } from '../../../services/api';
 import { CheckCircle, Phone, ChevronRight } from 'lucide-react';
-import { driverProfile } from './_shared';
 
 const faqs = [
   { q: 'What do I do if I miss a collection stop?', a: 'Immediately contact fleet dispatch via the app or call the emergency line. Log the reason for the miss in the job notes.' },
@@ -18,20 +16,11 @@ export default function DriverSupport() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const now = new Date().toISOString();
-    const ticket: SupportTicket = {
-      id: generateId(),
-      userId: 'driver-001',
-      userName: driverProfile.name,
+    supportAPI.create({
       subject: `[${form.category}] ${form.subject}`,
-      status: 'open',
-      priority: 'medium',
       message: form.message,
-      createdAt: now,
-      updatedAt: now,
-      responses: [],
-    };
-    create<SupportTicket>('supportTickets', ticket);
+      priority: 'medium',
+    }).catch(() => {});
     setSubmitted(true);
     setForm({ subject: '', category: 'Route Issue', message: '' });
     setTimeout(() => setSubmitted(false), 4000);

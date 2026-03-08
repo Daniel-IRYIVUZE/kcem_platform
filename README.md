@@ -2,11 +2,11 @@
 
 EcoTrade Rwanda is a digital B2B circular economy marketplace that connects waste generators (hotels, restaurants, and businesses) with recyclers, drivers, and individual collectors in Kigali, Rwanda. The platform enables transparent waste-to-resource transactions, promotes environmental sustainability, and creates economic opportunities.
 
-The platform consists of three codebases:
+The platform consists of three fully implemented codebases:
 
-- Web Frontend — a React and TypeScript single-page application
-- Mobile Application — a Flutter app for Android, iOS, and Windows
-- Backend API — a FastAPI REST API server (currently in development)
+- **Web Frontend** — a React and TypeScript single-page application connected to the live backend
+- **Mobile Application** — a Flutter app for Android, iOS, and Web with real OpenStreetMap integration
+- **Backend API** — a production-ready FastAPI REST server with SQLite, JWT auth, and 14 route modules
 
 GitHub: https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git
 Live Demo: https://ecotrade-rwanda.netlify.app
@@ -47,20 +47,23 @@ The platform tracks environmental impact metrics including CO2 savings, water sa
 
 ```
 EcoTrade_Rwanda/
-├── README.md              # This file — combined platform overview
+├── README.md          # This file — combined platform overview
 ├── LICENSE
-├── frontend/              # React + TypeScript web application
+├── frontend/          # React + TypeScript web application
 │   ├── src/
 │   ├── public/
 │   ├── package.json
-│   └── README.md          # Frontend-specific setup guide
-├── mobile/                # Flutter mobile and desktop application
+│   └── README.md      # Frontend-specific setup guide
+├── mobile/            # Flutter mobile and web application
 │   ├── lib/
 │   ├── assets/
 │   ├── pubspec.yaml
-│   └── README.md          # Mobile-specific setup guide
-└── backend/               # FastAPI Python backend (in development)
-    └── README.md          # Backend-specific setup guide
+│   └── README.md      # Mobile-specific setup guide
+└── backend/           # FastAPI Python REST API
+    ├── app/
+    ├── seed_comprehensive.py
+    ├── requirements.txt
+    └── README.md      # Backend-specific setup guide
 ```
 
 ---
@@ -150,22 +153,21 @@ flutter run -d <device-id>
 Common device targets:
 
 ```bash
-flutter run -d android     # Android emulator or device
-flutter run -d windows     # Windows desktop
-flutter run -d chrome      # Web browser
+flutter run -d android # Android emulator or device
+flutter run -d windows # Windows desktop
+flutter run -d chrome # Web browser
 ```
 
 ---
 
 ## Backend — Quick Start
 
-The backend API is planned with FastAPI. Full instructions are in [backend/README.md](./backend/README.md).
+The backend API is a fully implemented FastAPI server. Full instructions are in [backend/README.md](./backend/README.md).
 
 ### Prerequisites
 
 - Python 3.10 or higher
 - pip
-- PostgreSQL (or SQLite for local development)
 
 ### Steps
 
@@ -179,51 +181,44 @@ cd backend
 
 ```bash
 python -m venv venv
-venv\Scripts\activate        # Windows
-source venv/bin/activate     # Linux or macOS
+venv\Scripts\activate         # Windows
+source venv/bin/activate      # Linux or macOS
 ```
 
 3. Install dependencies:
 
 ```bash
-pip install -r requirements.txt
+pip install --prefer-binary -r requirements.txt
 ```
 
-4. Configure environment variables:
+4. Seed demo data:
 
 ```bash
-cp .env.example .env
-# Edit .env with your database and secret key settings
+python seed_comprehensive.py
 ```
 
-5. Apply database migrations:
+5. Start the development server:
 
 ```bash
-alembic upgrade head
+python -m uvicorn app.main:app --reload --port 8000
 ```
 
-6. Start the development server:
-
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-The API will be available at http://localhost:8000
-API documentation will be at http://localhost:8000/docs
+The API will be available at http://localhost:8000  
+Interactive docs (Swagger UI) at http://localhost:8000/api/docs
 
 ---
 
 ## Demo Login Credentials
 
-All demo accounts use OTP code 123456 for two-factor authentication.
+All demo accounts share the same password after running `seed_comprehensive.py`.
 
-| Role       | Email                    | Password     | Dashboard Path           |
-|------------|--------------------------|--------------|--------------------------|
-| Admin      | admin@ecotrade.rw        | admin123     | /dashboard/admin         |
-| Business   | business@ecotrade.rw     | business123  | /dashboard/business      |
-| Recycler   | recycler@ecotrade.rw     | recycler123  | /dashboard/recycler      |
-| Driver     | driver@ecotrade.rw       | driver123    | /dashboard/driver        |
-| Individual | marieclaire@gmail.com    | user123      | /dashboard/individual    |
+| Role | Email | Password |
+|------------|--------------------------------|----------------|
+| Admin | admin@ecotrade.rw | Password123! |
+| Business | hotel@kigali.rw | Password123! |
+| Recycler | recycler@greencycle.rw | Password123! |
+| Driver | driver@greencycle.rw | Password123! |
+| Individual | individual@example.com | Password123! |
 
 ---
 
@@ -232,14 +227,23 @@ All demo accounts use OTP code 123456 for two-factor authentication.
 ### Multi-Role Dashboards
 - Admin — platform oversight, user management, analytics, PDF reports
 - Business — waste listings, pickup scheduling, Green Score, financials
-- Recycler — marketplace browsing, inventory, supplier network
-- Driver — route assignments, daily schedule, earnings statements
+- Recycler — marketplace browsing, bidding, inventory, supplier network
+- Driver — real-time route map, daily schedule, earnings statements
 - Individual — impact metrics, waste listings, community participation
 
 ### Waste Marketplace
-- Listings for used cooking oil, glass, paper, plastic, and mixed waste
-- Bid submission and acceptance workflow
+- Listings for used cooking oil, glass, paper/cardboard, plastic, metal, e-waste, and mixed waste
+- Real-time bid submission, acceptance, and outbid notifications
 - Status tracking from open through assigned, collected, and completed
+- **Web:** Interactive Leaflet map with hotel clustering, colored waste-type pins, cyan distance lines, and business card popups
+- **Mobile:** Real OpenStreetMap tiles via flutter_map on every map surface
+
+### Real OpenStreetMap Integration (flutter_map)
+- Register screen — interactive location picker with draggable marker
+- Driver navigation — live route map with stop markers and zoom controls
+- Recycler home — nearby listings preview map (Kigali, non-interactive)
+- Marketplace map view — all listings plotted at real hotel coordinates
+- List Waste screen — tap-to-move pin for picking pickup location
 
 ### Environmental Impact
 - Green Score certification per business
@@ -247,33 +251,34 @@ All demo accounts use OTP code 123456 for two-factor authentication.
 - Monthly sustainability reports with PDF export
 
 ### Security
-- Email and password authentication
-- Two-factor authentication with OTP
-- Role-based access control on all routes
-- JWT token authentication for API requests
+- Email and password authentication with JWT (access + refresh tokens)
+- Role-based access control on all API routes
+- bcrypt password hashing
 
 ### Offline Support
-- Web frontend works fully offline using localStorage
-- Mobile app works offline using Hive local storage
+- Web frontend falls back to localStorage when backend is unreachable
+- Mobile app falls back to cached Riverpod state when API is unavailable
 - Data syncs to the backend when connectivity is restored
 
 ---
 
 ## Technology Stack
 
-| Layer             | Technology                    |
-|-------------------|-------------------------------|
-| Web Framework     | React 19 with TypeScript      |
-| Web Build Tool    | Vite 7                        |
-| Web Styling       | TailwindCSS 4                 |
-| Web State         | React Context API             |
-| Mobile Framework  | Flutter 3.2+                  |
-| Mobile Language   | Dart 3.2+                     |
-| Mobile State      | Riverpod                      |
-| Mobile Storage    | Hive + SQLite                 |
-| Backend Framework | FastAPI (Python)              |
-| Backend Database  | SQLite                        |
-| Backend Auth      | JWT + bcrypt                  |
+| Layer | Technology |
+|-------------------|-----------------------------------|
+| Web Framework | React 19 with TypeScript |
+| Web Build Tool | Vite 7 |
+| Web Styling | TailwindCSS 4 |
+| Web Maps | Leaflet.js (react-leaflet) |
+| Web State | React Context API |
+| Mobile Framework | Flutter 3.2+ |
+| Mobile Language | Dart 3.2+ |
+| Mobile State | flutter_riverpod 2.6 |
+| Mobile Maps | flutter_map 6.2 + OpenStreetMap |
+| Mobile Navigation | go_router 13 |
+| Backend Framework | FastAPI (Python 3.10+) |
+| Backend ORM | SQLAlchemy + SQLite |
+| Backend Auth | JWT (python-jose) + bcrypt |
 
 ---
 

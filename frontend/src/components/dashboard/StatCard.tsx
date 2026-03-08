@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { ResponsiveContainer, LineChart, Line, Tooltip } from 'recharts';
 
-type StatCardColor = 'cyan' | 'blue' | 'red' | 'yellow' | 'purple' | 'orange' | 'gray' | 'emerald';
+type StatCardColor = 'cyan' | 'blue' | 'red' | 'yellow' | 'purple' | 'orange' | 'gray' | 'cyan';
 
 type StatCardProps = {
   title: string;
@@ -28,7 +28,6 @@ const colorMap: Record<StatCardColor, { icon: string; iconBg: string; bar: strin
   yellow:  { icon: 'text-amber-600 dark:text-amber-400',  iconBg: 'bg-amber-100 dark:bg-amber-900/30',  bar: 'bg-amber-500',   spark: '#f59e0b', change: 'text-amber-600 dark:text-amber-400' },
   purple:  { icon: 'text-purple-600 dark:text-purple-400', iconBg: 'bg-purple-100 dark:bg-purple-900/30', bar: 'bg-purple-500', spark: '#a855f7', change: 'text-purple-600 dark:text-purple-400' },
   orange:  { icon: 'text-orange-600 dark:text-orange-400', iconBg: 'bg-orange-100 dark:bg-orange-900/30', bar: 'bg-orange-500', spark: '#f97316', change: 'text-orange-600 dark:text-orange-400' },
-  emerald: { icon: 'text-emerald-600 dark:text-emerald-400', iconBg: 'bg-emerald-100 dark:bg-emerald-900/30', bar: 'bg-emerald-500', spark: '#10b981', change: 'text-emerald-600 dark:text-emerald-400' },
   gray:    { icon: 'text-gray-600 dark:text-gray-400',    iconBg: 'bg-gray-100 dark:bg-gray-700',       bar: 'bg-gray-500',    spark: '#6b7280', change: 'text-gray-600 dark:text-gray-400' },
 };
 
@@ -68,7 +67,7 @@ const StatCard = ({ title, value, icon, subtitle, change, progress, color = 'cya
   const autoTrend: 'up' | 'down' | 'neutral' = trend
     ?? (change?.startsWith('+') ? 'up' : change?.startsWith('-') ? 'down' : 'neutral');
 
-  const trendColor = autoTrend === 'up' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+  const trendColor = autoTrend === 'up' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20'
     : autoTrend === 'down' ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20'
     : 'text-gray-500 bg-gray-100 dark:bg-gray-800';
 

@@ -57,6 +57,7 @@ class WasteListing(Base):
     highest_bid          = Column(Float, default=0.0)
     accepted_bid_id      = Column(Integer, nullable=True)
     expires_at           = Column(DateTime(timezone=True), nullable=True)
+    image_url            = Column(String(500), nullable=True)
     is_urgent            = Column(Boolean, default=False)
     notes                = Column(Text, nullable=True)
     view_count           = Column(Integer, default=0)
@@ -69,6 +70,22 @@ class WasteListing(Base):
     bids        = relationship("Bid", back_populates="listing", cascade="all, delete-orphan")
     collection  = relationship("Collection", back_populates="listing", uselist=False)
     transaction = relationship("Transaction", back_populates="listing", uselist=False)
+
+    @property
+    def hotel_name(self) -> str | None:
+        return self.hotel.hotel_name if self.hotel else None
+
+    @property
+    def hotel_city(self) -> str | None:
+        return self.hotel.city if self.hotel else None
+
+    @property
+    def hotel_latitude(self) -> float | None:
+        return self.hotel.latitude if self.hotel else None
+
+    @property
+    def hotel_longitude(self) -> float | None:
+        return self.hotel.longitude if self.hotel else None
 
 
 class ListingImage(Base):

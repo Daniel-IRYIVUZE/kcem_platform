@@ -138,7 +138,7 @@ const ListingDetailModal = ({ listing, onClose, onBid }: ListingDetailModalProps
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-xl">
                   <p className="text-xs text-gray-500 dark:text-gray-400">Volume</p>
-                  <p className="font-bold text-gray-900 dark:text-white">{listing.volume} {listing.unit}</p>
+                  <p className="font-bold text-gray-900 dark:text-white">{Math.round(listing.volume).toLocaleString()} {listing.unit}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-xl">
                   <p className="text-xs text-gray-500 dark:text-gray-400">Quality</p>
@@ -171,7 +171,7 @@ const ListingDetailModal = ({ listing, onClose, onBid }: ListingDetailModalProps
                           <p className="font-semibold text-gray-900 dark:text-white">{bid.recycler}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{bid.time}</p>
                         </div>
-                        <p className="font-bold text-cyan-600">RWF {bid.amount.toLocaleString()}</p>
+                        <p className="font-bold text-cyan-600">RWF {Math.round(bid.amount).toLocaleString()}</p>
                       </div>
                     ))}
                   </div>

@@ -1,8 +1,5 @@
-// pages/MarketplacePage.tsx
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, CheckCircle } from 'lucide-react';
-import { getAll, update as dsUpdate, generateId } from '../../utils/dataStore';
-import type { WasteListing, Bid } from '../../utils/dataStore';
 import Navbar from '../../components/common/Navbar/Navbar';
 import Footer from '../../components/common/Footer/Footer';
 import MarketplaceHero from '../../components/marketplace/MarketplaceHero';
@@ -14,6 +11,9 @@ import QuickBidModal from '../../components/marketplace/QuickBidModal';
 import ListingDetailModal from '../../components/marketplace/ListingDetailModal';
 import ViewToggle from '../../components/marketplace/ViewToggle';
 import MarketplaceSidebar from '../../components/marketplace/MarketplaceSidebar';
+import { listingsAPI, type WasteListing } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { syncFromAPI } from '../../utils/apiSync';
 
 interface Toast {
   id: number;
@@ -21,229 +21,183 @@ interface Toast {
   type: 'success' | 'error';
 }
 
+interface ListingViewModel {
+  id: number;
+  business: string;
+  businessRating: number;
+  verified: boolean;
+  type: string;
+  category: string;
+  volume: number;
+  unit: string;
+  location: string;
+  coordinates: { lat: number; lng: number };
+  distance: number;
+  timeLeft: string;
+  timeLeftMinutes: number;
+  image: string;
+  bidCount: number;
+  currentBid: number;
+  estimatedValue: number;
+  quality: string;
+  description: string;
+  photos: string[];
+  bids: Array<{ recycler: string; amount: number; time: string }>;
+}
+
+const CATEGORY_MAP: Record<string, string> = {
+  uco: 'UCO',
+  used_cooking_oil: 'UCO',
+  cooking_oil: 'UCO',
+  glass: 'Glass',
+  paper: 'Paper',
+  cardboard: 'Cardboard',
+  paper_cardboard: 'Cardboard',
+  'paper/cardboard': 'Cardboard',
+  plastic: 'Plastic',
+  metal: 'Metal',
+  organic: 'Organic',
+  food: 'Organic',
+  mixed: 'Mixed',
+  electronic: 'Mixed',
+  textile: 'Mixed',
+  other: 'Mixed',
+};
+
+// High-quality Unsplash images per waste category
+const IMAGE_MAP: Record<string, string> = {
+  UCO: 'https://images.unsplash.com/photo-1528803689045-db3310f02a0e?w=600&auto=format&fit=crop',
+  Glass: 'https://images.unsplash.com/photo-1577401239170-897942555fb3?w=600&auto=format&fit=crop',
+  Paper: 'https://images.unsplash.com/photo-1571204829887-3b8d69e4094d?w=600&auto=format&fit=crop',
+  Cardboard: 'https://images.unsplash.com/photo-1565793979079-60b777cf9f41?w=600&auto=format&fit=crop',
+  Plastic: 'https://images.unsplash.com/photo-1611284446314-60a58ac0deb9?w=600&auto=format&fit=crop',
+  Metal: 'https://images.unsplash.com/photo-1605627079912-97c3810a11a4?w=600&auto=format&fit=crop',
+  Organic: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&auto=format&fit=crop',
+  Mixed: 'https://images.unsplash.com/photo-1532996122724-e3c679b576d8?w=600&auto=format&fit=crop',
+};
+
+function getTimeLeft(expiresAt?: string): { text: string; minutes: number } {
+  if (!expiresAt) return { text: 'Open', minutes: 999999 };
+  const msLeft = new Date(expiresAt).getTime() - Date.now();
+  if (!Number.isFinite(msLeft) || msLeft <= 0) return { text: 'Expired', minutes: 0 };
+  const minutes = Math.floor(msLeft / 60000);
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return { text: `${hours}h ${mins}m`, minutes };
+}
+
+function toListingViewModel(listing: WasteListing): ListingViewModel {
+  const category = CATEGORY_MAP[String(listing.waste_type || '').toLowerCase()] || 'Mixed';
+  const { text: timeLeft, minutes: timeLeftMinutes } = getTimeLeft(listing.expires_at);
+
+  // Use real coordinates from DB, fallback to Kigali centre per-hotel offset
+  const lat = listing.latitude ?? (-1.9536 + (listing.hotel_id % 10 - 5) * 0.003);
+  const lng = listing.longitude ?? (30.0928 + (listing.hotel_id % 7 - 3) * 0.003);
+
+  const currentBid = Math.round(listing.highest_bid || listing.min_bid || 0);
+  const minBid = Math.round(listing.min_bid || 0);
+
+  return {
+    id: listing.id,
+    business: listing.hotel_name || 'Business',
+    businessRating: 4.5,
+    verified: true,
+    type: listing.waste_type,
+    category,
+    volume: Math.round(listing.volume),
+    unit: listing.unit || 'kg',
+    location: listing.address || listing.location || 'Kigali, Rwanda',
+    coordinates: { lat, lng },
+    distance: 0,
+    timeLeft,
+    timeLeftMinutes,
+    image: listing.image_url || IMAGE_MAP[category] || IMAGE_MAP.Mixed,
+    bidCount: listing.bid_count || 0,
+    currentBid,
+    estimatedValue: Math.round((currentBid || minBid) * 1.2),
+    quality: 'Grade A',
+    description: listing.notes || listing.description || `${listing.waste_type} — ${Math.round(listing.volume)} ${listing.unit || 'kg'}`,
+    photos: [listing.image_url || IMAGE_MAP[category] || IMAGE_MAP.Mixed],
+    bids: [],
+  };
+}
+
 const MarketplacePage = () => {
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
-  const [selectedListing, setSelectedListing] = useState<any>(null);
+  const [selectedListing, setSelectedListing] = useState<ListingViewModel | null>(null);
   const [showBidModal, setShowBidModal] = useState(false);
-  const [selectedListingForBid, setSelectedListingForBid] = useState<any>(null);
+  const [selectedListingForBid, setSelectedListingForBid] = useState<ListingViewModel | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [listings, setListings] = useState<ListingViewModel[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     wasteTypes: [] as string[],
     location: '',
     distance: 10,
     minVolume: 0,
-    maxVolume: 1000,
+    maxVolume: 100000,
     businessRating: 0,
     timeRemaining: '',
-    sortBy: 'newest'
+    sortBy: 'newest',
   });
-  const [filteredListings, setFilteredListings] = useState<any[]>([]);
+  const [filteredListings, setFilteredListings] = useState<ListingViewModel[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  // ── DataStore integration: load open listings from dataStore ──────────────
-  const [dsListings, setDsListings] = useState<any[]>([]);
-  const imageMap: Record<string, string> = {
-    'UCO': 'https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=400',
-    'Glass': 'https://images.unsplash.com/photo-1527965498000-2d5b54c4e28c?w=400',
-    'Paper/Cardboard': 'https://images.unsplash.com/photo-1607582278229-2f688c009b02?w=400',
-    'Mixed': 'https://images.unsplash.com/photo-1527090526205-beaac8dc3a62?w=400',
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    const id = Date.now();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
   };
-  const loadFromDataStore = useCallback(() => {
-    const stored = getAll<WasteListing>('listings').filter(l => l.status === 'open');
-    setDsListings(stored.map(l => {
-      const bids = Array.isArray(l.bids) ? l.bids : [];
-      const topBid = [...bids].sort((a, b) => b.amount - a.amount)[0];
-      const expiresAt = new Date(l.expiresAt).getTime();
-      const minutesLeft = Number.isFinite(expiresAt) ? Math.max(0, Math.floor((expiresAt - Date.now()) / 60000)) : 0;
-      const timeLeft = minutesLeft > 0 ? `${Math.floor(minutesLeft/60)}h ${minutesLeft%60}m` : 'Open';
-      return {
-        id: l.id, _dsId: l.id,
-        business: l.businessName, businessRating: 4.5, verified: true,
-        type: l.wasteType, category: l.wasteType,
-        volume: l.volume, unit: l.unit,
-        location: l.location || 'Kigali',
-        coordinates: { lat: -1.9441, lng: 30.0619 },
-        distance: 3.0, timeLeft, timeLeftMinutes: minutesLeft,
-        image: (l.photos && l.photos[0]) || imageMap[l.wasteType as string] || imageMap['Mixed'],
-        bidCount: bids.length,
-        currentBid: topBid?.amount || l.minBid,
-        estimatedValue: Math.round(l.minBid * 1.2),
-        quality: `Grade ${l.quality}`,
-        description: l.specialInstructions || `${l.wasteType} \u2014 ${l.volume} ${l.unit}`,
-        photos: l.photos?.length ? l.photos : [imageMap[l.wasteType as string] || imageMap['Mixed']],
-        bids: bids.map(b => ({ recycler: b.recyclerName, amount: b.amount, time: new Date(b.createdAt).toLocaleDateString() })),
-      };
-    }));
+
+  const loadListings = async () => {
+    setIsLoading(true);
+    try {
+      const response = await listingsAPI.list({ limit: 200 });
+      const mapped = response
+        .filter((item) => String(item.status).toLowerCase() === 'open')
+        .map(toListingViewModel);
+
+      const withBids = await Promise.all(
+        mapped.map(async (item) => {
+          try {
+            const bids = await listingsAPI.getBids(item.id);
+            const maxBid = bids.length > 0 ? Math.round(Math.max(...bids.map((b) => b.amount))) : item.currentBid;
+            return {
+              ...item,
+              bidCount: bids.length,
+              currentBid: maxBid,
+              estimatedValue: Math.round(maxBid * 1.2),
+              bids: bids.slice(0, 5).map((b) => ({
+                recycler: b.recycler_name || `Recycler #${b.recycler_id}`,
+                amount: Math.round(b.amount),
+                time: new Date(b.created_at).toLocaleString(),
+              })),
+            };
+          } catch {
+            return item;
+          }
+        })
+      );
+
+      setListings(withBids);
+    } catch (error) {
+      console.error(error);
+      showToast('Failed to load marketplace listings from backend.', 'error');
+      setListings([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadListings();
   }, []);
+
   useEffect(() => {
-    loadFromDataStore();
-    window.addEventListener('ecotrade_data_change', loadFromDataStore);
-    return () => window.removeEventListener('ecotrade_data_change', loadFromDataStore);
-  }, [loadFromDataStore]);
+    let filtered = [...listings];
 
-  // Memoised so the array reference stays stable across renders
-  const listings = useMemo(() => [
-    {
-      id: 1,
-      business: 'Mille Collines Business',
-      businessRating: 4.8,
-      verified: true,
-      type: 'Used Cooking Oil',
-      category: 'UCO',
-      volume: 50,
-      unit: 'kg',
-      location: 'Nyarugenge',
-      coordinates: { lat: -1.9441, lng: 30.0619 },
-      distance: 2.3,
-      timeLeft: '2h 15m',
-      timeLeftMinutes: 135,
-      image: 'https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=400',
-      bidCount: 5,
-      currentBid: 15000,
-      estimatedValue: 18000,
-      quality: 'Grade A',
-      description: 'Clean UCO from kitchen, stored in sealed containers',
-      photos: ['https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=400'],
-      bids: [
-        { recycler: 'GreenEnergy', amount: 15000, time: '15 min ago' },
-        { recycler: 'EcoFuel Ltd', amount: 14500, time: '25 min ago' },
-        { recycler: 'BioDiesel Rwanda', amount: 14200, time: '40 min ago' }
-      ]
-    },
-    {
-      id: 2,
-      business: 'Marriott Business',
-      businessRating: 4.9,
-      verified: true,
-      type: 'Glass Bottles',
-      category: 'Glass',
-      volume: 120,
-      unit: 'kg',
-      location: 'Gasabo',
-      coordinates: { lat: -1.9536, lng: 30.0928 },
-      distance: 3.8,
-      timeLeft: '4h 30m',
-      timeLeftMinutes: 270,
-      image: 'https://images.unsplash.com/photo-1611289016315-450b1a3c7b7f?w=400',
-      bidCount: 3,
-      currentBid: 8000,
-      estimatedValue: 10000,
-      quality: 'Grade B',
-      description: 'Mixed glass bottles, clear and brown, needs sorting',
-      photos: ['https://images.unsplash.com/photo-1611289016315-450b1a3c7b7f?w=400'],
-      bids: [
-        { recycler: 'Glass Recycling Ltd', amount: 8000, time: '10 min ago' },
-        { recycler: 'EcoPlast', amount: 7500, time: '30 min ago' },
-      ],
-    },
-    {
-      id: 3,
-      business: 'Serena Business',
-      businessRating: 4.7,
-      verified: true,
-      type: 'Cardboard',
-      category: 'Paper',
-      volume: 200,
-      unit: 'kg',
-      location: 'Kicukiro',
-      coordinates: { lat: -1.9689, lng: 30.1037 },
-      distance: 5.1,
-      timeLeft: '1h 45m',
-      timeLeftMinutes: 105,
-      image: 'https://images.unsplash.com/photo-1581516169900-b13c8d4fb6b3?w=400',
-      bidCount: 7,
-      currentBid: 12000,
-      estimatedValue: 15000,
-      quality: 'Grade A',
-      description: 'Clean, flattened cardboard boxes, ready for collection',
-      photos: ['https://images.unsplash.com/photo-1581516169900-b13c8d4fb6b3?w=400'],
-      bids: [
-        { recycler: 'EcoPlast', amount: 12000, time: '5 min ago' },
-        { recycler: 'PaperRecycle Ltd', amount: 11500, time: '20 min ago' },
-      ],
-    },
-    {
-      id: 4,
-      business: 'Radisson Blu Business',
-      businessRating: 4.8,
-      verified: true,
-      type: 'Mixed Recyclables',
-      category: 'Mixed',
-      volume: 85,
-      unit: 'kg',
-      location: 'Nyarugenge',
-      coordinates: { lat: -1.9445, lng: 30.0594 },
-      distance: 1.7,
-      timeLeft: '6h 20m',
-      timeLeftMinutes: 380,
-      image: 'https://images.unsplash.com/photo-1527090526205-beaac8dc3a62?w=400',
-      bidCount: 2,
-      currentBid: 6500,
-      estimatedValue: 8000,
-      quality: 'Grade C',
-      description: 'Mixed recyclables including plastics and paper',
-      photos: ['https://images.unsplash.com/photo-1527090526205-beaac8dc3a62?w=400'],
-      bids: [
-        { recycler: 'MixedRecycle RW', amount: 6500, time: '45 min ago' },
-      ],
-    },
-    {
-      id: 5,
-      business: 'Kigali Marriott Business',
-      businessRating: 4.6,
-      verified: true,
-      type: 'Used Cooking Oil',
-      category: 'UCO',
-      volume: 75,
-      unit: 'kg',
-      location: 'Gasabo',
-      coordinates: { lat: -1.9563, lng: 30.0885 },
-      distance: 4.2,
-      timeLeft: '3h 10m',
-      timeLeftMinutes: 190,
-      image: 'https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=400',
-      bidCount: 4,
-      currentBid: 22000,
-      estimatedValue: 26000,
-      quality: 'Grade A',
-      description: 'High-quality UCO from restaurant fryers',
-      photos: ['https://images.unsplash.com/photo-1606925797300-0b35e9d1794e?w=400'],
-      bids: [
-        { recycler: 'BioDiesel Rwanda', amount: 22000, time: '8 min ago' },
-        { recycler: 'GreenEnergy', amount: 21000, time: '22 min ago' },
-      ],
-    },
-    {
-      id: 6,
-      business: 'Park Inn',
-      businessRating: 4.5,
-      verified: false,
-      type: 'Glass Bottles',
-      category: 'Glass',
-      volume: 60,
-      unit: 'kg',
-      location: 'Kicukiro',
-      coordinates: { lat: -1.9712, lng: 30.1108 },
-      distance: 6.3,
-      timeLeft: '2h 45m',
-      timeLeftMinutes: 165,
-      image: 'https://images.unsplash.com/photo-1611289016315-450b1a3c7b7f?w=400',
-      bidCount: 1,
-      currentBid: 3500,
-      estimatedValue: 4500,
-      quality: 'Grade B',
-      description: 'Green glass bottles from bar',
-      photos: ['https://images.unsplash.com/photo-1611289016315-450b1a3c7b7f?w=400'],
-      bids: [{ recycler: 'Glass Recycling Ltd', amount: 3500, time: '1h ago' }],
-    },
-  ], []);
-
-  // Filter listings based on filters + search
-  useEffect(() => {
-    let filtered = [...listings, ...dsListings];
-
-    // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -255,49 +209,42 @@ const MarketplacePage = () => {
       );
     }
 
-    // Filter by waste types
     if (filters.wasteTypes.length > 0) {
-      filtered = filtered.filter(listing => 
-        filters.wasteTypes.includes(listing.category)
-      );
+      filtered = filtered.filter((listing) => filters.wasteTypes.includes(listing.category));
     }
 
-    // Filter by location
     if (filters.location) {
-      filtered = filtered.filter(listing => 
-        listing.location === filters.location
+      const loc = filters.location.toLowerCase();
+      filtered = filtered.filter((listing) =>
+        listing.location.toLowerCase().includes(loc)
       );
     }
 
-    // Filter by distance
-    filtered = filtered.filter(listing => 
-      listing.distance <= filters.distance
+    filtered = filtered.filter((listing) => listing.distance <= filters.distance);
+
+    filtered = filtered.filter(
+      (listing) => listing.volume >= filters.minVolume && listing.volume <= filters.maxVolume
     );
 
-    // Filter by volume
-    filtered = filtered.filter(listing => 
-      listing.volume >= filters.minVolume && 
-      listing.volume <= filters.maxVolume
-    );
-
-    // Filter by business rating
     if (filters.businessRating > 0) {
-      filtered = filtered.filter(listing => 
-        listing.businessRating >= filters.businessRating
-      );
+      filtered = filtered.filter((listing) => listing.businessRating >= filters.businessRating);
     }
 
-    // Filter by time remaining
     if (filters.timeRemaining) {
-      const maxMinutes: Record<string, number> = { '1h': 60, '3h': 180, '6h': 360, '12h': 720, '24h': 1440 };
+      const maxMinutes: Record<string, number> = {
+        '1h': 60,
+        '3h': 180,
+        '6h': 360,
+        '12h': 720,
+        '24h': 1440,
+      };
       const max = maxMinutes[filters.timeRemaining];
       if (max) filtered = filtered.filter((l) => l.timeLeftMinutes <= max);
     }
 
-    // Sort
     switch (filters.sortBy) {
       case 'newest':
-        filtered.sort((a, b) => a.id - b.id);
+        filtered.sort((a, b) => b.id - a.id);
         break;
       case 'highest-volume':
         filtered.sort((a, b) => b.volume - a.volume);
@@ -314,48 +261,64 @@ const MarketplacePage = () => {
       case 'ending-soon':
         filtered.sort((a, b) => a.timeLeftMinutes - b.timeLeftMinutes);
         break;
+      default:
+        break;
     }
 
     setFilteredListings(filtered);
-  }, [filters, listings, dsListings, searchQuery]);
+  }, [filters, listings, searchQuery]);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
-  };
+  const tickerItems = useMemo(
+    () =>
+      listings
+        .flatMap((l) =>
+          l.bids.map((bid, idx) => ({
+            id: `${l.id}-${idx}`,
+            recycler: bid.recycler,
+            wasteType: l.type,
+            amount: bid.amount,
+            time: bid.time,
+          }))
+        )
+        .slice(0, 10),
+    [listings]
+  );
 
   const handleListingClick = (listing: any) => {
-    setSelectedListing(listing);
+    setSelectedListing(listing as ListingViewModel);
   };
 
-  const handleBidClick = (listing: any) => {
+  const handleBidClick = (listing: ListingViewModel) => {
+    if (!user) {
+      showToast('Please login to place a bid.', 'error');
+      return;
+    }
     setSelectedListingForBid(listing);
     setShowBidModal(true);
   };
 
-  const handlePlaceBid = (amount: number) => {
-    setShowBidModal(false);
-    // Write bid to dataStore if listing is from dataStore
-    if (selectedListingForBid?._dsId) {
-      const stored = getAll<WasteListing>('listings').find(l => l.id === selectedListingForBid._dsId);
-      if (stored) {
-        const newBid: Bid = {
-          id: generateId('BID'),
-          listingId: stored.id,
-          recyclerId: 'recycler-guest',
-          recyclerName: 'Guest Recycler',
-          amount,
-          note: '',
-          collectionPreference: 'flexible',
-          status: 'active',
-          createdAt: new Date().toISOString(),
-        };
-        dsUpdate<WasteListing>('listings', stored.id, { bids: [...stored.bids, newBid] });
-      }
+  const handlePlaceBid = async (amount: number) => {
+    if (!selectedListingForBid || !user) return;
+
+    try {
+      await listingsAPI.placeBid(selectedListingForBid.id, { amount });
+      showToast(`Bid of RWF ${amount.toLocaleString()} placed successfully.`);
+      
+      // Reload marketplace listings
+      await loadListings();
+      
+      // Sync data from backend to localStorage so dashboards update
+      await syncFromAPI(user.role);
+      
+      // Trigger data change event so all dashboard listeners update
+      window.dispatchEvent(new Event('ecotrade_data_change'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to place bid.';
+      showToast(message, 'error');
+    } finally {
+      setShowBidModal(false);
+      setSelectedListingForBid(null);
     }
-    showToast(`Bid of RWF ${amount.toLocaleString()} placed on ${selectedListingForBid?.business}!`);
-    setSelectedListingForBid(null);
   };
 
   const handleClearFilters = () => {
@@ -365,7 +328,7 @@ const MarketplacePage = () => {
       location: '',
       distance: 20,
       minVolume: 0,
-      maxVolume: 1000,
+      maxVolume: 100000,
       businessRating: 0,
       timeRemaining: '',
       sortBy: 'newest',
@@ -381,15 +344,13 @@ const MarketplacePage = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <Navbar />
-      
+
       <main className="pt-20 pb-12">
         <MarketplaceHero searchQuery={searchQuery} onSearch={setSearchQuery} />
-        
-        {/* Stats Section */}
-        <MarketplaceStats listings={listings} />
+
+        <MarketplaceStats listings={filteredListings} />
 
         <div className="max-w-11/12 mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-          {/* Mobile Filter Button */}
           <button
             type="button"
             onClick={() => setIsFilterOpen(true)}
@@ -407,21 +368,16 @@ const MarketplacePage = () => {
           </button>
 
           <div className="flex gap-6">
-            {/* Sidebar - Desktop Filters */}
             <div className="hidden lg:block w-72 flex-shrink-0">
-              <MarketplaceSidebar
-                filters={filters}
-                setFilters={setFilters}
-                listings={listings}
-              />
+              <MarketplaceSidebar filters={filters} setFilters={setFilters} listings={listings} />
             </div>
 
-            {/* Main Content */}
             <div className="flex-1">
-              {/* Toolbar */}
               <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                 <p className="text-gray-600 dark:text-gray-400 text-sm">
-                  Showing <span className="font-semibold text-gray-900 dark:text-white">{filteredListings.length}</span> of {listings.length} listings
+                  Showing{' '}
+                  <span className="font-semibold text-gray-900 dark:text-white">{filteredListings.length}</span> of{' '}
+                  {listings.length} listings
                 </p>
                 <div className="flex items-center gap-3">
                   {activeFilterCount > 0 && (
@@ -437,8 +393,11 @@ const MarketplacePage = () => {
                 </div>
               </div>
 
-              {/* Grid/Map View */}
-              {viewMode === 'grid' ? (
+              {isLoading ? (
+                <div className="bg-white dark:bg-gray-900 rounded-2xl p-10 text-center text-gray-500 dark:text-gray-400">
+                  Loading marketplace listings...
+                </div>
+              ) : viewMode === 'grid' ? (
                 <MarketplaceGrid
                   listings={filteredListings}
                   onListingClick={handleListingClick}
@@ -454,14 +413,12 @@ const MarketplacePage = () => {
               )}
             </div>
 
-            {/* Live Bid Activity - Desktop */}
             <div className="hidden xl:block w-72 flex-shrink-0">
-              <LiveBidActivity />
+              <LiveBidActivity items={tickerItems.length > 0 ? tickerItems : undefined} />
             </div>
           </div>
         </div>
 
-        {/* Mobile Filter Drawer */}
         {isFilterOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div className="absolute inset-0 bg-black/50" onClick={() => setIsFilterOpen(false)} />
@@ -489,12 +446,15 @@ const MarketplacePage = () => {
           </div>
         )}
 
-        {/* Modals */}
         {selectedListing && (
           <ListingDetailModal
             listing={selectedListing}
             onClose={() => setSelectedListing(null)}
             onBid={() => {
+              if (!user) {
+                showToast('Please login to place a bid.', 'error');
+                return;
+              }
               setSelectedListingForBid(selectedListing);
               setShowBidModal(true);
               setSelectedListing(null);
@@ -514,7 +474,6 @@ const MarketplacePage = () => {
         )}
       </main>
 
-      {/* Toast Notifications */}
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => (
           <div

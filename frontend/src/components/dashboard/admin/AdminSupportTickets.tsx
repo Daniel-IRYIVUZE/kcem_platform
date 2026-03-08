@@ -1,8 +1,8 @@
 // pages/dashboard/admin/SupportTickets.tsx
 import { useState, useEffect } from 'react';
 import { Search, MessageSquare, Eye, Send, X, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { getAll, update, downloadCSV } from '../../../utils/dataStore';
-import type { SupportTicket } from '../../../utils/dataStore';
+import { downloadCSV } from '../../../utils/dataStore';
+import { supportAPI, type SupportTicket } from '../../../services/api';
 
 const STATUS_COLORS: Record<string, string> = {
   open: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
@@ -26,60 +26,42 @@ export default function AdminSupportTickets() {
   const [selected, setSelected] = useState<SupportTicket | null>(null);
   const [reply, setReply] = useState('');
 
-  const load = () => {
-    const allTickets = getAll<SupportTicket>('supportTickets');
-    setTickets(allTickets.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ));
-  };
+  const load = () => supportAPI.list().then(data =>
+    setTickets([...data].sort((a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    ))
+  ).catch(() => {});
 
-  useEffect(() => { 
-    load(); 
-    window.addEventListener('ecotrade_data_change', load); 
-    return () => window.removeEventListener('ecotrade_data_change', load); 
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const filtered = tickets.filter(t =>
     (statusFilter === 'all' || t.status === statusFilter) &&
     (priorityFilter === 'all' || t.priority === priorityFilter) &&
-    (t.userName?.toLowerCase().includes(search.toLowerCase()) ||
-     t.userId.toLowerCase().includes(search.toLowerCase()) ||
+    ((t.user_name || '').toLowerCase().includes(search.toLowerCase()) ||
+     String(t.user_id).toLowerCase().includes(search.toLowerCase()) ||
      t.subject.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleReply = () => {
     if (!selected || !reply.trim()) return;
-    const newResponses = [
-      ...(selected.responses || []), 
-      { from: 'Admin', message: reply.trim(), date: new Date().toISOString() }
-    ];
-    update<SupportTicket>('supportTickets', selected.id, { 
-      responses: newResponses, 
-      status: 'in-progress', 
-      updatedAt: new Date().toISOString() 
-    });
+    supportAPI.respond(selected.id, { from_name: 'Admin', message: reply.trim() }).then(newResp => {
+      const updated = { ...selected, responses: [...(selected.responses || []), newResp], status: 'in-progress' as const };
+      setSelected(updated);
+      setTickets(prev => prev.map(x => x.id === selected.id ? updated : x));
+    }).catch(() => {});
     setReply('');
-    const updated = { ...selected, responses: newResponses, status: 'in-progress' as const };
-    setSelected(updated);
-    load();
   };
 
   const handleResolve = (t: SupportTicket) => {
-    update<SupportTicket>('supportTickets', t.id, { 
-      status: 'resolved', 
-      updatedAt: new Date().toISOString() 
-    });
+    supportAPI.update(t.id, { status: 'resolved' }).catch(() => {});
+    setTickets(prev => prev.map(x => x.id === t.id ? { ...x, status: 'resolved' } : x));
     setSelected(prev => prev?.id === t.id ? { ...prev, status: 'resolved' } : prev);
-    load();
   };
 
   const handleClose = (t: SupportTicket) => {
-    update<SupportTicket>('supportTickets', t.id, { 
-      status: 'closed', 
-      updatedAt: new Date().toISOString() 
-    });
+    supportAPI.update(t.id, { status: 'closed' }).catch(() => {});
+    setTickets(prev => prev.map(x => x.id === t.id ? { ...x, status: 'closed' } : x));
     setSelected(prev => prev?.id === t.id ? { ...prev, status: 'closed' } : prev);
-    load();
   };
 
   return (
@@ -101,8 +83,8 @@ export default function AdminSupportTickets() {
             onClick={() => downloadCSV('support_tickets', 
               ['ID', 'User', 'Subject', 'Status', 'Priority', 'Created'],
               filtered.map(t => [
-                t.id, t.userName || t.userId, t.subject, t.status, 
-                t.priority || 'low', new Date(t.createdAt).toLocaleDateString()
+                String(t.id), t.user_name || String(t.user_id), t.subject, t.status,
+                t.priority || 'low', new Date(t.created_at).toLocaleDateString()
               ])
             )}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900 transition-colors"
@@ -175,14 +157,14 @@ export default function AdminSupportTickets() {
               {filtered.map(t => (
                 <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900">
                   <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-                    {t.id.substring(0, 8)}...
+                    #{t.id}
                   </td>
                   <td className="px-4 py-3">
                     <div className="font-medium text-gray-700 dark:text-gray-300 text-sm">
-                      {t.userName || t.userId}
+                      {t.user_name || String(t.user_id)}
                     </div>
                     <div className="text-xs text-gray-400 dark:text-gray-500">
-                      {t.userId}
+                      #{t.user_id}
                     </div>
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200 max-w-xs truncate">
@@ -199,7 +181,7 @@ export default function AdminSupportTickets() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
-                    {new Date(t.createdAt).toLocaleDateString()}
+                    {new Date(t.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-center text-xs text-gray-600 dark:text-gray-400">
                     {(t.responses || []).length}
@@ -250,7 +232,7 @@ export default function AdminSupportTickets() {
                   {selected.subject}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {selected.id.substring(0, 8)}... — <strong>{selected.userName || selected.userId}</strong> · 
+                  {String(selected.id)} — <strong>{selected.user_name || String(selected.user_id)}</strong> · 
                   <span className={`ml-1 px-1.5 rounded ${PRIORITY_COLORS[selected.priority || 'low']}`}>
                     {selected.priority}
                   </span>
@@ -273,17 +255,17 @@ export default function AdminSupportTickets() {
                 <div 
                   key={idx} 
                   className={`rounded-lg p-3 text-sm ${
-                    r.from === 'Admin' 
+                    r.from_name === 'Admin' 
                       ? 'bg-cyan-50 dark:bg-cyan-900/20 ml-8 border border-cyan-200 dark:border-cyan-800' 
                       : 'bg-gray-50 dark:bg-gray-900 mr-8 border border-gray-200 dark:border-gray-700'
                   }`}
                 >
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    {r.from}
+                    {r.from_name}
                   </p>
                   <p className="text-gray-700 dark:text-gray-300">{r.message}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                    {new Date(r.date).toLocaleString()}
+                    {new Date(r.created_at).toLocaleString()}
                   </p>
                 </div>
               ))}

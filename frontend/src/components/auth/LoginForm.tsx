@@ -9,23 +9,13 @@ interface LoginFormProps {
   demoCredentials: Array<{ role: string; email: string; password: string }>;
 }
 
-// Role colour map for the demo quick-pick cards
-const roleColors: Record<string, { bg: string; text: string; border: string; dot: string }> = {
-  Admin:      { bg: 'bg-purple-50 dark:bg-purple-900/20',  text: 'text-purple-700 dark:text-purple-300',  border: 'border-purple-200 dark:border-purple-700', dot: 'bg-purple-500' },
-  Hotel:      { bg: 'bg-amber-50  dark:bg-amber-900/20',   text: 'text-amber-700  dark:text-amber-300',   border: 'border-amber-200  dark:border-amber-700',  dot: 'bg-amber-500'  },
-  Recycler:   { bg: 'bg-cyan-50 dark:bg-cyan-900/20', text: 'text-cyan-700 dark:text-cyan-300', border: 'border-cyan-200 dark:border-cyan-700', dot: 'bg-cyan-500' },
-  Driver:     { bg: 'bg-blue-50   dark:bg-blue-900/20',    text: 'text-blue-700   dark:text-blue-300',    border: 'border-blue-200   dark:border-blue-700',   dot: 'bg-blue-500'   },
-  Individual: { bg: 'bg-cyan-50   dark:bg-cyan-900/20',    text: 'text-cyan-700   dark:text-cyan-300',    border: 'border-cyan-200   dark:border-cyan-700',   dot: 'bg-cyan-500'   },
-};
-
-const LoginForm = ({ onToggleMode, onForgotPassword, onLogin, demoCredentials }: LoginFormProps) => {
+const LoginForm = ({ onToggleMode, onForgotPassword, onLogin }: LoginFormProps) => {
   const [email, setEmail]             = useState('');
   const [password, setPassword]       = useState('');
   const [rememberMe, setRememberMe]   = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading]     = useState(false);
   const [error, setError]             = useState('');
-  const [activeRole, setActiveRole]   = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,12 +28,6 @@ const LoginForm = ({ onToggleMode, onForgotPassword, onLogin, demoCredentials }:
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillDemo = (cred: { role: string; email: string; password: string }) => {
-    setEmail(cred.email);
-    setPassword(cred.password);
-    setActiveRole(cred.role);
   };
 
   return (
@@ -166,40 +150,6 @@ const LoginForm = ({ onToggleMode, onForgotPassword, onLogin, demoCredentials }:
           )}
         </button>
       </form>
-
-
-
-      {/* ── Demo quick-fill role cards ── */}
-      <div className="mt-3">
-        <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
-          Try a demo account
-        </p>
-        {/* 5 equal columns; shrinks gracefully on narrow phones */}
-        <div className="grid grid-cols-5 gap-1">
-          {demoCredentials.map((cred) => {
-            const c = roleColors[cred.role] ?? roleColors['Individual'];
-            const isActive = activeRole === cred.role;
-            return (
-              <button
-                key={cred.role}
-                type="button"
-                onClick={() => fillDemo(cred)}
-                title={`${cred.email} / ${cred.password}`}
-                className={`flex flex-col items-center gap-0.5 py-2 px-0.5 rounded-xl border text-center transition-all ${c.bg} ${c.border} ${c.text}
-                  ${isActive ? 'ring-2 ring-offset-1 ring-cyan-400 scale-105' : 'hover:scale-105 hover:shadow-sm'}`}
-              >
-                <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${c.dot}`} />
-                <span className="text-[9px] sm:text-[10px] font-semibold leading-tight truncate w-full text-center">{cred.role}</span>
-              </button>
-            );
-          })}
-        </div>
-        {activeRole && (
-          <p className="mt-2 text-xs text-center text-gray-400 dark:text-gray-500">
-            Credentials filled — click <strong>Sign In</strong> to continue
-          </p>
-        )}
-      </div>
 
       {/* ── Sign-up link ── */}
       <p className="mt-3 text-center text-sm text-gray-500 dark:text-gray-400">

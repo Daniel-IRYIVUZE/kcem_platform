@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="95" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <!-- UCO/Oil container -->
+  <path d="M 70 60 Q 65 45 75 35 L 125 35 Q 135 45 130 60" fill="#d97706" stroke="#b45309" stroke-width="2"/>
+  <!-- Liquid level -->
+  <ellipse cx="100" cy="60" rx="30" ry="8" fill="#f59e0b" opacity="0.5"/>
+  <!-- Main container -->
+  <path d="M 70 60 L 65 140 Q 65 150 75 150 L 125 150 Q 135 150 135 140 L 130 60" fill="#fbbf24" stroke="#d97706" stroke-width="2"/>
+  <!-- Gloss effect -->
+  <ellipse cx="85" cy="90" rx="10" ry="25" fill="#fff" opacity="0.3"/>
+</svg>

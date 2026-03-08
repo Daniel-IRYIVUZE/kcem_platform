@@ -1,13 +1,31 @@
 // components/blog/FeaturedPost.tsx
 import { Calendar, User, Clock, ArrowRight } from 'lucide-react';
-import { blogPosts, featuredPostId, type BlogPost } from './blogData';
+import type { BlogPost } from '../../services/api';
 
 interface FeaturedPostProps {
   onReadMore: (post: BlogPost) => void;
+  posts: BlogPost[];
+  loading: boolean;
 }
 
-const FeaturedPost = ({ onReadMore }: FeaturedPostProps) => {
-  const featuredPost = blogPosts.find((post) => post.id === featuredPostId) ?? blogPosts[0];
+const FeaturedPost = ({ onReadMore, posts, loading }: FeaturedPostProps) => {
+  const featuredPost = posts.find((post) => post.is_featured) ?? posts[0];
+
+  if (loading) {
+    return (
+      <div className="relative group bg-white dark:bg-gray-900 rounded-3xl shadow-xl overflow-hidden animate-pulse">
+        <div className="grid lg:grid-cols-2">
+          <div className="h-64 lg:h-96 bg-gray-200 dark:bg-gray-800" />
+          <div className="p-8 lg:p-12 space-y-4">
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
+            <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded w-full" />
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded" />
+            <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-5/6" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!featuredPost) {
     return null;
@@ -19,7 +37,7 @@ const FeaturedPost = ({ onReadMore }: FeaturedPostProps) => {
         {/* Image Section */}
         <div className="relative h-64 lg:h-auto overflow-hidden">
           <img
-            src={featuredPost.image}
+            src={featuredPost.featured_image || '/images/placeholder-image.svg'}
             alt={featuredPost.title}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
             onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/placeholder-image.svg'; }}
@@ -36,15 +54,15 @@ const FeaturedPost = ({ onReadMore }: FeaturedPostProps) => {
           <div className="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400 mb-4">
             <span className="flex items-center">
               <Calendar className="w-4 h-4 mr-1" />
-              {featuredPost.date}
+              {new Date(featuredPost.published_at || featuredPost.created_at).toLocaleDateString()}
             </span>
             <span className="flex items-center">
               <User className="w-4 h-4 mr-1" />
-              {featuredPost.author}
+              {featuredPost.author_name}
             </span>
             <span className="flex items-center">
               <Clock className="w-4 h-4 mr-1" />
-              {featuredPost.readTime} read
+              {featuredPost.view_count} views
             </span>
           </div>
 
@@ -57,12 +75,12 @@ const FeaturedPost = ({ onReadMore }: FeaturedPostProps) => {
           </p>
 
           <div className="flex flex-wrap gap-3 mb-6">
-            {featuredPost.tags.map((tag) => (
+            {featuredPost.tags?.split(',').map((tag) => (
               <span
-                key={tag}
+                key={tag.trim()}
                 className="px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 rounded-full text-sm"
               >
-                {tag}
+                {tag.trim()}
               </span>
             ))}
           </div>

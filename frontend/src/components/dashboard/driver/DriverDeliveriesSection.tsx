@@ -53,7 +53,7 @@ const RecyclerPurchasesSection = () => {
                 <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{purchase.seller}</td>
                 <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{purchase.material}</td>
                 <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">{purchase.quantity}</td>
-                <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">Rwf {purchase.amount.toLocaleString()}</td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">Rwf {(purchase.amount ?? 0).toLocaleString()}</td>
                 <td className="px-6 py-4 text-sm">
                   <div className="flex items-center gap-2">
                     {getStatusIcon(purchase.status)}

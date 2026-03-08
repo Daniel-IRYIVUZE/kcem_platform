@@ -1,8 +1,8 @@
 // pages/dashboard/admin/Transactions.tsx
 import { useState, useEffect } from 'react';
 import { Search, Eye, X, DollarSign, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react';
-import { getAll, update, downloadCSV } from '../../../utils/dataStore';
-import type { Transaction } from '../../../utils/dataStore';
+import { downloadCSV } from '../../../utils/dataStore';
+import { transactionsAPI, type Transaction } from '../../../services/api';
 
 const STATUS_COLORS: Record<string, string> = {
   completed: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
@@ -18,36 +18,31 @@ export default function AdminTransactions() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selected, setSelected] = useState<Transaction | null>(null);
 
-  const load = () => setTransactions(getAll<Transaction>('transactions'));
-  useEffect(() => { 
-    load(); 
-    window.addEventListener('ecotrade_data_change', load); 
-    return () => window.removeEventListener('ecotrade_data_change', load); 
-  }, []);
+  const load = () => transactionsAPI.list({ limit: 500 }).then(setTransactions).catch(() => {});
+  useEffect(() => { load(); }, []);
 
   const filtered = transactions.filter(t =>
     (statusFilter === 'all' || t.status === statusFilter) &&
-    ((t.from || '').toLowerCase().includes(search.toLowerCase()) ||
-     (t.to || '').toLowerCase().includes(search.toLowerCase()) ||
-     t.listingId.toLowerCase().includes(search.toLowerCase()))
+    ((t.from_user || '').toLowerCase().includes(search.toLowerCase()) ||
+     (t.to_user || '').toLowerCase().includes(search.toLowerCase()) ||
+     String(t.listing_id || '').toLowerCase().includes(search.toLowerCase()))
   );
 
   const totalRevenue = filtered.filter(t => t.status === 'completed').reduce((s, t) => s + t.amount, 0);
   const totalFees = filtered.filter(t => t.status === 'completed').reduce((s, t) => s + t.fee, 0);
 
   const handleStatusChange = (t: Transaction, newStatus: Transaction['status']) => {
-    update<Transaction>('transactions', t.id, { status: newStatus });
+    setTransactions(prev => prev.map(x => x.id === t.id ? { ...x, status: newStatus } : x));
     setSelected(prev => prev?.id === t.id ? { ...prev, status: newStatus } : prev);
-    load();
   };
 
   const handleExport = () => {
     downloadCSV('transactions', 
       ['ID', 'Listing', 'From', 'To', 'Amount', 'Platform Fee', 'Status', 'Date'],
       filtered.map(t => [
-        t.id, t.listingId, t.from || '', t.to || '', 
-        String(t.amount), String(t.fee), t.status, 
-        new Date(t.date).toLocaleDateString()
+        String(t.id), String(t.listing_id || ''), t.from_user || '', t.to_user || '',
+        String(t.amount ?? 0), String(t.fee || 0), t.status,
+        t.created_at ? new Date(t.created_at).toLocaleDateString() : ''
       ])
     );
   };
@@ -135,18 +130,18 @@ export default function AdminTransactions() {
               {filtered.map(t => (
                 <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900">
                   <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-                    {t.id.substring(0, 8)}...
+                    {String(t.id).substring(0, 8)}...
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">
-                    {t.listingId.substring(0, 8)}...
+                    {String(t.listing_id || '—').substring(0, 8)}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{t.from}</td>
-                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{t.to}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{t.from_user}</td>
+                  <td className="px-4 py-3 text-xs text-gray-600 dark:text-gray-400">{t.to_user}</td>
                   <td className="px-4 py-3 font-semibold text-gray-800 dark:text-gray-200">
-                    RWF {t.amount.toLocaleString()}
+                    RWF {(t.amount ?? 0).toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-green-600 dark:text-green-400 text-xs">
-                    +RWF {t.fee.toLocaleString()}
+                    +RWF {(t.fee || 0).toLocaleString()}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[t.status]}`}>
@@ -154,7 +149,7 @@ export default function AdminTransactions() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
-                    {new Date(t.date).toLocaleDateString()}
+                    {t.created_at ? new Date(t.created_at).toLocaleDateString() : '—'}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
@@ -219,16 +214,16 @@ export default function AdminTransactions() {
             
             <div className="p-5 space-y-3 text-sm">
               {[
-                ['Transaction ID', selected.id.substring(0, 8) + '...'],
-                ['Listing ID', selected.listingId.substring(0, 8) + '...'],
-                ['From', selected.from || '—'],
-                ['To', selected.to || '—'],
-                ['Amount', `RWF ${selected.amount.toLocaleString()}`],
-                ['Platform Fee', `RWF ${selected.fee.toLocaleString()}`],
-                ['Net to Seller', `RWF ${(selected.amount - selected.fee).toLocaleString()}`],
-                ['Waste Type', selected.wasteType],
+                ['Transaction ID', `#${selected.id}`],
+                ['Listing ID', String(selected.listing_id || '—').substring(0, 8)],
+                ['From', selected.from_user || '—'],
+                ['To', selected.to_user || '—'],
+                ['Amount', `RWF ${(selected.amount ?? 0).toLocaleString()}`],
+                ['Platform Fee', `RWF ${(selected.fee || 0).toLocaleString()}`],
+                ['Net to Seller', `RWF ${((selected.amount ?? 0) - (selected.fee || 0)).toLocaleString()}`],
+                ['Waste Type', selected.waste_type || '—'],
                 ['Status', selected.status],
-                ['Date', new Date(selected.date).toLocaleString()]
+                ['Date', selected.created_at ? new Date(selected.created_at).toLocaleString() : '—']
               ].map(([k, v]) => (
                 <div key={String(k)} className="flex justify-between">
                   <span className="text-gray-500 dark:text-gray-400">{String(k)}</span>

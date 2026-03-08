@@ -53,12 +53,18 @@ class HotelProfileScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        'Kigali City • Verified ✓',
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
-                          fontSize: 13,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            'Kigali City',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.verified_rounded, color: Colors.white, size: 14),
+                        ],
                       ),
                     ],
                   ),
@@ -120,13 +126,13 @@ class HotelProfileScreen extends ConsumerWidget {
                   ),
                   children: [
                     _PaymentMethodCard(
-                      icon: '📱',
+                      icon: Icons.phone_android_rounded,
                       name: 'MTN Mobile Money',
                       detail: '+250 780 162 164',
                       isDefault: true,
                     ),
                     _PaymentMethodCard(
-                      icon: '🏦',
+                      icon: Icons.account_balance_rounded,
                       name: 'Bank of Kigali',
                       detail: '**** **** 8873',
                       isDefault: false,
@@ -408,9 +414,9 @@ class HotelProfileScreen extends ConsumerWidget {
               Row(
                 children: [
                   for (final t in [
-                    {'id': 'momo',   'label': 'MTN MoMo', 'icon': '📱'},
-                    {'id': 'airtel', 'label': 'Airtel',   'icon': '📲'},
-                    {'id': 'bank',   'label': 'Bank',     'icon': '🏦'},
+                    {'id': 'momo',   'label': 'MTN MoMo'},
+                    {'id': 'airtel', 'label': 'Airtel'},
+                    {'id': 'bank',   'label': 'Bank'},
                   ])
                     Expanded(
                       child: GestureDetector(
@@ -495,9 +501,9 @@ class HotelProfileScreen extends ConsumerWidget {
 
   void _showLanguageSheet(BuildContext context) {
     final languages = [
-      {'code': 'en', 'label': 'English',     'native': 'English',       'flag': '🇬🇧'},
-      {'code': 'rw', 'label': 'Kinyarwanda', 'native': 'Ikinyarwanda',  'flag': '🇷🇼'},
-      {'code': 'fr', 'label': 'French',      'native': 'Français',      'flag': '🇫🇷'},
+      {'code': 'en', 'label': 'English',     'native': 'English'},
+      {'code': 'rw', 'label': 'Kinyarwanda', 'native': 'Ikinyarwanda'},
+      {'code': 'fr', 'label': 'French',      'native': 'Français'},
     ];
     String selected = 'en';
     showModalBottomSheet(
@@ -534,7 +540,14 @@ class HotelProfileScreen extends ConsumerWidget {
                     ),
                     child: Row(
                       children: [
-                        Text(lang['flag']!, style: const TextStyle(fontSize: 24)),
+                        Container(
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.language_rounded, color: AppColors.primary, size: 20),
+                        ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
@@ -902,7 +915,7 @@ class _ProfileRow extends StatelessWidget {
 }
 
 class _PaymentMethodCard extends StatelessWidget {
-  final String icon;
+  final IconData icon;
   final String name;
   final String detail;
   final bool isDefault;
@@ -924,10 +937,10 @@ class _PaymentMethodCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.background,
+              color: AppColors.primaryLight,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Center(child: Text(icon, style: const TextStyle(fontSize: 20))),
+            child: Center(child: Icon(icon, color: AppColors.primary, size: 20)),
           ),
           const SizedBox(width: 12),
           Expanded(

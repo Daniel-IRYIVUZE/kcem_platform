@@ -27,8 +27,8 @@ const LiveBidActivity = ({ items = defaultItems }: LiveBidActivityProps) => {
       <div className="flex items-center gap-2">
         <TrendingUp size={18} className="text-cyan-600" />
         <h3 className="font-bold text-gray-900 dark:text-white text-sm">Live Bid Activity</h3>
-        <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-          <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+        <span className="ml-auto flex items-center gap-1.5 text-xs text-cyan-600 dark:text-cyan-400 font-medium">
+          <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
           LIVE
         </span>
       </div>

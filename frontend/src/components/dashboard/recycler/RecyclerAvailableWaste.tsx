@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAll, update as dsUpdate, generateId } from '../../../utils/dataStore';
-import type { WasteListing, Bid } from '../../../utils/dataStore';
+import { listingsAPI, type WasteListing } from '../../../services/api';
 import { Search, X } from 'lucide-react';
 import DataTable from '../DataTable';
-import { companyProfile } from './_shared';
 
 export default function RecyclerAvailableWaste() {
   const [search, setSearch] = useState('');
@@ -14,44 +12,36 @@ export default function RecyclerAvailableWaste() {
   const [listings, setListings] = useState<WasteListing[]>([]);
   const [selectedListing, setSelectedListing] = useState<WasteListing | null>(null);
 
-  const load = useCallback(() => setListings(getAll<WasteListing>('listings').filter(l => l.status === 'open')), []);
-  useEffect(() => { load(); window.addEventListener('ecotrade_data_change', load); return () => window.removeEventListener('ecotrade_data_change', load); }, [load]);
+  const load = useCallback(async () => {
+    try { setListings(await listingsAPI.list({ status: 'open', limit: 100 })); } catch {}
+  }, []);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = listings.filter(l => {
-    const matchSearch = (l.hotelName || l.businessName || '').toLowerCase().includes(search.toLowerCase()) || l.id.toLowerCase().includes(search.toLowerCase());
-    const matchType = typeFilter === 'all' || l.wasteType === typeFilter;
+    const matchSearch = (l.hotel_name || '').toLowerCase().includes(search.toLowerCase()) || String(l.id).includes(search);
+    const matchType = typeFilter === 'all' || l.waste_type === typeFilter;
     return matchSearch && matchType;
   });
 
-  const handleSubmitBid = () => {
+  const handleSubmitBid = async () => {
     if (!selectedListing || !bidAmount) return;
     const amount = parseInt(bidAmount);
     if (isNaN(amount) || amount <= 0) return;
-    const stored = getAll<WasteListing>('listings').find(l => l.id === selectedListing.id);
-    if (!stored) return;
-    const newBid: Bid = {
-      id: generateId('BID'),
-      listingId: stored.id,
-      recyclerId: 'recycler-green-energy',
-      recyclerName: companyProfile.name,
-      amount,
-      note: '',
-      collectionPreference: 'flexible',
-      status: 'active',
-      createdAt: new Date().toISOString(),
-    };
-    dsUpdate<WasteListing>('listings', stored.id, { bids: [...stored.bids, newBid] });
-    setBidFlash(`Bid of RWF ${amount.toLocaleString()} submitted!`);
-    setTimeout(() => setBidFlash(null), 3000);
-    setShowBidModal(false);
+    try {
+      await listingsAPI.placeBid(selectedListing.id, { amount, note: '' });
+      setBidFlash(`Bid of RWF ${amount.toLocaleString()} submitted!`);
+      setTimeout(() => setBidFlash(null), 3000);
+      setShowBidModal(false);
+      load();
+    } catch { setBidFlash('Failed to submit bid. Please try again.'); setTimeout(() => setBidFlash(null), 3000); }
   };
 
   const displayData = filtered.map(l => ({
-    id: l.id, hotel: l.hotelName, type: l.wasteType,
+    id: l.id, hotel: l.hotel_name, type: l.waste_type,
     quantity: `${l.volume} ${l.unit}`,
-    askPrice: `RWF ${l.minBid.toLocaleString()}`,
-    distance: l.location || 'Kigali', bids: Array.isArray(l.bids) ? l.bids.length : 0,
-    pickupDate: new Date(l.expiresAt).toLocaleDateString(), _raw: l,
+    askPrice: `RWF ${(l.min_bid ?? 0).toLocaleString()}`,
+    distance: 'Kigali', bids: l.bid_count || 0,
+    pickupDate: new Date(l.created_at).toLocaleDateString(), _raw: l,
   }));
 
   return (
@@ -92,13 +82,13 @@ export default function RecyclerAvailableWaste() {
             <div className="space-y-3 mb-4">
               <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><p className="text-xs text-gray-500 dark:text-gray-400">Hotel</p><p className="font-medium text-gray-900 dark:text-white">{selectedListing.hotelName}</p></div>
-                  <div><p className="text-xs text-gray-500 dark:text-gray-400">Type</p><p className="font-medium text-gray-900 dark:text-white">{selectedListing.wasteType}</p></div>
+                  <div><p className="text-xs text-gray-500 dark:text-gray-400">Hotel</p><p className="font-medium text-gray-900 dark:text-white">{selectedListing.hotel_name}</p></div>
+                  <div><p className="text-xs text-gray-500 dark:text-gray-400">Type</p><p className="font-medium text-gray-900 dark:text-white">{selectedListing.waste_type}</p></div>
                   <div><p className="text-xs text-gray-500 dark:text-gray-400">Volume</p><p className="font-medium text-gray-900 dark:text-white">{selectedListing.volume} {selectedListing.unit}</p></div>
-                  <div><p className="text-xs text-gray-500 dark:text-gray-400">Min Bid</p><p className="font-semibold text-cyan-600">RWF {selectedListing.minBid.toLocaleString()}</p></div>
+                  <div><p className="text-xs text-gray-500 dark:text-gray-400">Min Bid</p><p className="font-semibold text-cyan-600">RWF {(selectedListing.min_bid ?? 0).toLocaleString()}</p></div>
                 </div>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Bid Amount (RWF)</label><input type="number" value={bidAmount} onChange={e => setBidAmount(e.target.value)} min={selectedListing.minBid} placeholder={`Min: ${selectedListing.minBid.toLocaleString()}`} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" /></div>
+              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Bid Amount (RWF)</label><input type="number" value={bidAmount} onChange={e => setBidAmount(e.target.value)} min={selectedListing.min_bid ?? 0} placeholder={`Min: ${(selectedListing.min_bid ?? 0).toLocaleString()}`} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" /></div>
             </div>
             <div className="flex gap-2">
               <button onClick={() => setShowBidModal(false)} className="flex-1 px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900 text-gray-700 dark:text-gray-300">Cancel</button>

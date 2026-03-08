@@ -1,20 +1,23 @@
-import { useState } from 'react';
-import { getAll, update as dsUpdate } from '../../../utils/dataStore';
-import type { PlatformUser } from '../../../utils/dataStore';
+import { useState, useEffect } from 'react';
+import { usersAPI, type APIUser } from '../../../services/api';
 import { CheckCircle } from 'lucide-react';
 import { driverProfile } from './_shared';
 
 export default function DriverSettings() {
+  const [userId, setUserId] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({ name: driverProfile.name, phone: driverProfile.phone, location: 'Kigali, Rwanda', language: 'English' });
   const [toggles, setToggles] = useState({ gps: true, pushNotifs: true, smsAlerts: false });
 
+  useEffect(() => {
+    usersAPI.me().then((u: APIUser) => {
+      setUserId(u.id);
+      setForm(prev => ({ ...prev, name: u.full_name || prev.name, phone: u.phone || prev.phone }));
+    }).catch(() => {});
+  }, []);
+
   const handleSave = () => {
-    const users = getAll<PlatformUser>('users');
-    const user = users.find(u => u.role === 'driver');
-    if (user) {
-      dsUpdate<PlatformUser>('users', user.id, { name: form.name, phone: form.phone, location: form.location });
-    }
+    if (userId) usersAPI.update(userId, { full_name: form.name, phone: form.phone }).catch(() => {});
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };

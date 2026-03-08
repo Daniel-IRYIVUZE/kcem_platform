@@ -67,7 +67,7 @@ const QuickBidModal = ({ listing, onClose, onPlaceBid }: QuickBidModalProps) => 
           {/* Listing Summary */}
           <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl mb-6">
             <p className="font-semibold text-gray-900 dark:text-white">{listing.business || listing.hotel}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{listing.type} • {listing.volume}{listing.unit}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{listing.type} • {Math.round(listing.volume).toLocaleString()} {listing.unit}</p>
             <div className="flex justify-between mt-2">
               <span className="text-sm text-gray-500 dark:text-gray-400">Current Bid</span>
               <span className="font-bold text-cyan-600">RWF {currentBid.toLocaleString()}</span>

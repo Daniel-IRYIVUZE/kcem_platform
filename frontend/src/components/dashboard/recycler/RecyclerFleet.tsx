@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getAll } from '../../../utils/dataStore';
-import type { Collection, PlatformUser } from '../../../utils/dataStore';
+import { driversAPI, collectionsAPI } from '../../../services/api';
+import type { Collection, DriverProfile } from '../../../services/api';
 import { Truck, Search, Plus, Eye, Edit, CheckCircle, AlertTriangle, Activity } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
@@ -9,33 +9,30 @@ import { StatusBadge } from './_shared';
 export default function RecyclerFleet() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [drivers, setDrivers] = useState<PlatformUser[]>([]);
+  const [drivers, setDrivers] = useState<DriverProfile[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
 
   useEffect(() => {
-    const load = () => {
-      setDrivers(getAll<PlatformUser>('users').filter(u => u.role === 'driver'));
-      setCollections(getAll<Collection>('collections'));
-    };
-    load();
-    window.addEventListener('ecotrade_data_change', load);
-    return () => window.removeEventListener('ecotrade_data_change', load);
+    Promise.all([
+      driversAPI.list().catch(() => [] as DriverProfile[]),
+      collectionsAPI.list({ limit: 200 }).catch(() => [] as Collection[]),
+    ]).then(([ds, cs]) => { setDrivers(ds); setCollections(cs); });
   }, []);
 
   const fleetData = drivers.map(driver => {
-    const driverCollections = collections.filter(c => c.driverName === driver.name);
+    const driverCollections = collections.filter(c => c.driver_name === (driver.name || ''));
     const completedTrips = driverCollections.filter(c => c.status === 'completed').length;
-    const activeRoute = driverCollections.find(c => c.status === 'en-route');
+    const activeRoute = driverCollections.find(c => c.status === 'en_route');
     return {
       id: driver.id,
-      driver: driver.name,
-      vehicle: driver.vehicleType || 'Truck',
-      plate: driver.vehiclePlate || 'KG-XXX-YYY',
+      driver: driver.name || `Driver #${driver.id}`,
+      vehicle: driver.vehicle_type || 'Truck',
+      plate: driver.plate_number || 'KG-XXX-YYY',
       capacity: '500 kg',
-      trips: completedTrips,
+      trips: completedTrips || driver.total_trips || 0,
       rating: driver.rating || 4.8,
       currentRoute: activeRoute ? 'Active' : '—',
-      status: driver.status === 'active' ? 'active' : (driver.status === 'suspended' ? 'maintenance' : 'inactive'),
+      status: driver.status === 'available' ? 'active' : (driver.status === 'off_duty' ? 'maintenance' : 'inactive'),
     };
   });
 

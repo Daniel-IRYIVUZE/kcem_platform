@@ -1,39 +1,30 @@
 // components/blog/BlogTags.tsx
-import { Leaf, Recycle, Building2, Factory } from 'lucide-react';
-
-const tags = [
-  'UCO',
-  'Glass Recycling',
-  'Green Score',
-  'Hotels',
-  'Sustainability',
-  'Biodiesel',
-  'EPR',
-  'PostGIS',
-  'Circular Economy',
-  'Carbon Footprint',
-  'REMA',
-  'Drivers',
-  'Revenue',
-  'Technology',
-  'Policy'
-];
+import { Recycle, Leaf, Building2, Factory } from 'lucide-react';
+import type { BlogPost } from '../../services/api';
 
 interface BlogTagsProps {
   onTagClick: (tag: string) => void;
+  posts: BlogPost[];
 }
 
-const BlogTags = ({ onTagClick }: BlogTagsProps) => {
+const BlogTags = ({ onTagClick, posts }: BlogTagsProps) => {
+  // Extract all unique tags from posts
+  const allTags = posts
+    .filter(post => post.tags)
+    .flatMap(post => post.tags!.split(',').map(t => t.trim()))
+    .filter((tag, index, self) => self.indexOf(tag) === index)
+    .slice(0, 15); // Limit to 15 tags
+
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6">
       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Popular Tags</h3>
       
       <div className="flex flex-wrap gap-2">
-        {tags.map((tag, index) => (
+        {allTags.map((tag, index) => (
           <button
             key={index}
             onClick={() => onTagClick(tag)}
-            className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-cyan-100 hover:text-cyan-700 dark:text-cyan-400 transition-colors"
+            className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm hover:bg-cyan-100 hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors"
           >
             #{tag}
           </button>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAll, downloadPDF } from '../../../utils/dataStore';
-import type { Collection } from '../../../utils/dataStore';
+import { downloadPDF } from '../../../utils/dataStore';
+import { collectionsAPI as colAPI } from '../../../services/api';
 import { DollarSign, TrendingUp, Calendar, Clock, Download } from 'lucide-react';
 import StatCard from '../StatCard';
 import Widget from '../Widget';
@@ -15,15 +15,15 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 export default function DriverEarnings() {
-  const [transactions, setTransactions] = useState<Collection[]>([]);
-  const load = useCallback(() => setTransactions(getAll<Collection>('collections')), []);
-  useEffect(() => { load(); window.addEventListener('ecotrade_data_change', load); return () => window.removeEventListener('ecotrade_data_change', load); }, [load]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const load = useCallback(() => colAPI.list({ status: 'completed' }).then(setTransactions).catch(() => {}), []);
+  useEffect(() => { load(); }, [load]);
 
-  const totalEarned = transactions.reduce((s, c) => s + c.earnings, 0) || driverProfile.totalEarnings;
-  const monthlyEarned = transactions.filter(c => c.scheduledDate?.startsWith(new Date().toISOString().slice(0, 7))).reduce((s, c) => s + c.earnings, 0) || driverProfile.monthlyEarnings;
+  const totalEarned = transactions.reduce((s: number, c: any) => s + (c.earnings || 0), 0) || driverProfile.totalEarnings;
+  const monthlyEarned = transactions.filter((c: any) => c.scheduled_date?.startsWith(new Date().toISOString().slice(0, 7))).reduce((s: number, c: any) => s + (c.earnings || 0), 0) || driverProfile.monthlyEarnings;
 
-  const payouts = transactions.filter(c => c.status === 'completed' && c.completedAt).slice(0, 5).map(c => ({
-    date: c.completedAt?.split('T')[0] ?? '', amount: `RWF ${c.earnings.toLocaleString()}`, route: c.id, method: 'Mobile Money', status: 'completed',
+  const payouts = transactions.slice(0, 5).map((c: any) => ({
+    date: c.completed_at?.split('T')[0] ?? c.scheduled_date ?? '', amount: `RWF ${(c.earnings || 0).toLocaleString()}`, route: `#${c.id}`, method: 'Mobile Money', status: 'completed',
   }));
   const payoutData = payouts.length > 0 ? payouts : [
     { date: '2026-02-19', amount: 'RWF 13,000', route: 'DR-001', method: 'Mobile Money', status: 'completed' },

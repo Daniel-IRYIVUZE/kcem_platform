@@ -15,6 +15,7 @@ from app.models.inventory import InventoryItem
 from app.models.green_score import GreenScore
 from app.models.audit_log import AuditLog
 from app.models.system_settings import SystemSettings
+from app.models.blog import BlogPost
 
 __all__ = [
     "User", "Role", "UserDocument",
@@ -33,4 +34,5 @@ __all__ = [
     "GreenScore",
     "AuditLog",
     "SystemSettings",
+    "BlogPost",
 ]

@@ -157,6 +157,8 @@ class WasteListing {
   final String? assignedDriver;
   final DateTime? collectionDate;
   final String location;
+  final double? latitude;
+  final double? longitude;
   final DateTime createdAt;
 
   const WasteListing({
@@ -178,6 +180,8 @@ class WasteListing {
     this.assignedDriver,
     this.collectionDate,
     required this.location,
+    this.latitude,
+    this.longitude,
     required this.createdAt,
   });
 
@@ -206,6 +210,8 @@ class WasteListing {
         'assignedDriver': assignedDriver,
         'collectionDate': collectionDate?.toIso8601String(),
         'location': location,
+        'latitude': latitude,
+        'longitude': longitude,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -245,6 +251,8 @@ class WasteListing {
             ? DateTime.parse(j['collectionDate'] as String)
             : null,
         location: j['location'] as String,
+        latitude: (j['latitude'] as num?)?.toDouble(),
+        longitude: (j['longitude'] as num?)?.toDouble(),
         createdAt: DateTime.parse(j['createdAt'] as String),
       );
 }

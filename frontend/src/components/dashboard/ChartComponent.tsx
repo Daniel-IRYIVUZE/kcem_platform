@@ -11,13 +11,13 @@ import { useTheme } from '../../context/ThemeContext';
 // ── EcoTrade brand palette ──────────────────────────────────
 const ECO_COLORS = [
   '#0891b2', // cyan-600
-  '#10b981', // emerald-500
+  '#10b981', // cyan-500
   '#f59e0b', // amber-500
   '#8b5cf6', // violet-500
   '#3b82f6', // blue-500
   '#ef4444', // red-500
   '#06b6d4', // cyan-500
-  '#065f46', // dark-cyan
+  '#0f89ab', // dark-cyan
 ];
 
 interface ChartDataSet {
@@ -123,7 +123,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
   switch (type) {
     case 'area':
       return (
-        <ResponsiveContainer width="100%" height={height}>
+        <ResponsiveContainer width="100%" height={height} minWidth={0}>
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <defs>
               {data.datasets.map((ds, di) => (
@@ -159,7 +159,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
 
     case 'line':
       return (
-        <ResponsiveContainer width="100%" height={height}>
+        <ResponsiveContainer width="100%" height={height} minWidth={0}>
           <LineChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
             <XAxis dataKey="name" {...axisProps} />
@@ -187,7 +187,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
     case 'bar':
     case 'multiBar':
       return (
-        <ResponsiveContainer width="100%" height={height}>
+        <ResponsiveContainer width="100%" height={height} minWidth={0}>
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }} barGap={4}>
             <CartesianGrid strokeDasharray="3 3" stroke={grid} vertical={false} />
             <XAxis dataKey="name" {...axisProps} />
@@ -219,7 +219,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
       }));
       const innerRadius = type === 'donut' ? '55%' : 0;
       return (
-        <ResponsiveContainer width="100%" height={height}>
+        <ResponsiveContainer width="100%" height={height} minWidth={0}>
           <PieChart>
             <Pie
               data={pieData}
@@ -255,7 +255,7 @@ const ChartComponent: React.FC<ChartComponentProps> = ({
         fullMark: Math.max(...firstDs.data) * 1.2,
       }));
       return (
-        <ResponsiveContainer width="100%" height={height}>
+        <ResponsiveContainer width="100%" height={height} minWidth={0}>
           <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
             <PolarGrid stroke={grid} />
             <PolarAngleAxis dataKey="subject" tick={{ fill: axis, fontSize: 11 }} />

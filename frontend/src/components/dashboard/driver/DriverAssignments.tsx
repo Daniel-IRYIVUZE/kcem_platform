@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAll, update as dsUpdate, downloadCSV } from '../../../utils/dataStore';
-import type { Collection } from '../../../utils/dataStore';
+import { downloadCSV } from '../../../utils/dataStore';
+import { collectionsAPI } from '../../../services/api';
 import { ClipboardList, Download, Navigation, Eye, Calendar, Activity } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
-import { driverProfile, assignments } from './_shared';
+import { assignments } from './_shared';
 
 const StatusBadge = ({ status }: { status: string }) => {
   const styles: Record<string, string> = {
@@ -16,20 +16,19 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 export default function DriverAssignments() {
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const load = useCallback(() => setCollections(getAll<Collection>('collections').filter(c => c.driverName === driverProfile.name || c.status === 'scheduled')), []);
-  useEffect(() => { load(); window.addEventListener('ecotrade_data_change', load); return () => window.removeEventListener('ecotrade_data_change', load); }, [load]);
+  const [collections, setCollections] = useState<any[]>([]);
+  const load = useCallback(() => collectionsAPI.list({ limit: 100 }).then(data => setCollections(data.filter((c: any) => ['scheduled','en_route','in_progress'].includes(c.status)))).catch(() => {}), []);
+  useEffect(() => { load(); }, [load]);
 
-  const liveData = collections.length > 0 ? collections.map(c => ({
-    id: c.id, _id: c.id, date: c.scheduledDate, route: c.location.split(',')[0] || 'Kigali',
+  const liveData = collections.length > 0 ? collections.map((c: any) => ({
+    id: c.id, _id: c.id, date: c.scheduled_date, route: (c.location || 'Kigali').split(',')[0],
     stops: 1, totalWeight: `${c.volume} kg/L`, estimatedTime: '2h',
-    status: c.status === 'en-route' ? 'in_progress' : c.status,
-    earnings: `RWF ${c.earnings.toLocaleString()}`,
+    status: c.status === 'en_route' ? 'in_progress' : c.status,
+    earnings: `RWF ${(c.earnings || 0).toLocaleString()}`,
   })) : assignments.map(a => ({ ...a, _id: a.id }));
 
-  const handleStartRoute = (id: string) => {
-    const col = collections.find(c => c.id === id);
-    if (col) { dsUpdate<Collection>('collections', id, { status: 'en-route' }); load(); }
+  const handleStartRoute = (id: any) => {
+    collectionsAPI.updateStatus(Number(id), { status: 'en_route' }).then(load).catch(() => {});
   };
 
   return (

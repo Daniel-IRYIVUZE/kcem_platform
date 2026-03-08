@@ -4,8 +4,8 @@ import {
   Search, Eye, CheckCircle, XCircle, Trash2, X, 
   Package, Edit2, Download,
 } from 'lucide-react';
-import { getAll, update, remove, downloadCSV } from '../../../utils/dataStore';
-import type { WasteListing } from '../../../utils/dataStore';
+import { listingsAPI, type WasteListing } from '../../../services/api';
+import { downloadCSV } from '../../../utils/dataStore';
 
 const ALL_STATUSES = ['open', 'draft', 'assigned', 'collected', 'completed', 'cancelled', 'expired'] as const;
 
@@ -26,47 +26,37 @@ export default function AdminListings() {
   const [wasteFilter, setWasteFilter] = useState('all');
   const [modal, setModal] = useState<'view' | 'delete' | 'status' | null>(null);
   const [selected, setSelected] = useState<WasteListing | null>(null);
-  const [newStatus, setNewStatus] = useState<WasteListing['status']>('open');
+  const [newStatus, setNewStatus] = useState<string>('open');
 
-  const load = () => setListings(getAll<WasteListing>('listings'));
-  useEffect(() => { 
-    load(); 
-    window.addEventListener('ecotrade_data_change', load); 
-    return () => window.removeEventListener('ecotrade_data_change', load); 
-  }, []);
+  const load = () => listingsAPI.list({ limit: 500 }).then(setListings).catch(() => {});
+  useEffect(() => { load(); }, []);
 
-  const wasteTypes = [...new Set(listings.map(l => l.wasteType))];
+  const wasteTypes = [...new Set(listings.map(l => l.waste_type))];
   
   const filtered = listings.filter(l =>
     (statusFilter === 'all' || l.status === statusFilter) &&
-    (wasteFilter === 'all' || l.wasteType === wasteFilter) &&
-    ((l.hotelName || l.businessName || '').toLowerCase().includes(search.toLowerCase()) || 
-     l.wasteType.toLowerCase().includes(search.toLowerCase()))
+    (wasteFilter === 'all' || l.waste_type === wasteFilter) &&
+    ((l.hotel_name || '').toLowerCase().includes(search.toLowerCase()) || 
+     l.waste_type.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleApprove = (l: WasteListing) => { 
-    update<WasteListing>('listings', l.id, { status: 'open' }); 
-    load(); 
+    listingsAPI.update(l.id, { status: 'open' }).then(load).catch(() => {}); 
   };
 
   const handleReject = (l: WasteListing) => { 
-    update<WasteListing>('listings', l.id, { status: 'cancelled' }); 
-    load(); 
+    listingsAPI.update(l.id, { status: 'cancelled' }).then(load).catch(() => {}); 
   };
 
   const handleStatusChange = () => { 
     if (selected) { 
-      update<WasteListing>('listings', selected.id, { status: newStatus }); 
-      setModal(null); 
-      load(); 
+      listingsAPI.update(selected.id, { status: newStatus }).then(() => { setModal(null); load(); }).catch(() => {}); 
     } 
   };
 
   const handleDelete = () => { 
     if (selected) { 
-      remove('listings', selected.id); 
-      setModal(null); 
-      load(); 
+      listingsAPI.delete(selected.id).then(() => { setModal(null); load(); }).catch(() => {}); 
     } 
   };
 
@@ -74,14 +64,14 @@ export default function AdminListings() {
     downloadCSV('listings', 
       ['ID', 'Hotel', 'Waste Type', 'Volume', 'Unit', 'Min Bid', 'Status', 'Date'],
       filtered.map(l => [
-        l.id, 
-        l.hotelName || l.businessName || 'N/A', 
-        l.wasteType, 
+        String(l.id), 
+        l.hotel_name || 'N/A', 
+        l.waste_type, 
         String(l.volume), 
         l.unit, 
-        String(l.minBid), 
+        String(l.min_bid), 
         l.status, 
-        new Date(l.createdAt).toLocaleDateString()
+        new Date(l.created_at).toLocaleDateString()
       ])
     );
   };
@@ -162,23 +152,23 @@ export default function AdminListings() {
               {filtered.map(l => (
                 <tr key={l.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900">
                   <td className="px-4 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-                    {l.id.substring(0, 8)}...
+                    #{String(l.id)}
                   </td>
                   <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">
-                    {l.hotelName}
+                    {l.hotel_name}
                   </td>
                   <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
-                    {l.wasteType}
+                    {l.waste_type}
                   </td>
                   <td className="px-4 py-3">
                     {l.volume} {l.unit}
                   </td>
                   <td className="px-4 py-3 font-semibold text-green-600 dark:text-green-400">
-                    RWF {l.minBid.toLocaleString()}
+                    RWF {(l.min_bid ?? 0).toLocaleString()}
                   </td>
                   <td className="px-4 py-3">
                     <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-full text-xs">
-                      {Array.isArray(l.bids) ? l.bids.length : 0} bids
+                      {l.bid_count ?? 0} bids
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -187,7 +177,7 @@ export default function AdminListings() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-400 dark:text-gray-500">
-                    {new Date(l.createdAt).toLocaleDateString()}
+                    {new Date(l.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-1">
@@ -257,15 +247,15 @@ export default function AdminListings() {
             <div className="p-5 space-y-3">
               <div className="grid grid-cols-2 gap-3 text-sm">
                 {[
-                  ['ID', selected.id.substring(0, 8) + '...'],
-                  ['Hotel', selected.hotelName],
-                  ['Waste Type', selected.wasteType],
+                  ['ID', String(selected.id)],
+                  ['Hotel', selected.hotel_name],
+                  ['Waste Type', selected.waste_type],
                   ['Volume', `${selected.volume} ${selected.unit}`],
-                  ['Min Bid', `RWF ${selected.minBid.toLocaleString()}`],
+                  ['Min Bid', `RWF ${(selected.min_bid ?? 0).toLocaleString()}`],
                   ['Status', selected.status],
-                  ['Total Bids', Array.isArray(selected.bids) ? selected.bids.length : 0],
-                  ['Created', new Date(selected.createdAt).toLocaleDateString()],
-                  ['Expires', new Date(selected.expiresAt).toLocaleDateString()]
+                  ['Total Bids', selected.bid_count ?? 0],
+                  ['Created', new Date(selected.created_at).toLocaleDateString()],
+                  ['Expires', selected.expires_at ? new Date(selected.expires_at).toLocaleDateString() : 'N/A']
                 ].map(([k, v]) => (
                   <div key={String(k)}>
                     <span className="text-gray-500 dark:text-gray-400 text-xs">{String(k)}:</span>{' '}
@@ -274,33 +264,16 @@ export default function AdminListings() {
                 ))}
               </div>
               
-              {selected.specialInstructions && (
+              {selected.special_instructions && (
                 <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 text-sm text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
                   <strong className="block mb-1">Instructions:</strong>
-                  {selected.specialInstructions}
+                  {selected.special_instructions}
                 </div>
               )}
               
-              {Array.isArray(selected.bids) && selected.bids.length > 0 && (
-                <div>
-                  <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-2">Bids</h4>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {selected.bids.map((b, i) => (
-                      <div key={i} className="flex justify-between items-center text-sm bg-gray-50 dark:bg-gray-900 rounded-lg p-2 border border-gray-200 dark:border-gray-700">
-                        <span className="text-gray-700 dark:text-gray-300">{b.recyclerName}</span>
-                        <span className="font-semibold text-green-600 dark:text-green-400">
-                          RWF {b.amount.toLocaleString()}
-                        </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          b.status === 'won' 
-                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                            : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                        }`}>
-                          {b.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+              {(selected.bid_count ?? 0) > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-sm text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                  <strong>{selected.bid_count}</strong> bid(s) placed on this listing.
                 </div>
               )}
             </div>
@@ -343,7 +316,7 @@ export default function AdminListings() {
               Delete Listing?
             </h3>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-5">
-              Delete listing from <strong>{selected.hotelName}</strong>?
+              Delete listing from <strong>{selected.hotel_name}</strong>?
             </p>
             <div className="flex gap-3">
               <button 
@@ -380,7 +353,7 @@ export default function AdminListings() {
               </button>
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Listing <strong>{selected.id.substring(0, 8)}...</strong> — <strong>{selected.hotelName}</strong>
+              Listing <strong>#{String(selected.id)}</strong> — <strong>{selected.hotel_name}</strong>
             </p>
             <div className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">
               Current status:{' '}
@@ -394,7 +367,7 @@ export default function AdminListings() {
               </label>
               <select 
                 value={newStatus} 
-                onChange={e => setNewStatus(e.target.value as WasteListing['status'])} 
+                onChange={e => setNewStatus(e.target.value)} 
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               >
                 {ALL_STATUSES.map(s => (

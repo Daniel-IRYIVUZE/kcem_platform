@@ -1,0 +1,36 @@
+{
+  // ─── CSS ────────────────────────────────────────────────────────────────────
+  // Tailwind uses custom at-rules (@apply, @variant, @layer, @theme, etc.)
+  // that the built-in CSS linter doesn't understand. Silence those false positives.
+  "css.validate": false,
+  "less.validate": false,
+  "scss.validate": false,
+  "css.lint.unknownAtRules": "ignore",
+
+  // ─── TypeScript ─────────────────────────────────────────────────────────────
+  // Point the language service at the app tsconfig so project-references are
+  // resolved correctly (fixes "Cannot find module" false positives for files
+  // that exist and compile fine with `tsc --noEmit`).
+  "typescript.tsdk": "frontend/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+
+  // ─── Tailwind IntelliSense ───────────────────────────────────────────────────
+  "tailwindCSS.experimental.classRegex": [
+    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+  ],
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+
+  // ─── Editor ─────────────────────────────────────────────────────────────────
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}

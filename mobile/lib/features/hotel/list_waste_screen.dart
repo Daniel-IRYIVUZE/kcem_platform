@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
@@ -20,6 +22,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
   String _selectedWasteType = 'Cardboard';
   double _qualityScore = 3;
   bool _isSubmitting = false;
+  LatLng _pickedLocation = const LatLng(-1.9441, 30.0619);
   final _volumeController = TextEditingController();
   final _notesController = TextEditingController();
   final _minBidController = TextEditingController();
@@ -231,7 +234,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
             // Waste type
             _SectionCard(
               title: 'Waste Type',
-              icon: '♻️',
+              icon: Icons.recycling_rounded,
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -267,7 +270,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
             // Volume
             _SectionCard(
               title: 'Volume / Quantity',
-              icon: '⚖️',
+              icon: Icons.scale_outlined,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -322,7 +325,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
             // Min Bid Price
             _SectionCard(
               title: 'Minimum Bid Price (RWF)',
-              icon: '💰',
+              icon: Icons.payments_outlined,
               child: AppTextField(
                 controller: _minBidController,
                 label: 'Minimum bid (RWF)',
@@ -337,7 +340,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
             // Quality
             _SectionCard(
               title: 'Quality Rating',
-              icon: '⭐',
+              icon: Icons.star_outline_rounded,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -386,7 +389,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
             // Photos
             _SectionCard(
               title: 'Photos',
-              icon: '📷',
+              icon: Icons.camera_alt_outlined,
               child: Column(
                 children: [
                   GestureDetector(
@@ -438,7 +441,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                             child: Stack(
                               children: [
                                 const Center(
-                                  child: Text('📦', style: TextStyle(fontSize: 28)),
+                                  child: Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 28),
                                 ),
                                 Positioned(
                                   top: 4,
@@ -471,7 +474,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
             // Pickup time
             _SectionCard(
               title: 'Preferred Pickup Time',
-              icon: '🕐',
+              icon: Icons.access_time_rounded,
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -508,7 +511,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
             // Location
             _SectionCard(
               title: 'Pickup Location',
-              icon: '📍',
+              icon: Icons.location_on_rounded,
               child: Column(
                 children: [
                   SwitchListTile(
@@ -526,24 +529,34 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                       prefixIcon: Icons.location_on_outlined,
                     ),
                   const SizedBox(height: 8),
-                  Container(
-                    height: 140,
-                    decoration: BoxDecoration(
-                      color: context.cPrimaryLight,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 160,
+                      child: FlutterMap(
+                        options: MapOptions(
+                          initialCenter: _pickedLocation,
+                          initialZoom: 14.0,
+                          onTap: (_, point) => setState(() => _pickedLocation = point),
+                        ),
                         children: [
-                          const Icon(Icons.location_on, color: AppColors.primary, size: 36),
-                          const SizedBox(height: 6),
-                          Text(
-                            _useCurrentLocation ? 'Kigali, Rwanda' : (_addressController.text.isNotEmpty ? _addressController.text : 'Enter address above'),
-                            style: TextStyle(
-                              color: context.cTextSec,
-                              fontWeight: FontWeight.w500,
-                            ),
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.ecotrade.rwanda',
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: _pickedLocation,
+                                width: 40,
+                                height: 40,
+                                child: const Icon(
+                                  Icons.location_on,
+                                  color: AppColors.primary,
+                                  size: 40,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -590,7 +603,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
 
 class _SectionCard extends StatelessWidget {
   final String title;
-  final String icon;
+  final IconData icon;
   final Widget child;
 
   const _SectionCard({
@@ -614,7 +627,7 @@ class _SectionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(icon, style: const TextStyle(fontSize: 18)),
+              Icon(icon, size: 18, color: AppColors.primary),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

@@ -1,8 +1,11 @@
 // components/dashboard/business/BusinessOverview.tsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAll } from '../../../utils/dataStore';
-import type { WasteListing, Collection, Transaction, Message } from '../../../utils/dataStore';
+import { useAuth } from '../../../context/AuthContext';
+import {
+  listingsAPI, collectionsAPI, transactionsAPI, messagesAPI,
+  type WasteListing, type Collection, type Transaction, type Message
+} from '../../../services/api';
 import {
   Package, DollarSign, Trophy, Calendar,
   MessageSquare, TrendingUp, BarChart3, Clock, PlusCircle, Leaf, Zap
@@ -18,49 +21,51 @@ import { hotelProfile, revenueTrend, wasteBreakdown } from './_shared';
 
 export default function BusinessOverview() {
   const navigate = useNavigate();
-  const [listings, setListings] = useState<WasteListing[]>([]);
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const { user: authUser } = useAuth();
+  const [listings, setListings]         = useState<WasteListing[]>([]);
+  const [collections, setCollections]   = useState<Collection[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-
-  const load = useCallback(() => {
-    setListings(getAll<WasteListing>('listings'));
-    setCollections(getAll<Collection>('collections'));
-    setTransactions(getAll<Transaction>('transactions'));
-    setMessages(getAll<Message>('messages'));
-  }, []);
+  const [messages, setMessages]         = useState<Message[]>([]);
 
   useEffect(() => {
-    load();
-    window.addEventListener('ecotrade_data_change', load);
-    return () => window.removeEventListener('ecotrade_data_change', load);
-  }, [load]);
+    Promise.all([
+      listingsAPI.mine().catch(() => []),
+      collectionsAPI.list({ limit: 200 } as Parameters<typeof collectionsAPI.list>[0]).catch(() => []),
+      transactionsAPI.mine({ limit: 200 } as Parameters<typeof transactionsAPI.mine>[0]).catch(() => []),
+      messagesAPI.list().catch(() => []),
+    ]).then(([l, c, t, m]) => {
+      setListings(Array.isArray(l) ? l : []);
+      setCollections(Array.isArray(c) ? c : []);
+      setTransactions(Array.isArray(t) ? t : []);
+      setMessages(Array.isArray(m) ? m : []);
+    });
+  }, []);
 
-  const openListings   = listings.filter(l => l.status === 'open');
-  const totalRevenue   = transactions.reduce((s, t) => s + t.amount, 0);
-  const unreadMsgs     = messages.filter(m => !m.read).length;
-  const activeCollect  = collections.filter(c => c.status === 'scheduled' || c.status === 'en-route');
+  const openListings  = listings.filter(l => l.status === 'open');
+  const totalRevenue  = transactions.reduce((s, t) => s + (t.amount || 0), 0);
+  const unreadMsgs    = messages.filter(m => !m.is_read).length;
+  const activeCollect = collections.filter(c => c.status === 'scheduled' || c.status === 'en-route');
   const sparkRevenue   = [35, 40, 45, 50, 55, 60, 65, 80, 90, 85, 95, 100];
 
   // Build activity feed from recent listings + collections
   const activityItems: ActivityItem[] = [
     ...openListings.slice(0, 3).map(l => ({
-      id: l.id,
+      id: String(l.id),
       icon: <Package size={14}/>,
       iconBg: 'bg-cyan-100 dark:bg-cyan-900/30',
-      title: `${l.wasteType} listing — ${l.volume} ${l.unit}`,
-      subtitle: `${l.bids?.length || 0} bids · Min: RWF ${l.minBid?.toLocaleString()}`,
-      time: new Date(l.createdAt).toLocaleDateString(),
+      title: `${l.waste_type} listing — ${l.volume} ${l.unit}`,
+      subtitle: `${l.bid_count || 0} bids · Min: RWF ${(l.min_bid||0).toLocaleString()}`,
+      time: l.created_at ? new Date(l.created_at).toLocaleDateString() : '',
       badge: l.status,
       badgeColor: l.status === 'open' ? 'cyan' : 'gray',
     })),
     ...activeCollect.slice(0, 2).map(c => ({
-      id: c.id,
+      id: String(c.id),
       icon: <Calendar size={14}/>,
       iconBg: 'bg-blue-100 dark:bg-blue-900/30',
-      title: `${c.wasteType} collection scheduled`,
-      subtitle: `${c.scheduledDate} at ${c.scheduledTime || '—'}`,
-      time: c.scheduledDate,
+      title: `${c.waste_type} collection scheduled`,
+      subtitle: `${c.scheduled_date} at ${c.scheduled_time || '—'}`,
+      time: c.scheduled_date || '',
       badge: c.status,
       badgeColor: 'blue' as const,
     })),
@@ -69,7 +74,7 @@ export default function BusinessOverview() {
   return (
     <div className="space-y-6 animate-fade-up">
       <PageHeader
-        title={`Welcome back, ${hotelProfile.name}!`}
+        title={`Welcome back, ${authUser?.name || hotelProfile.name}!`}
         subtitle="Here's your waste management overview"
         icon={<Leaf size={20}/>}
         badge={unreadMsgs > 0 ? `${unreadMsgs} new messages` : undefined}
@@ -105,7 +110,7 @@ export default function BusinessOverview() {
           title="Green Score"
           value={hotelProfile.greenScore}
           icon={<Trophy size={22}/>}
-          color="emerald"
+          color="cyan"
           progress={hotelProfile.greenScore}
           change="+5"
           trend="up"
@@ -138,16 +143,14 @@ export default function BusinessOverview() {
         >
           <div className="space-y-2.5">
             {openListings.slice(0, 4).map(listing => {
-              const bids = Array.isArray(listing.bids) ? listing.bids : [];
-              const topBid = [...bids].sort((a, b) => b.amount - a.amount)[0];
               return (
                 <div key={listing.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors cursor-pointer" onClick={() => navigate('listings')}>
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">{listing.wasteType} — {listing.volume} {listing.unit}</p>
-                    <p className="text-xs text-gray-400">{bids.length} bids · Top: {topBid ? `RWF ${topBid.amount.toLocaleString()}` : '—'}</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{listing.waste_type} — {listing.volume} {listing.unit}</p>
+                    <p className="text-xs text-gray-400">{listing.bid_count || 0} bids · Top: {listing.highest_bid > 0 ? `RWF ${listing.highest_bid.toLocaleString()}` : '—'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-cyan-600 dark:text-cyan-400">RWF {listing.minBid?.toLocaleString()}</p>
+                    <p className="text-sm font-semibold text-cyan-600 dark:text-cyan-400">RWF {(listing.min_bid||0).toLocaleString()}</p>
                     <StatusBadge status={listing.status} size="sm" dot={false} />
                   </div>
                 </div>
@@ -168,8 +171,8 @@ export default function BusinessOverview() {
             {activeCollect.slice(0, 4).map(col => (
               <div key={col.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors">
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{col.wasteType} — {col.volume} {col.wasteType === 'UCO' ? 'L' : 'kg'}</p>
-                  <p className="text-xs text-gray-400">{col.scheduledDate} at {col.scheduledTime || '—'}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{col.waste_type} — {col.volume} {col.waste_type === 'UCO' ? 'L' : 'kg'}</p>
+                  <p className="text-xs text-gray-400">{col.scheduled_date} at {col.scheduled_time || '—'}</p>
                 </div>
                 <StatusBadge status={col.status} size="sm" dot />
               </div>
@@ -184,19 +187,19 @@ export default function BusinessOverview() {
       {/* Recent Messages */}
       <Widget
         title="Recent Messages"
-        icon={<MessageSquare size={18} className="text-emerald-600 dark:text-emerald-400"/>}
+        icon={<MessageSquare size={18} className="text-cyan-600 dark:text-cyan-400"/>}
         badge={unreadMsgs > 0 ? `${unreadMsgs} new` : undefined}
         badgeColor="cyan"
         action={<button onClick={() => navigate('messages')} className="text-sm text-cyan-600 hover:underline">View All</button>}
       >
         <div className="space-y-2">
           {messages.slice(0, 3).map(msg => (
-            <div key={msg.id} className={`flex items-start gap-3 p-3 rounded-xl transition-colors ${!msg.read ? 'bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800' : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}>
-              <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${!msg.read ? 'bg-cyan-500' : 'bg-transparent'}`} />
+            <div key={msg.id} className={`flex items-start gap-3 p-3 rounded-xl transition-colors ${!msg.is_read ? 'bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-100 dark:border-cyan-800' : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'}`}>
+              <div className={`w-2 h-2 mt-2 rounded-full flex-shrink-0 ${!msg.is_read ? 'bg-cyan-500' : 'bg-transparent'}`} />
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-start">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{msg.fromName}</p>
-                  <span className="text-xs text-gray-400">{new Date(msg.date).toLocaleDateString()}</span>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{msg.from_name}</p>
+                  <span className="text-xs text-gray-400">{msg.created_at ? new Date(msg.created_at).toLocaleDateString() : ''}</span>
                 </div>
                 <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{msg.subject}</p>
                 <p className="text-xs text-gray-400 truncate">{msg.body}</p>

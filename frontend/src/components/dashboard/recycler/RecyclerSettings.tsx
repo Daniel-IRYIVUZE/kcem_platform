@@ -1,25 +1,27 @@
 import { useState, useEffect } from 'react';
-import { getAll, update as dsUpdate } from '../../../utils/dataStore';
-import type { PlatformUser } from '../../../utils/dataStore';
+import { usersAPI, type APIUser } from '../../../services/api';
 import { CheckCircle } from 'lucide-react';
 import { companyProfile } from './_shared';
 
 export default function RecyclerSettings() {
-  const getUser = () => getAll<PlatformUser>('users').find(u => u.role === 'recycler') || getAll<PlatformUser>('users').find(u => u.name === companyProfile.name);
-  const [user, setUser] = useState<PlatformUser | undefined>(getUser);
-  const [companyName, setCompanyName] = useState(user?.name || 'Green Energy Ltd');
-  const [email, setEmail] = useState(user?.email || 'recycler@greenenergy.rw');
-  const [phone, setPhone] = useState(user?.phone || '+250 780 162 164');
-  const [address, setAddress] = useState(user?.location || 'Kicukiro Industrial Zone, Kigali');
+  const [user, setUser] = useState<APIUser | undefined>();
+  const [companyName, setCompanyName] = useState(companyProfile.name);
+  const [email, setEmail] = useState('recycler@greenenergy.rw');
+  const [phone, setPhone] = useState('+250 780 162 164');
+  const [address, setAddress] = useState('Kicukiro Industrial Zone, Kigali');
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const u = getUser();
-    if (u) { setUser(u); setCompanyName(u.name); setEmail(u.email); setPhone(u.phone); setAddress(u.location); }
+    usersAPI.me().then(u => {
+      setUser(u);
+      setCompanyName(u.full_name || companyProfile.name);
+      setEmail(u.email || '');
+      setPhone(u.phone || '');
+    }).catch(() => {});
   }, []);
 
   const handleSave = () => {
-    if (user) dsUpdate<PlatformUser>('users', user.id, { name: companyName, email, phone, location: address });
+    if (user) usersAPI.update(user.id, { full_name: companyName, email, phone }).catch(() => {});
     setSaved(true); setTimeout(() => setSaved(false), 2500);
   };
 

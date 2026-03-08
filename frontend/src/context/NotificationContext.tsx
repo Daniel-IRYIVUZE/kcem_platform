@@ -1,18 +1,22 @@
 // context/NotificationContext.tsx — EcoTrade Rwanda
-// Persistent, typed notification system with localStorage backing.
+// Backend-powered notification system with auto-refresh
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
+import { notificationsAPI } from '../services/api';
 
 export type NotificationType = 'bid' | 'collection' | 'payment' | 'system' | 'message' | 'alert';
 
 export interface Notification {
-  id: string;
-  type: NotificationType;
+  id: string | number;
+  type?: NotificationType | string;
   title: string;
-  message: string;
-  time: string;   // ISO string
-  read: boolean;
+  body?: string;
+  message?: string;
+  time?: string;   // ISO string or created_at
+  created_at?: string;
+  read?: boolean;
+  is_read?: boolean;
   link?: string;
   meta?: Record<string, unknown>;
 }
@@ -20,131 +24,107 @@ export interface Notification {
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (n: Omit<Notification, 'id' | 'time' | 'read'>) => void;
-  markRead: (id: string) => void;
-  markAllRead: () => void;
-  remove: (id: string) => void;
+  loading: boolean;
+  refresh: () => Promise<void>;
+  markRead: (id: string | number) => Promise<void>;
+  markAllRead: () => Promise<void>;
+  remove: (id: string | number) => void;
   clearAll: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'ecotrade_notifications';
-const MAX_NOTIFICATIONS = 50;
-
-function genId() {
-  return `notif_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-}
-
-// ─── Seed demo notifications ─────────────────────────────────────────────────
-const DEMO_NOTIFICATIONS: Notification[] = [
-  {
-    id: 'demo_1',
-    type: 'bid',
-    title: 'New Bid Received',
-    message: 'GreenEnergy Recyclers placed a bid of RWF 17,500 on your UCO listing',
-    time: new Date(Date.now() - 2 * 60 * 1000).toISOString(),
-    read: false,
-    link: '/dashboard/business',
-  },
-  {
-    id: 'demo_2',
-    type: 'collection',
-    title: 'Pickup Scheduled',
-    message: 'Your glass collection is confirmed for tomorrow at 09:00',
-    time: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    read: false,
-    link: '/dashboard/business',
-  },
-  {
-    id: 'demo_3',
-    type: 'payment',
-    title: 'Payment Confirmed',
-    message: 'RWF 25,000 has been transferred to your account',
-    time: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    read: true,
-  },
-  {
-    id: 'demo_4',
-    type: 'system',
-    title: 'Green Score Updated',
-    message: 'Your green score increased to 87 — excellent work!',
-    time: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-    read: true,
-  },
-];
 
 export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  // Load from localStorage on mount
-  useEffect(() => {
+  const refresh = useCallback(async () => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setNotifications(JSON.parse(stored));
-      } else {
-        // First visit — seed demo notifications
-        setNotifications(DEMO_NOTIFICATIONS);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEMO_NOTIFICATIONS));
+      setLoading(true);
+      
+      // Check if user is authenticated
+      const token = localStorage.getItem('ecotrade_token');
+      if (!token) {
+        setNotifications([]);
+        setUnreadCount(0);
+        return;
       }
-    } catch {
-      setNotifications(DEMO_NOTIFICATIONS);
+
+      // Fetch notifications from backend
+      const notifs = await notificationsAPI.list();
+      setNotifications(notifs as Notification[]);
+      
+      // Fetch unread count
+      const { count } = await notificationsAPI.unreadCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+      // On error, keep existing notifications
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const addNotification = useCallback(
-    (n: Omit<Notification, 'id' | 'time' | 'read'>) => {
-      const newNotif: Notification = {
-        ...n,
-        id: genId(),
-        time: new Date().toISOString(),
-        read: false,
-      };
-      setNotifications(prev => {
-        const updated = [newNotif, ...prev];
-        const trimmed = updated.slice(0, MAX_NOTIFICATIONS);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
-        return trimmed;
-      });
-    },
-    [],
-  );
+  // Initial load + auto-refresh every 30 seconds
+  useEffect(() => {
+    refresh();
+    const interval = setInterval(refresh, 30000);
+    return () => clearInterval(interval);
+  }, [refresh]);
 
-  const markRead = useCallback((id: string) => {
-    setNotifications(prev => {
-      const updated = prev.map(n => (n.id === id ? { ...n, read: true } : n));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
+  // Refresh on auth changes
+  useEffect(() => {
+    const handleAuthChange = () => refresh();
+    window.addEventListener('authChange', handleAuthChange);
+    return () => window.removeEventListener('authChange', handleAuthChange);
+  }, [refresh]);
+
+  const markRead = useCallback(async (id: string | number) => {
+    try {
+      const numId = typeof id === 'string' ? parseInt(id, 10) : id;
+      await notificationsAPI.markRead(numId);
+      setNotifications(prev =>
+        prev.map(n => {
+          const nId = typeof n.id === 'string' ? parseInt(n.id, 10) : n.id;
+          return nId === numId ? { ...n, is_read: true, read: true } : n;
+        })
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   }, []);
 
-  const markAllRead = useCallback(() => {
-    setNotifications(prev => {
-      const updated = prev.map(n => ({ ...n, read: true }));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
+  const markAllRead = useCallback(async () => {
+    try {
+      await notificationsAPI.markAllRead();
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true, read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
   }, []);
 
-  const remove = useCallback((id: string) => {
-    setNotifications(prev => {
-      const updated = prev.filter(n => n.id !== id);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
+  const remove = useCallback((id: string | number) => {
+    // Optimistic update - remove locally
+    const numId = typeof id === 'string' ? parseInt(id, 10) : id;
+    setNotifications(prev => prev.filter(n => {
+      const nId = typeof n.id === 'string' ? parseInt(n.id, 10) : n.id;
+      return nId !== numId;
+    }));
   }, []);
 
   const clearAll = useCallback(() => {
+    // Optimistic update - clear locally
     setNotifications([]);
-    localStorage.removeItem(STORAGE_KEY);
+    setUnreadCount(0);
   }, []);
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <NotificationContext.Provider
-      value={{ notifications, unreadCount, addNotification, markRead, markAllRead, remove, clearAll }}
+      value={{ notifications, unreadCount, loading, refresh, markRead, markAllRead, remove, clearAll }}
     >
       {children}
     </NotificationContext.Provider>

@@ -1,26 +1,31 @@
 // components/dashboard/business/BusinessSettings.tsx
 import { useState, useEffect } from 'react';
-import { getAll, update as dsUpdate } from '../../../utils/dataStore';
-import type { PlatformUser } from '../../../utils/dataStore';
+import { usersAPI, type APIUser } from '../../../services/api';
 import { CheckCircle } from 'lucide-react';
 
 export default function BusinessSettings() {
-  const getUser = () => getAll<PlatformUser>('users').find(u => u.role === 'business');
-  const [user, setUser] = useState<PlatformUser | undefined>(getUser);
-  const [hotelName, setHotelName] = useState(user?.name || 'Hotel Mille Collines');
-  const [email, setEmail] = useState(user?.email || 'hotel@millecollines.rw');
-  const [phone, setPhone] = useState(user?.phone || '+250 780 162 164');
-  const [address, setAddress] = useState(user?.location || 'KG 2 Ave, Kigali');
+  const [userId, setUserId] = useState<number | null>(null);
+  const [hotelName, setHotelName] = useState('Hotel Mille Collines');
+  const [email, setEmail] = useState('hotel@millecollines.rw');
+  const [phone, setPhone] = useState('+250 780 162 164');
+  const [address, setAddress] = useState('KG 2 Ave, Kigali');
   const [contactPerson, setContactPerson] = useState('Jean Bosco Kariyo');
   const [autoAcceptBids, setAutoAcceptBids] = useState(false);
   const [emailNotifs, setEmailNotifs] = useState(true);
   const [smsNotifs, setSmsNotifs] = useState(true);
   const [saved, setSaved] = useState(false);
 
-  useEffect(() => { const u = getUser(); if (u) { setUser(u); setHotelName(u.name); setEmail(u.email); setPhone(u.phone); setAddress(u.location); } }, []);
+  useEffect(() => {
+    usersAPI.me().then((u: APIUser) => {
+      setUserId(u.id);
+      setHotelName(u.full_name || 'Hotel Mille Collines');
+      setEmail(u.email || '');
+      setPhone(u.phone || '');
+    }).catch(() => {});
+  }, []);
 
   const handleSave = () => {
-    if (user) dsUpdate<PlatformUser>('users', user.id, { name: hotelName, email, phone, location: address });
+    if (userId) usersAPI.update(userId, { full_name: hotelName, email, phone }).catch(() => {});
     setSaved(true); setTimeout(() => setSaved(false), 2500);
   };
 

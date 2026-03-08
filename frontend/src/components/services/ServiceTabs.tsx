@@ -12,7 +12,7 @@ const ServiceTabs = ({ activeTab, setActiveTab }: ServiceTabsProps) => {
       id: 'businesses',
       label: 'Businesses & Restaurants',
       icon: Building2,
-      color: 'bg-cyan-600',
+      color: 'bg-cyan-500',
       count: 156
     },
     {

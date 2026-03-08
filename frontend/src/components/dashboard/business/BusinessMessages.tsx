@@ -1,7 +1,6 @@
 // components/dashboard/business/BusinessMessages.tsx
 import { useState, useEffect } from 'react';
-import { getAll, create, update as dsUpdate, generateId } from '../../../utils/dataStore';
-import type { Message } from '../../../utils/dataStore';
+import { messagesAPI, type Message } from '../../../services/api';
 import { MessageSquare, Send } from 'lucide-react';
 
 export default function BusinessMessages() {
@@ -10,36 +9,29 @@ export default function BusinessMessages() {
   const [reply, setReply] = useState('');
   const [flash, setFlash] = useState<string | null>(null);
 
-  const load = () => setMsgs(getAll<Message>('messages'));
-  useEffect(() => { load(); window.addEventListener('ecotrade_data_change', load); return () => window.removeEventListener('ecotrade_data_change', load); }, []);
+  const load = () => messagesAPI.list().then(setMsgs).catch(() => {});
+  useEffect(() => { load(); }, []);
 
   const handleSelect = (msg: Message) => {
     setSelectedMsg(msg);
-    if (!msg.read) dsUpdate<Message>('messages', msg.id, { read: true });
+    if (!msg.is_read) messagesAPI.markRead(msg.id).then(load).catch(() => {});
     setReply('');
   };
 
   const handleSendReply = () => {
     if (!reply.trim() || !selectedMsg) return;
-    const updated: Message = {
-      ...selectedMsg,
-      replies: [...(selectedMsg.replies || []), { from: 'Hotel', fromName: 'Hotel Mille Collines', body: reply, date: new Date().toISOString() }]
-    };
-    dsUpdate<Message>('messages', selectedMsg.id, { replies: updated.replies });
-    setSelectedMsg(updated);
-    setReply('');
-    setFlash('Reply sent!'); setTimeout(() => setFlash(null), 2000);
+    messagesAPI.reply(selectedMsg.id, reply).then(() => {
+      setReply('');
+      setFlash('Reply sent!'); setTimeout(() => setFlash(null), 2000);
+      load();
+    }).catch(() => {});
   };
 
   const handleNewMessage = () => {
     const subject = prompt('Subject:');
     const body = prompt('Message:');
     if (!subject || !body) return;
-    create<Message>('messages', {
-      id: generateId('MSG'), from: 'hotel-id', fromName: 'Hotel Mille Collines',
-      to: 'support', toName: 'EcoTrade Support', subject, body,
-      date: new Date().toISOString(), read: false, replies: [],
-    });
+    messagesAPI.send({ to_user_id: 1, to_name: 'EcoTrade Support', subject, body }).then(load).catch(() => {});
   };
 
   return (
@@ -53,17 +45,17 @@ export default function BusinessMessages() {
         <div className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
           <div className="p-4 border-b flex items-center justify-between">
             <h3 className="font-semibold text-gray-900 dark:text-white">Inbox</h3>
-            <span className="text-xs bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 px-2 py-1 rounded-full">{msgs.filter(m => !m.read).length} unread</span>
+            <span className="text-xs bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 px-2 py-1 rounded-full">{msgs.filter(m => !m.is_read).length} unread</span>
           </div>
           <div className="divide-y max-h-[500px] overflow-y-auto">
             {msgs.map(msg => (
               <button key={msg.id} onClick={() => handleSelect(msg)} className={`w-full text-left p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900 transition ${selectedMsg?.id === msg.id ? 'bg-cyan-50 dark:bg-cyan-900/20' : ''}`}>
                 <div className="flex items-center justify-between mb-1">
-                  <p className={`text-sm ${!msg.read ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>{msg.fromName}</p>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(msg.date).toLocaleDateString()}</span>
+                  <p className={`text-sm ${!msg.is_read ? 'font-bold text-gray-900 dark:text-white' : 'font-medium text-gray-700 dark:text-gray-300'}`}>{msg.from_name}</p>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(msg.created_at).toLocaleDateString()}</span>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{msg.subject}</p>
-                {!msg.read && <div className="w-2 h-2 bg-cyan-500 rounded-full mt-1" />}
+                {!msg.is_read && <div className="w-2 h-2 bg-cyan-500 rounded-full mt-1" />}
               </button>
             ))}
             {msgs.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No messages yet</p>}
@@ -75,17 +67,17 @@ export default function BusinessMessages() {
               <div className="border-b pb-4 mb-4">
                 <h2 className="text-lg font-semibold">{selectedMsg.subject}</h2>
                 <div className="flex items-center justify-between mt-2">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">From: <span className="font-medium">{selectedMsg.fromName}</span> · To: <span className="font-medium">{selectedMsg.toName}</span></p>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(selectedMsg.date).toLocaleString()}</span>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">From: <span className="font-medium">{selectedMsg.from_name}</span> · To: <span className="font-medium">{selectedMsg.to_name}</span></p>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">{new Date(selectedMsg.created_at).toLocaleString()}</span>
                 </div>
               </div>
               <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4"><p className="text-gray-700 dark:text-gray-300">{selectedMsg.body}</p></div>
               {(selectedMsg.replies || []).length > 0 && (
                 <div className="space-y-2 mb-4">
                   {(selectedMsg.replies || []).map((r, i) => (
-                    <div key={i} className={`flex ${r.from === 'hotel-id' || r.from === 'Hotel' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-xs rounded-lg p-3 text-sm ${r.from === 'hotel-id' || r.from === 'Hotel' ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-900 dark:text-cyan-200' : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'}`}>
-                        <p className="font-medium text-xs mb-1">{r.fromName}</p>
+                    <div key={i} className={`flex ${r.from_name === 'Hotel' || r.from_user_id === selectedMsg.to_user_id ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-xs rounded-lg p-3 text-sm ${r.from_name === 'Hotel' || r.from_user_id === selectedMsg.to_user_id ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-900 dark:text-cyan-200' : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'}`}>
+                        <p className="font-medium text-xs mb-1">{r.from_name}</p>
                         <p>{r.body}</p>
                       </div>
                     </div>

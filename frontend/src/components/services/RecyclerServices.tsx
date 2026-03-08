@@ -63,7 +63,7 @@ const RecyclerServices = () => {
       title: 'Driver Management',
       description: 'Complete driver onboarding, scheduling, and performance tracking.',
       color: 'bg-amber-500',
-      stats: '47 drivers'
+      stats: '9 recyclers'
     },
     {
       icon: Clock,
@@ -93,7 +93,7 @@ const RecyclerServices = () => {
       description: 'Businesses and restaurants'
     },
     {
-      metric: '1247T',
+      metric: '0.1T',
       label: 'Monthly Volume',
       description: 'Available for collection'
     },

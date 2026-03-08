@@ -67,11 +67,12 @@ class User(Base):
     hotel          = relationship("Hotel", back_populates="user", uselist=False)
     recycler       = relationship("Recycler", back_populates="user", uselist=False)
     driver         = relationship("Driver", back_populates="user", uselist=False)
-    documents      = relationship("UserDocument", back_populates="user", cascade="all, delete-orphan")
+    documents      = relationship("UserDocument", foreign_keys="[UserDocument.user_id]", back_populates="user", cascade="all, delete-orphan")
     notifications  = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     sent_messages  = relationship("Message", foreign_keys="Message.sender_id", back_populates="sender")
     audit_logs     = relationship("AuditLog", back_populates="user")
     green_scores   = relationship("GreenScore", back_populates="user")
+    blog_posts     = relationship("BlogPost", back_populates="author", cascade="all, delete-orphan")
 
 
 class DocumentType(str, enum.Enum):

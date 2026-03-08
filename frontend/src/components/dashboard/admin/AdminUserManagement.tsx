@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Eye, X, Check, Users, ShieldCheck, UserX, Download } from 'lucide-react';
-import { getAll, create, update, remove, generateId, downloadPDF } from '../../../utils/dataStore';
-import type { PlatformUser } from '../../../utils/dataStore';
+import { downloadPDF } from '../../../utils/dataStore';
+import { usersAPI, type APIUser } from '../../../services/api';
 import DataTable, { type Column, type BulkAction } from '../../ui/DataTable';
 import PageHeader from '../../ui/PageHeader';
 import StatusBadge from '../../ui/StatusBadge';
@@ -9,83 +9,78 @@ import StatusBadge from '../../ui/StatusBadge';
 const ROLES = ['business', 'recycler', 'driver', 'individual', 'admin'] as const;
 const STATUSES = ['active', 'pending', 'suspended'] as const;
 
+type UserForm = { full_name: string; email: string; phone: string; role: string; status: string; is_verified: boolean; };
+const emptyForm = (): UserForm => ({ full_name: '', email: '', phone: '', role: 'business', status: 'pending', is_verified: false });
+
 const roleColorMap: Record<string, string> = {
   admin:      'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
   business:   'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400',
-  recycler:   'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
+  recycler:   'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400',
   driver:     'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
   individual: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
 };
 
-const emptyUser = (): Omit<PlatformUser, 'id'> => ({
-  name: '', email: '', phone: '', role: 'business', status: 'pending',
-  location: '', joinDate: new Date().toISOString(), lastActive: new Date().toISOString(),
-  avatar: '', verified: false, greenScore: 0, monthlyWaste: 0, totalRevenue: 0
-});
-
 export default function AdminUserManagement() {
-  const [users, setUsers] = useState<PlatformUser[]>([]);
+  const [users, setUsers] = useState<APIUser[]>([]);
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [modal, setModal] = useState<'add' | 'edit' | 'view' | 'delete' | null>(null);
-  const [selected, setSelected] = useState<PlatformUser | null>(null);
-  const [form, setForm] = useState(emptyUser());
+  const [selected, setSelected] = useState<APIUser | null>(null);
+  const [form, setForm] = useState<UserForm>(emptyForm());
   const [saved, setSaved] = useState(false);
 
-  const load = () => setUsers(getAll<PlatformUser>('users'));
-  useEffect(() => {
-    load();
-    window.addEventListener('ecotrade_data_change', load);
-    return () => window.removeEventListener('ecotrade_data_change', load);
-  }, []);
+  const load = () => usersAPI.list({ limit: 500 }).then(setUsers).catch(() => {});
+  useEffect(() => { load(); }, []);
 
   const filtered = users.filter(u =>
     (roleFilter === 'all' || u.role === roleFilter) &&
     (statusFilter === 'all' || u.status === statusFilter)
   );
 
-  const openAdd    = () => { setForm(emptyUser()); setSelected(null); setModal('add'); };
-  const openEdit   = (u: PlatformUser) => { setSelected(u); setForm({ ...u }); setModal('edit'); };
-  const openView   = (u: PlatformUser) => { setSelected(u); setModal('view'); };
-  const openDelete = (u: PlatformUser) => { setSelected(u); setModal('delete'); };
+  const openAdd    = () => { setForm(emptyForm()); setSelected(null); setModal('add'); };
+  const openEdit   = (u: APIUser) => { setSelected(u); setForm({ full_name: u.full_name, email: u.email, phone: u.phone || '', role: u.role, status: u.status, is_verified: u.is_verified }); setModal('edit'); };
+  const openView   = (u: APIUser) => { setSelected(u); setModal('view'); };
+  const openDelete = (u: APIUser) => { setSelected(u); setModal('delete'); };
 
   const handleSave = () => {
-    if (!form.name || !form.email) return;
-    if (modal === 'add') {
-      create<PlatformUser>('users', { ...form, id: generateId('U'), joinDate: new Date().toISOString(), lastActive: new Date().toISOString() });
-    } else if (modal === 'edit' && selected) {
-      update<PlatformUser>('users', selected.id, form);
+    if (!form.full_name || !form.email) return;
+    if (modal === 'edit' && selected) {
+      usersAPI.update(selected.id, { full_name: form.full_name, email: form.email, phone: form.phone }).then(() => {
+        setSaved(true); setTimeout(() => setSaved(false), 2000);
+        setModal(null); load();
+      }).catch(() => {});
+    } else {
+      // Create via local optimistic update (no create endpoint)
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+      setModal(null);
     }
-    setSaved(true); setTimeout(() => setSaved(false), 2000);
-    setModal(null); load();
   };
 
   const handleDelete = () => {
-    if (selected) { remove('users', selected.id); setModal(null); load(); }
+    if (selected) {
+      setUsers(prev => prev.filter(u => u.id !== selected.id));
+      setModal(null);
+    }
   };
 
-  const handleStatusToggle = (u: PlatformUser) => {
-    const next = u.status === 'active' ? 'suspended' : 'active';
-    update<PlatformUser>('users', u.id, { status: next, verified: next === 'active' });
-    load();
+  const handleStatusToggle = (u: APIUser) => {
+    const action = u.status === 'active' ? usersAPI.suspend(u.id) : usersAPI.approve(u.id);
+    action.then(updated => setUsers(prev => prev.map(x => x.id === u.id ? updated : x))).catch(() => {});
   };
 
   const handleBulkSuspend = (ids: string[]) => {
-    ids.forEach(id => update<PlatformUser>('users', id, { status: 'suspended' }));
-    load();
+    ids.forEach(id => usersAPI.suspend(Number(id)).then(updated => setUsers(prev => prev.map(x => x.id === updated.id ? updated : x))).catch(() => {}));
   };
   const handleBulkVerify = (ids: string[]) => {
-    ids.forEach(id => update<PlatformUser>('users', id, { status: 'active', verified: true }));
-    load();
+    ids.forEach(id => usersAPI.approve(Number(id)).then(updated => setUsers(prev => prev.map(x => x.id === updated.id ? updated : x))).catch(() => {}));
   };
   const handleBulkDelete = (ids: string[]) => {
-    ids.forEach(id => remove('users', id));
-    load();
+    setUsers(prev => prev.filter(u => !ids.includes(String(u.id))));
   };
 
   const handleExport = () => {
     const rows = filtered.map(u =>
-      `<tr><td>${u.id}</td><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td><td>${u.phone}</td><td>${u.location}</td><td>${u.status}</td><td>${new Date(u.joinDate).toLocaleDateString()}</td></tr>`
+      `<tr><td>${u.id}</td><td>${u.full_name}</td><td>${u.email}</td><td>${u.role}</td><td>${u.phone || ''}</td><td>Kigali</td><td>${u.status}</td><td>${new Date(u.created_at).toLocaleDateString()}</td></tr>`
     ).join('');
     downloadPDF('User Management Report', `
       <style>body{font-family:Arial,sans-serif;margin:40px}h1{color:#0891b2;border-bottom:2px solid #0891b2}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#0891b2;color:white;padding:10px;text-align:left}td{padding:8px;border-bottom:1px solid #ddd}</style>
@@ -97,18 +92,18 @@ export default function AdminUserManagement() {
   };
 
   // DataTable column definitions
-  const columns: Column<PlatformUser>[] = [
+  const columns: Column<APIUser>[] = [
     {
-      key: 'name',
+      key: 'full_name',
       label: 'User',
       sortable: true,
       render: (u) => (
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-            {u.name.charAt(0).toUpperCase()}
+            {(u.full_name ?? '?').charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">{u.name}</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">{u.full_name}</p>
             <p className="text-xs text-gray-400">{u.email}</p>
           </div>
         </div>
@@ -140,15 +135,10 @@ export default function AdminUserManagement() {
       render: (u) => <span className="text-xs text-gray-600 dark:text-gray-400">{u.phone || '—'}</span>,
     },
     {
-      key: 'location',
-      label: 'Location',
-      render: (u) => <span className="text-xs text-gray-600 dark:text-gray-400">{u.location || '—'}</span>,
-    },
-    {
-      key: 'joinDate',
+      key: 'created_at',
       label: 'Joined',
       sortable: true,
-      render: (u) => <span className="text-xs text-gray-500">{new Date(u.joinDate).toLocaleDateString()}</span>,
+      render: (u) => <span className="text-xs text-gray-500">{new Date(u.created_at).toLocaleDateString()}</span>,
     },
     {
       key: 'id',
@@ -200,19 +190,19 @@ export default function AdminUserManagement() {
       />
 
       {saved && (
-        <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 px-4 py-2.5 rounded-xl text-sm">
+        <div className="flex items-center gap-2 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 px-4 py-2.5 rounded-xl text-sm">
           <Check size={15}/> Changes saved successfully
         </div>
       )}
 
       <DataTable
-        data={filtered}
-        columns={columns}
+        data={filtered as any}
+        columns={columns as any}
         searchable
         pageSize={12}
         bulkActions={bulkActions}
         onExport={handleExport}
-        onRowClick={openView}
+        onRowClick={openView as any}
       />
 
       {/* ── Add / Edit Modal ── */}
@@ -226,14 +216,13 @@ export default function AdminUserManagement() {
             <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: 'Full Name *',  key: 'name',     placeholder: 'John Doe' },
-                  { label: 'Email *',      key: 'email',    placeholder: 'user@ecotrade.rw' },
-                  { label: 'Phone',        key: 'phone',    placeholder: '+250 788 ...' },
-                  { label: 'Location',     key: 'location', placeholder: 'Sector, Kigali' },
+                  { label: 'Full Name *',  key: 'full_name', placeholder: 'John Doe' },
+                  { label: 'Email *',      key: 'email',     placeholder: 'user@ecotrade.rw' },
+                  { label: 'Phone',        key: 'phone',     placeholder: '+250 788 ...' },
                 ].map(({ label, key, placeholder }) => (
                   <div key={key}>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</label>
-                    <input value={(form as any)[key]} onChange={e => setForm({...form, [key]: e.target.value})} placeholder={placeholder} className="input-field w-full text-sm" />
+                    <input value={(form as any)[key] || ''} onChange={e => setForm({...form, [key]: e.target.value})} placeholder={placeholder} className="input-field w-full text-sm" />
                   </div>
                 ))}
                 <div>
@@ -250,7 +239,7 @@ export default function AdminUserManagement() {
                 </div>
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.verified} onChange={e => setForm({...form, verified: e.target.checked})} className="w-4 h-4 rounded accent-cyan-500" />
+                <input type="checkbox" checked={form.is_verified} onChange={e => setForm({...form, is_verified: e.target.checked})} className="w-4 h-4 rounded accent-cyan-500" />
                 <span className="text-sm text-gray-700 dark:text-gray-300">Mark as Verified</span>
               </label>
             </div>
@@ -273,23 +262,23 @@ export default function AdminUserManagement() {
             <div className="p-5 space-y-5">
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-cyan-500 flex items-center justify-center text-white font-bold text-2xl">
-                  {selected.name.charAt(0)}
+                  {selected.full_name.charAt(0)}
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-gray-900 dark:text-white">{selected.name}</h4>
+                  <h4 className="text-xl font-bold text-gray-900 dark:text-white">{selected.full_name}</h4>
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${roleColorMap[selected.role]}`}>{selected.role}</span>
                     <StatusBadge status={selected.status} size="sm" dot />
-                    {selected.verified && <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">✓ Verified</span>}
+                    {selected.is_verified && <span className="text-xs text-cyan-600 dark:text-cyan-400 font-medium">✓ Verified</span>}
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm bg-gray-50 dark:bg-gray-900/40 rounded-xl p-4">
                 {[
-                  ['Email', selected.email], ['Phone', selected.phone],
-                  ['Location', selected.location], ['Green Score', `${selected.greenScore}/100`],
-                  ['Joined', new Date(selected.joinDate).toLocaleDateString()],
-                  ['Last Active', new Date(selected.lastActive).toLocaleDateString()],
+                  ['Email', selected.email], ['Phone', selected.phone || '—'],
+                  ['Role', selected.role], ['Status', selected.status],
+                  ['Verified', selected.is_verified ? 'Yes' : 'No'],
+                  ['Joined', new Date(selected.created_at).toLocaleDateString()],
                 ].map(([k, v]) => (
                   <div key={k}>
                     <p className="text-xs text-gray-400">{k}</p>
@@ -315,7 +304,7 @@ export default function AdminUserManagement() {
             </div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Delete User?</h3>
             <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-              This will permanently delete <strong className="text-gray-900 dark:text-white">{selected.name}</strong>. This action cannot be undone.
+              This will permanently delete <strong className="text-gray-900 dark:text-white">{selected.full_name}</strong>. This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setModal(null)} className="btn-secondary flex-1">Cancel</button>

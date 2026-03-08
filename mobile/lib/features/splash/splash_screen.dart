@@ -88,32 +88,31 @@ class _SplashScreenState extends State<SplashScreen>
                   children: [
                     const Spacer(flex: 2),
 
-                    // Logo container
-                    Container(
-                      width: 110,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          '♻',
-                          style: TextStyle(fontSize: 52),
-                        ),
-                      ),
+                    // Logo with multi-stage creative animation
+                    Image.asset(
+                      'assets/images/EcoTrade Portait.png',
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.contain,
                     )
                         .animate()
+                        .fadeIn(duration: 350.ms)
                         .scale(
-                          duration: 600.ms,
+                          duration: 750.ms,
                           curve: Curves.elasticOut,
-                          begin: const Offset(0.3, 0.3),
+                          begin: const Offset(0.0, 0.0),
+                          end: const Offset(1.0, 1.0),
                         )
-                        .fadeIn(duration: 400.ms),
+                        .then(delay: 50.ms)
+                        .shimmer(
+                          duration: 700.ms,
+                          color: Colors.white.withOpacity(0.5),
+                          angle: 0.4,
+                        )
+                        .then(delay: 100.ms)
+                        .scaleXY(begin: 1.0, end: 1.06, duration: 300.ms, curve: Curves.easeOut)
+                        .then()
+                        .scaleXY(begin: 1.06, end: 1.0, duration: 300.ms, curve: Curves.easeIn),
 
                     const SizedBox(height: 28),
 

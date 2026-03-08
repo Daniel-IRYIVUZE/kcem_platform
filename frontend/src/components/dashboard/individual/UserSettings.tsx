@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getAll, update as dsUpdate } from '../../../utils/dataStore';
-import type { PlatformUser } from '../../../utils/dataStore';
+import { usersAPI, type APIUser } from '../../../services/api';
 import { CheckCircle } from 'lucide-react';
 import { userProfile } from './_shared';
 
 export default function UserSettings() {
-  const [user, setUser] = useState<PlatformUser | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
   const [name, setName] = useState(userProfile.name);
   const [email, setEmail] = useState(userProfile.email);
   const [phone, setPhone] = useState('+250 780 162 164');
@@ -17,12 +16,16 @@ export default function UserSettings() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const u = getAll<PlatformUser>('users').find(u => u.role === 'individual');
-    if (u) { setUser(u); setName(u.name); setEmail(u.email); if (u.phone) setPhone(u.phone); if (u.location) setLocation(u.location); }
+    usersAPI.me().then((u: APIUser) => {
+      setUserId(u.id);
+      setName(u.full_name || userProfile.name);
+      setEmail(u.email || '');
+      if (u.phone) setPhone(u.phone);
+    }).catch(() => {});
   }, []);
 
   const handleSave = () => {
-    if (user) dsUpdate<PlatformUser>('users', user.id, { name, email, phone, location });
+    if (userId) usersAPI.update(userId, { full_name: name, email, phone }).catch(() => {});
     setSaved(true); setTimeout(() => setSaved(false), 2000);
   };
 

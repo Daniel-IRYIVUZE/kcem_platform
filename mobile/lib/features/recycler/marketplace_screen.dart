@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/models/models.dart';
@@ -455,41 +457,48 @@ class _MapView extends StatelessWidget {
 
   const _MapView({required this.listings, required this.onBid});
 
+  static LatLng _point(WasteListing l) {
+    if (l.latitude != null && l.longitude != null) {
+      return LatLng(l.latitude!, l.longitude!);
+    }
+    final h = l.id.hashCode;
+    return LatLng(
+      -1.9441 + (h % 1000 - 500) / 5000.0,
+      30.0619 + ((h >> 4) % 1000 - 500) / 5000.0,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Container(
-          color: const Color(0xFFD4EDDA),
-          child: Stack(
-            children: [
-              ...List.generate(6, (i) => Positioned(
-                left: i * 60.0, top: 0, bottom: 0,
-                child: Container(width: 1, color: Colors.white.withOpacity(0.5)),
-              )),
-              ...List.generate(8, (i) => Positioned(
-                top: i * 55.0, left: 0, right: 0,
-                child: Container(height: 1, color: Colors.white.withOpacity(0.5)),
-              )),
-              ...listings.asMap().entries.map((e) {
-                final positions = [
-                  [0.2, 0.3], [0.5, 0.45], [0.75, 0.25], [0.35, 0.65], [0.62, 0.7],
-                ];
-                final pos = positions[e.key % positions.length];
-                return Positioned(
-                  left: (MediaQuery.of(context).size.width - 40) * pos[0],
-                  top: (MediaQuery.of(context).size.height * 0.55) * pos[1],
-                  child: GestureDetector(
-                    onTap: () => onBid(e.value),
-                    child: _MapClusterMarker(
-                      wasteType: e.value.wasteType,
-                      count: e.value.activeBidCount,
-                    ),
-                  ),
-                );
-              }),
-            ],
+        FlutterMap(
+          options: const MapOptions(
+            initialCenter: LatLng(-1.9441, 30.0619),
+            initialZoom: 12.0,
           ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.ecotrade.rwanda',
+            ),
+            MarkerLayer(
+              markers: listings
+                  .map((l) => Marker(
+                        point: _point(l),
+                        width: 46,
+                        height: 46,
+                        child: GestureDetector(
+                          onTap: () => onBid(l),
+                          child: _MapClusterMarker(
+                            wasteType: l.wasteType,
+                            count: l.activeBidCount,
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+          ],
         ),
         Positioned(
           bottom: 0, left: 0, right: 0,

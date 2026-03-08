@@ -1,9 +1,9 @@
 // context/AuthContext.tsx — EcoTrade Rwanda
-// Tries the real FastAPI backend first; falls back to demo users if backend is unreachable.
+// Backend-only authentication (no fallback users)
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI, usersAPI } from '../services/api';
 import { syncFromAPI } from '../utils/apiSync';
 
 export type UserRole = 'admin' | 'business' | 'recycler' | 'driver' | 'individual';
@@ -21,6 +21,7 @@ export type User = {
   // Extra profile fields
   businessName?: string;
   companyName?: string;
+  greenScore?: number;
 };
 
 type AuthContextType = {
@@ -30,7 +31,6 @@ type AuthContextType = {
   logout: () => void;
   verify2FA: (code: string) => Promise<boolean>;
   updateUser: (data: Partial<User>) => void;
-  isBackendOnline: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,8 +49,11 @@ function apiUserToUser(apiUser: {
   phone?: string;
   role: string;
   is_verified: boolean;
+  is_email_verified?: boolean;
+  avatar_url?: string;
   hotel_profile?: { business_name: string };
   recycler_profile?: { company_name: string };
+  green_score?: { total_score: number };
 }): User {
   return {
     id: String(apiUser.id),
@@ -58,76 +61,114 @@ function apiUserToUser(apiUser: {
     email: apiUser.email,
     phone: apiUser.phone,
     role: mapRole(apiUser.role),
-    verified: apiUser.is_verified,
-    avatar: '/images/default-avatar.svg',
+    verified: apiUser.is_email_verified ?? apiUser.is_verified,
+    avatar: apiUser.avatar_url || '/images/default-avatar.svg',
     twoFactorEnabled: false,
     businessName: apiUser.hotel_profile?.business_name,
     companyName: apiUser.recycler_profile?.company_name,
+    greenScore: apiUser.green_score?.total_score,
   };
 }
-
-// ─── Demo users (fallback when backend is offline) ───────────────────────────
-const DEMO_USERS = [
-  { id: '1', name: 'Admin User',           email: 'admin@ecotrade.rw',       password: 'admin123',    role: 'admin' as UserRole,      verified: true  },
-  { id: '2', name: 'Mille Collines Hotel', email: 'hotel@millecollines.rw',  password: 'hotel123',    role: 'business' as UserRole,   verified: true  },
-  { id: '3', name: 'GreenEnergy Recyclers',email: 'recycler@greenenergy.rw', password: 'recycler123', role: 'recycler' as UserRole,   verified: true  },
-  { id: '4', name: 'Jean Pierre',          email: 'driver@ecotrade.rw',      password: 'driver123',   role: 'driver' as UserRole,     verified: true  },
-  { id: '5', name: 'Marie Claire',         email: 'marieclaire@gmail.com',  password: 'user123',     role: 'individual' as UserRole, verified: true  },
-];
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isBackendOnline, setIsBackendOnline] = useState(false);
 
-  // Restore session on mount
+  // Restore session on mount from localStorage and verify token
   useEffect(() => {
-    const stored = localStorage.getItem('ecotrade_user');
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { /* ignore */ }
-    }
-    setLoading(false);
+    const restoreSession = async () => {
+      const token = localStorage.getItem('ecotrade_token');
+      const storedUser = localStorage.getItem('ecotrade_user');
+      
+      // No token = not logged in
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      // Optimistically restore user from cache while verifying token
+      if (storedUser) {
+        try {
+          const cachedUser = JSON.parse(storedUser);
+          setUser(cachedUser);
+        } catch (e) {
+          console.error('Failed to parse cached user');
+        }
+      }
+
+      // Verify token is still valid by calling /me endpoint
+      try {
+        const apiUser = await usersAPI.me();
+        const freshUser = apiUserToUser(apiUser);
+        setUser(freshUser);
+        // Update cache with fresh data
+        localStorage.setItem('ecotrade_user', JSON.stringify(freshUser));
+        
+        // Sync data from backend when restoring session
+        await syncFromAPI(freshUser.role);
+      } catch (error) {
+        // Token invalid or expired - clear session
+        console.error('Session expired or invalid:', error);
+        localStorage.removeItem('ecotrade_token');
+        localStorage.removeItem('ecotrade_user');
+        localStorage.removeItem('ecotrade_refresh_token');
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
   }, []);
 
-  // Persist user helper
-  const persistUser = (u: User) => {
-    setUser(u);
-    localStorage.setItem('ecotrade_user', JSON.stringify(u));
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userRole', u.role);
-    localStorage.setItem('userName', u.name);
-    localStorage.setItem('userEmail', u.email);
-    window.dispatchEvent(new Event('authChange'));
-  };
+  // Auto-refresh token before expiration (optional but recommended)
+  useEffect(() => {
+    if (!user) return;
+
+    // Refresh token every 50 minutes (tokens expire in 60 minutes)
+    const refreshInterval = setInterval(() => {
+      usersAPI.me()
+        .then((apiUser) => {
+          const freshUser = apiUserToUser(apiUser);
+          setUser(freshUser);
+          localStorage.setItem('ecotrade_user', JSON.stringify(freshUser));
+        })
+        .catch((error) => {
+          console.error('Token refresh failed:', error);
+          // If refresh fails, log out
+          logout();
+        });
+    }, 50 * 60 * 1000); // 50 minutes
+
+    return () => clearInterval(refreshInterval);
+  }, [user]);
 
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // ── Try real backend first ──────────────────────────────────────────
       const res = await authAPI.login(email, password);
+      
+      // Store token
       localStorage.setItem('ecotrade_token', res.access_token);
-      setIsBackendOnline(true);
-      const mappedRole = mapRole(res.user.role);
-      persistUser(apiUserToUser(res.user));
-      // Non-blocking: sync real data into localStorage dataStore
-      syncFromAPI(mappedRole).catch(() => {});
-    } catch (apiErr) {
-      // ── Fall back to demo users ─────────────────────────────────────────
-      const found = DEMO_USERS.find(u => u.email === email && u.password === password);
-      if (!found) {
-        setLoading(false);
-        // Rethrow original API error if backend responded (wrong credentials)
-        // vs network error (use demo fallback message)
-        const msg = (apiErr as Error).message;
-        if (msg.includes('Incorrect') || msg.includes('401') || msg.includes('suspended')) {
-          throw new Error(msg);
-        }
-        throw new Error('Invalid credentials');
-      }
-      const { password: _, ...safe } = found;
-      setIsBackendOnline(false);
-      persistUser({ ...safe, avatar: '/images/default-avatar.svg', twoFactorEnabled: false });
+
+      // Set user state
+      const mappedUser = apiUserToUser(res.user);
+      setUser(mappedUser);
+      
+      // Persist user data for quick restoration
+      localStorage.setItem('ecotrade_user', JSON.stringify(mappedUser));
+      
+      // Sync all backend data to localStorage dataStore
+      // This ensures dashboards have real data from backend
+      await syncFromAPI(mappedUser.role);
+      
+      window.dispatchEvent(new Event('authChange'));
+    } catch (error) {
+      const msg = (error as Error).message;
+      throw new Error(msg.includes('Incorrect') || msg.includes('401') || msg.includes('suspended') 
+        ? msg 
+        : 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -137,10 +178,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem('ecotrade_user');
     localStorage.removeItem('ecotrade_token');
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userEmail');
+    localStorage.removeItem('ecotrade_refresh_token');
     window.dispatchEvent(new Event('authChange'));
   };
 
@@ -153,11 +191,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const updateUser = (data: Partial<User>) => {
     if (!user) return;
     const updated = { ...user, ...data };
-    persistUser(updated);
+    setUser(updated);
+    localStorage.setItem('ecotrade_user', JSON.stringify(updated));
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, verify2FA, updateUser, isBackendOnline }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, verify2FA, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

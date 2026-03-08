@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAll } from '../../../utils/dataStore';
-import type { Transaction } from '../../../utils/dataStore';
+import { transactionsAPI, type Transaction } from '../../../services/api';
 import { DollarSign, Star, TrendingUp } from 'lucide-react';
 import StatCard from '../StatCard';
 import Widget from '../Widget';
@@ -12,12 +11,7 @@ export default function UserFinancial() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
-    const load = () => {
-      setTransactions(getAll<Transaction>('transactions'));
-    };
-    load();
-    window.addEventListener('ecotrade_data_change', load);
-    return () => window.removeEventListener('ecotrade_data_change', load);
+    transactionsAPI.mine({ limit: 200 }).then(setTransactions).catch(() => {});
   }, []);
 
   const totalSpent = transactions.filter(t => t.status === 'completed').reduce((s, t) => s + t.amount, 0);
@@ -27,17 +21,17 @@ export default function UserFinancial() {
 
   const spendingHistory = transactions.map(t => ({
     id: t.id,
-    date: t.date || new Date().toISOString().split('T')[0],
-    items: `${t.wasteType} from ${t.from}`,
-    amount: `RWF ${t.amount.toLocaleString()}`,
+    date: t.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+    items: `${t.waste_type || 'Waste'} from ${t.from_user || 'seller'}`,
+    amount: `RWF ${(t.amount ?? 0).toLocaleString()}`,
     status: t.status || 'pending',
     _status: t.status
   }));
 
   const spendingByMonth: Record<string, number> = {};
   transactions.forEach(t => {
-    const month = t.date?.slice(0, 7) || new Date().toISOString().slice(0, 7);
-    spendingByMonth[month] = (spendingByMonth[month] || 0) + t.amount;
+    const month = t.created_at?.slice(0, 7) || new Date().toISOString().slice(0, 7);
+    spendingByMonth[month] = (spendingByMonth[month] || 0) + (t.amount ?? 0);
   });
 
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

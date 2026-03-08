@@ -35,7 +35,7 @@ const AboutPage = () => {
       <Navbar />
       <main>
         {/* Hero Section with Video Background */}
-        <section className="relative h-[60vh] min-h-[500px] overflow-hidden pt-16" style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 30%, #0e7490 70%, #0369a1 100%)' }}>
+        <section className="relative h-[60vh] min-h-[500px] overflow-hidden pt-16" style={{ background: '#0f89ab' }}>
           <div className="absolute inset-0">
             <div className="absolute inset-0 bg-black/45 z-10" />
             <div
@@ -45,9 +45,9 @@ const AboutPage = () => {
           </div>
           <div className="relative z-20 h-full flex items-center justify-center text-center text-white px-4">
             <div className="max-w-4xl">
-              <h1 className="text-5xl lg:text-7xl font-bold mb-6 leading-tight">
+              <h1 className="text-5xl text-white lg:text-7xl font-bold mb-6 leading-tight">
                 Closing the Loop on
-                <span className="text-emerald-300"> Commercial Waste</span>
+                <span className="text-cyan-300"> Commercial Waste</span>
               </h1>
               <p className="text-xl lg:text-2xl text-cyan-100 max-w-3xl mx-auto leading-relaxed">
                 EcoTrade is revolutionizing waste management in Kigali by connecting hotels,

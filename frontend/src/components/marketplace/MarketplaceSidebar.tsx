@@ -9,19 +9,34 @@ interface MarketplaceSidebarProps {
   onClose?: () => void;
 }
 
-const MarketplaceSidebar = ({ filters, setFilters, listings, isMobile, onClose }: MarketplaceSidebarProps) => {
-  const wasteTypes = [
-    { id: 'UCO', label: 'Used Cooking Oil', count: listings.filter(l => l.category === 'UCO').length },
-    { id: 'Glass', label: 'Glass Bottles', count: listings.filter(l => l.category === 'Glass').length },
-    { id: 'Paper', label: 'Cardboard/Paper', count: listings.filter(l => l.category === 'Paper').length },
-    { id: 'Mixed', label: 'Mixed Recyclables', count: listings.filter(l => l.category === 'Mixed').length }
-  ];
+// All known DB waste-type categories displayed in the sidebar
+const ALL_WASTE_TYPES = [
+  { id: 'Metal',     label: 'Metal Scraps' },
+  { id: 'Cardboard', label: 'Cardboard / Paper' },
+  { id: 'UCO',       label: 'Used Cooking Oil' },
+  { id: 'Glass',     label: 'Glass Bottles' },
+  { id: 'Organic',   label: 'Organic Waste' },
+  { id: 'Plastic',   label: 'Plastic' },
+  { id: 'Mixed',     label: 'Mixed Recyclables' },
+];
 
-  const locations = [
-    'Nyarugenge',
-    'Gasabo',
-    'Kicukiro'
-  ];
+const KIGALI_DISTRICTS = ['Nyarugenge', 'Gasabo', 'Kicukiro'];
+
+const MarketplaceSidebar = ({ filters, setFilters, listings, isMobile, onClose }: MarketplaceSidebarProps) => {
+  // Show all known types; count against listings prop so badges reflect current data
+  const wasteTypes = ALL_WASTE_TYPES.map(t => ({
+    ...t,
+    count: listings.filter(l => l.category === t.id || l.type === t.id).length,
+  }));
+
+  // Derive unique districts from listing addresses; fall back to the three main districts
+  const locationSet = new Set<string>(KIGALI_DISTRICTS);
+  listings.forEach(l => {
+    if (typeof l.location === 'string') {
+      KIGALI_DISTRICTS.forEach(d => { if (l.location.includes(d)) locationSet.add(d); });
+    }
+  });
+  const locations = Array.from(locationSet).sort();
 
   const handleWasteTypeChange = (type: string) => {
     const newTypes = filters.wasteTypes.includes(type)

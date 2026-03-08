@@ -11,6 +11,8 @@ import AdminSettings from '../../components/dashboard/admin/AdminSettings';
 import AdminReports from '../../components/dashboard/admin/AdminReports';
 import AdminGreenScores from '../../components/dashboard/admin/AdminGreenScores';
 import AdminRouteMonitor from '../../components/dashboard/admin/AdminRouteMonitor';
+import AdminBlogManagement from '../../components/dashboard/admin/AdminBlogManagement';
+import AdminBlogEditor from '../../components/dashboard/admin/AdminBlogEditor';
 
 export default function AdminDashboard() {
   return (
@@ -28,6 +30,9 @@ export default function AdminDashboard() {
       <Route path="audit-logs" element={<AdminAuditLogs />} />
       <Route path="support" element={<AdminSupportTickets />} />
       <Route path="verification" element={<AdminVerificationQueue />} />
+      <Route path="blog" element={<AdminBlogManagement />} />
+      <Route path="blog/new" element={<AdminBlogEditor />} />
+      <Route path="blog/edit/:id" element={<AdminBlogEditor />} />
       <Route path="settings" element={<AdminSettings />} />
       <Route path="reports" element={<AdminReports />} />
       <Route path="green-scores" element={<AdminGreenScores />} />

@@ -1,26 +1,28 @@
 // components/blog/BlogGrid.tsx
-import { Calendar, Clock, ArrowRight, Bookmark, Share2, Heart, MessageCircle, Check } from 'lucide-react';
+import { Calendar, ArrowRight, Bookmark, Share2, Heart, MessageCircle, Check } from 'lucide-react';
 import { useState } from 'react';
-import type { BlogPost } from './blogData';
-import { blogPosts } from './blogData';
+import type { BlogPost } from '../../services/api';
 
 interface BlogGridProps {
+  posts: BlogPost[];
+  loading: boolean;
   activeCategory: string;
   searchQuery: string;
   onReadMore: (post: BlogPost) => void;
   onTagClick: (tag: string) => void;
   onClearFilters: () => void;
 }
-const BlogGrid = ({ activeCategory, searchQuery, onReadMore, onTagClick, onClearFilters }: BlogGridProps) => {
+
+const BlogGrid = ({ posts, loading, activeCategory, searchQuery, onReadMore, onTagClick, onClearFilters }: BlogGridProps) => {
   const [likedPosts, setLikedPosts] = useState<number[]>([]);
   const [savedPosts, setSavedPosts] = useState<number[]>([]);
   const [copiedPostId, setCopiedPostId] = useState<number | null>(null);
 
-  const filteredPosts = blogPosts.filter((post) => {
+  const filteredPosts = posts.filter((post) => {
     const matchesCategory = activeCategory === 'All' || post.category === activeCategory;
     const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         post.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+                         (post.tags && post.tags.toLowerCase().includes(searchQuery.toLowerCase()));
     return matchesCategory && matchesSearch;
   });
 
@@ -53,6 +55,24 @@ const BlogGrid = ({ activeCategory, searchQuery, onReadMore, onTagClick, onClear
     }
   };
 
+  if (loading) {
+    return (
+      <div className="grid md:grid-cols-2 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg overflow-hidden animate-pulse">
+            <div className="h-48 bg-gray-200 dark:bg-gray-800" />
+            <div className="p-6 space-y-4">
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/4" />
+              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-3/4" />
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded" />
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-5/6" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (filteredPosts.length === 0) {
     return (
       <div className="text-center py-12 bg-white dark:bg-gray-900 rounded-2xl">
@@ -78,7 +98,7 @@ const BlogGrid = ({ activeCategory, searchQuery, onReadMore, onTagClick, onClear
           {/* Image */}
           <div className="relative h-48 overflow-hidden">
             <img
-              src={post.image}
+              src={post.featured_image || '/images/placeholder-image.svg'}
               alt={post.title}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/placeholder-image.svg'; }}
@@ -120,16 +140,16 @@ const BlogGrid = ({ activeCategory, searchQuery, onReadMore, onTagClick, onClear
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center">
                 <img
-                  src={post.authorAvatar}
-                  alt={post.author}
+                  src="/images/default-avatar.svg"
+                  alt={post.author_name}
                   className="w-8 h-8 rounded-full mr-2 object-cover"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/default-avatar.svg'; }}
                 />
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{post.author}</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">{post.author_name}</span>
               </div>
               <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
                 <Calendar className="w-3 h-3 mr-1" />
-                {post.date}
+                {new Date(post.published_at || post.created_at).toLocaleDateString()}
               </div>
             </div>
 
@@ -140,26 +160,24 @@ const BlogGrid = ({ activeCategory, searchQuery, onReadMore, onTagClick, onClear
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">{post.excerpt}</p>
 
             {/* Tags */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              {post.tags.map((tag) => (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => onTagClick(tag)}
-                  className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-xs hover:bg-cyan-100 hover:text-cyan-700 dark:text-cyan-400 transition-colors"
-                >
-                  #{tag}
-                </button>
-              ))}
-            </div>
+            {post.tags && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {post.tags.split(',').slice(0, 3).map((tag) => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => onTagClick(tag.trim())}
+                    className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg text-xs hover:bg-cyan-100 hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors"
+                  >
+                    #{tag.trim()}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Meta & Actions */}
             <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
               <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
-                <span className="flex items-center">
-                  <Clock className="w-3 h-3 mr-1" />
-                  {post.readTime}
-                </span>
                 <button 
                   onClick={() => toggleLike(post.id)}
                   className="flex items-center hover:text-red-500 transition-colors"
@@ -167,11 +185,11 @@ const BlogGrid = ({ activeCategory, searchQuery, onReadMore, onTagClick, onClear
                   <Heart className={`w-3 h-3 mr-1 ${
                     likedPosts.includes(post.id) ? 'fill-red-500 text-red-500' : ''
                   }`} />
-                  {post.likes + (likedPosts.includes(post.id) ? 1 : 0)}
+                  {likedPosts.includes(post.id) ? 1 : 0}
                 </button>
-                <span className="flex items-center">
+                <span className="flex items-center" title={`${post.view_count} views`}>
                   <MessageCircle className="w-3 h-3 mr-1" />
-                  {post.comments}
+                  {post.view_count}
                 </span>
               </div>
               

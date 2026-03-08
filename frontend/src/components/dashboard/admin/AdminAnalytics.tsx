@@ -6,8 +6,8 @@ import {
   Package, Activity, Award, Globe,
   ArrowUp, ArrowDown,
 } from 'lucide-react';
-import { getAll, downloadPDF } from '../../../utils/dataStore';
-import type { WasteListing, Transaction, PlatformUser, Collection } from '../../../utils/dataStore';
+import { listingsAPI, usersAPI, transactionsAPI, collectionsAPI, type WasteListing } from '../../../services/api';
+import { downloadPDF } from '../../../utils/dataStore';
 import ChartComponent from '../ChartComponent';
 import DashboardWidget from '../Widget';
 import StatusBadge from '../../ui/StatusBadge';
@@ -16,9 +16,9 @@ import EcoImpactPanel from '../../ui/EcoImpactPanel';
 
 export default function AdminAnalytics() {
   const [listings, setListings] = useState<WasteListing[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [users, setUsers] = useState<PlatformUser[]>([]);
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
   const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -26,29 +26,38 @@ export default function AdminAnalytics() {
   const loadData = async () => {
     setLoading(true);
     try {
-      setListings(getAll<WasteListing>('listings'));
-      setTransactions(getAll<Transaction>('transactions'));
-      setUsers(getAll<PlatformUser>('users'));
-      setCollections(getAll<Collection>('collections'));
+      const [listingsData, usersData, transactionsData, collectionsData] = await Promise.all([
+        listingsAPI.list().catch(() => []),
+        usersAPI.list({ limit: 100 }).catch(() => []),
+        transactionsAPI.list({ limit: 100 }).catch(() => []),
+        collectionsAPI.list({ limit: 100 }).catch(() => []),
+      ]);
+      
+      setListings(listingsData);
+      setUsers(usersData);
+      setTransactions(transactionsData);
+      setCollections(collectionsData);
       setLastUpdated(new Date());
-    } finally { setLoading(false); }
+    } catch (err) {
+      console.error('Failed to load admin analytics:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadData();
-    window.addEventListener('ecotrade_data_change', loadData);
-    return () => window.removeEventListener('ecotrade_data_change', loadData);
   }, []);
 
   const analytics = useMemo(() => {
-    const wasteByType = listings.reduce((acc, l) => { acc[l.wasteType] = (acc[l.wasteType] || 0) + l.volume; return acc; }, {} as Record<string, number>);
+    const wasteByType = listings.reduce((acc, l) => { acc[l.waste_type] = (acc[l.waste_type] || 0) + l.volume; return acc; }, {} as Record<string, number>);
     const usersByRole = users.reduce((acc, u) => { acc[u.role] = (acc[u.role] || 0) + 1; return acc; }, {} as Record<string, number>);
     const completedTxn = transactions.filter(t => t.status === 'completed');
-    const totalRevenue = completedTxn.reduce((s, t) => s + t.amount, 0);
-    const totalCO2 = collections.reduce((s, c) => s + c.volume * 0.5, 0);
-    const totalWasteVolume = collections.reduce((s, c) => s + c.volume, 0);
-    const lastMonthRevenue = completedTxn.filter(t => new Date(t.date) > new Date(Date.now() - 60 * 24*60*60*1000)).reduce((s, t) => s + t.amount, 0);
-    const prevMonthRevenue = completedTxn.filter(t => { const d = new Date(t.date); return d > new Date(Date.now()-90*24*60*60*1000) && d < new Date(Date.now()-60*24*60*60*1000); }).reduce((s, t) => s + t.amount, 0);
+    const totalRevenue = completedTxn.reduce((s, t) => s + (t.amount ?? 0), 0);
+    const totalCO2 = collections.reduce((s, c) => s + (c.volume || 0) * 0.5, 0);
+    const totalWasteVolume = collections.reduce((s, c) => s + (c.volume || 0), 0);
+    const lastMonthRevenue = completedTxn.filter(t => new Date(t.created_at) > new Date(Date.now() - 60 * 24*60*60*1000)).reduce((s, t) => s + (t.amount ?? 0), 0);
+    const prevMonthRevenue = completedTxn.filter(t => { const d = new Date(t.created_at); return d > new Date(Date.now()-90*24*60*60*1000) && d < new Date(Date.now()-60*24*60*60*1000); }).reduce((s, t) => s + (t.amount ?? 0), 0);
     const revenueTrend = prevMonthRevenue ? ((lastMonthRevenue - prevMonthRevenue) / prevMonthRevenue) * 100 : 0;
     return {
       wasteByType, usersByRole, completedTxn, pendingTxn: transactions.filter(t => t.status === 'pending'),
@@ -64,11 +73,11 @@ export default function AdminAnalytics() {
   const chartData = useMemo(() => ({
     wasteByType: {
       labels: Object.keys(analytics.wasteByType).length ? Object.keys(analytics.wasteByType) : ['UCO','Glass','Paper','Metal','Mixed'],
-      datasets: [{ label: 'Volume (kg/L)', data: Object.keys(analytics.wasteByType).length ? Object.values(analytics.wasteByType) : [450,210,320,140,180], backgroundColor: '#0891b2', borderColor: '#0891b2' }]
+      datasets: [{ label: 'Volume (kg/L)', data: Object.keys(analytics.wasteByType).length ? Object.values(analytics.wasteByType) as number[] : [450,210,320,140,180], backgroundColor: '#0891b2', borderColor: '#0891b2' }]
     },
     usersByRole: {
       labels: Object.keys(analytics.usersByRole).length ? Object.keys(analytics.usersByRole) : ['business','recycler','driver','individual','admin'],
-      datasets: [{ label: 'Users', data: Object.keys(analytics.usersByRole).length ? Object.values(analytics.usersByRole) : [12,5,8,3,2], backgroundColor: '#0891b2', borderColor: '#0891b2' }]
+      datasets: [{ label: 'Users', data: Object.keys(analytics.usersByRole).length ? Object.values(analytics.usersByRole) as number[] : [12,5,8,3,2], backgroundColor: '#0891b2', borderColor: '#0891b2' }]
     },
     revenueTrend: {
       labels: period === 'week' ? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
@@ -136,7 +145,7 @@ export default function AdminAnalytics() {
         {[
           { label: 'Total Revenue', value: `RWF ${(analytics.totalRevenue/1000).toFixed(1)}K`, icon: <DollarSign size={18}/>, color: 'cyan' as const, trend: analytics.revenueTrend },
           { label: 'Active Users',  value: analytics.activeUsers,                                icon: <Users size={18}/>,     color: 'blue' as const },
-          { label: 'CO₂ Saved',    value: `${analytics.totalCO2.toFixed(0)}kg`,                 icon: <Leaf size={18}/>,      color: 'emerald' as const },
+          { label: 'CO₂ Saved',    value: `${analytics.totalCO2.toFixed(0)}kg`,                 icon: <Leaf size={18}/>,      color: 'cyan' as const },
           { label: 'Transactions', value: analytics.completedTxn.length,                         icon: <Activity size={18}/>,  color: 'purple' as const },
           { label: 'Waste (kg)',   value: analytics.totalWasteVolume.toFixed(0),                 icon: <Package size={18}/>,   color: 'orange' as const },
           { label: 'Avg Txn',     value: `RWF ${analytics.averageTransactionValue.toFixed(0)}`, icon: <BarChart2 size={18}/>, color: 'yellow' as const },
@@ -145,7 +154,7 @@ export default function AdminAnalytics() {
             <div className="flex items-center justify-between mb-2">
               <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400">{s.icon}</div>
               {s.trend !== undefined && (
-                <span className={`flex items-center gap-0.5 text-xs font-semibold ${s.trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                <span className={`flex items-center gap-0.5 text-xs font-semibold ${s.trend >= 0 ? 'text-cyan-600' : 'text-red-500'}`}>
                   {s.trend >= 0 ? <ArrowUp size={10}/> : <ArrowDown size={10}/>}{Math.abs(s.trend).toFixed(1)}%
                 </span>
               )}
@@ -160,7 +169,7 @@ export default function AdminAnalytics() {
       <DashboardWidget title={`Revenue Trend (${period})`} icon={<TrendingUp size={16}/>}
         action={
           <div className="flex items-center gap-1.5">
-            <span className={`flex items-center gap-0.5 text-xs font-semibold ${analytics.revenueTrend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+            <span className={`flex items-center gap-0.5 text-xs font-semibold ${analytics.revenueTrend >= 0 ? 'text-cyan-600' : 'text-red-500'}`}>
               {analytics.revenueTrend >= 0 ? <ArrowUp size={11}/> : <ArrowDown size={11}/>}
               {Math.abs(analytics.revenueTrend).toFixed(1)}% vs last period
             </span>
@@ -216,10 +225,10 @@ export default function AdminAnalytics() {
               <div key={txn.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors cursor-pointer">
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{txn.from} → {txn.to}</p>
-                  <p className="text-xs text-gray-400">{new Date(txn.date).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-400">{txn.date ? new Date(txn.date).toLocaleDateString() : ''}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-cyan-600 dark:text-cyan-400">RWF {txn.amount.toLocaleString()}</p>
+                  <p className="text-sm font-bold text-cyan-600 dark:text-cyan-400">RWF {(txn.amount ?? 0).toLocaleString()}</p>
                   <StatusBadge status={txn.status} size="sm" dot={false} />
                 </div>
               </div>
@@ -233,11 +242,11 @@ export default function AdminAnalytics() {
             {listings.slice(0, 6).map(l => (
               <div key={l.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/40 transition-colors cursor-pointer">
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{l.wasteType} — {l.volume} {l.unit}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{l.waste_type} — {l.volume} {l.unit}</p>
                   <p className="text-xs text-gray-400">{l.location || 'Kigali'}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">RWF {l.minBid?.toLocaleString()}</p>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">RWF {l.min_bid?.toLocaleString()}</p>
                   <StatusBadge status={l.status} size="sm" dot={false} />
                 </div>
               </div>
@@ -259,7 +268,7 @@ export default function AdminAnalytics() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { icon: <Award size={20}/>,  color: 'text-cyan-600',    bg: 'bg-cyan-50 dark:bg-cyan-900/20',    label: 'Green Impact Score', value: '85%',                              sub: 'Platform efficiency' },
-          { icon: <Globe size={20}/>,  color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20', label: 'CO₂ Offset',       value: `${analytics.totalCO2.toFixed(0)} kg`, sub: `≈${Math.round(analytics.totalCO2/20)} trees` },
+          { icon: <Globe size={20}/>,  color: 'text-cyan-600', bg: 'bg-cyan-50 dark:bg-cyan-900/20', label: 'CO₂ Offset',       value: `${analytics.totalCO2.toFixed(0)} kg`, sub: `≈${Math.round(analytics.totalCO2/20)} trees` },
           { icon: <Activity size={20}/>, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20', label: 'Platform Activity', value: listings.length + transactions.length, sub: 'Listings + transactions' },
         ].map((item, i) => (
           <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex items-center gap-4 animate-fade-up" style={{animationDelay:`${i*100}ms`}}>

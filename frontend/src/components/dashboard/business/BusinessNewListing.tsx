@@ -1,14 +1,17 @@
 // components/dashboard/business/BusinessNewListing.tsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAll, create, generateId } from '../../../utils/dataStore';
-import type { WasteListing, PlatformUser } from '../../../utils/dataStore';
+import { useAuth } from '../../../context/AuthContext';
+import { listingsAPI } from '../../../services/api';
+import { syncFromAPI } from '../../../utils/apiSync';
 import { CheckCircle, Image, AlertTriangle } from 'lucide-react';
 
 export default function BusinessNewListing() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState({
     wasteType: '', quantity: '', unit: 'kg', description: '',
     minPrice: '', pickupDate: '', pickupTime: '', specialInstructions: '',
@@ -16,37 +19,44 @@ export default function BusinessNewListing() {
   });
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.wasteType || !form.quantity || !form.minPrice || !form.pickupDate) return;
-    const users = getAll<PlatformUser>('users');
-    const hotel = users.find(u => u.role === 'business') || { id: 'U-hotel', name: 'Hotel Mille Collines' };
-    const now = new Date().toISOString();
-    const expiry = new Date(form.pickupDate); expiry.setDate(expiry.getDate() + 30);
-    create<WasteListing>('listings', {
-      id: generateId('WL'),
-      businessId: hotel.id,
-      businessName: hotel.name,
-      hotelId: hotel.id,
-      hotelName: hotel.name,
-      wasteType: form.wasteType as any,
-      volume: parseFloat(form.quantity) || 0,
-      unit: (form.unit === 'L' ? 'liters' : 'kg') as 'kg' | 'liters',
-      quality: 'A' as const,
-      photos: [],
-      minBid: parseInt(form.minPrice) || 0,
-      reservePrice: 0,
-      auctionDuration: '7d',
-      autoAcceptAbove: 0,
-      contactPerson: '',
-      specialInstructions: form.description + (form.specialInstructions ? '\n' + form.specialInstructions : ''),
-      status: 'open' as const,
-      bids: [],
-      createdAt: now,
-      expiresAt: expiry.toISOString(),
-      location: (hotel as any).location || 'Kigali',
-      collectionTime: form.pickupTime,
-    } as WasteListing);
-    setSubmitted(true);
+    
+    setIsLoading(true);
+    try {
+      const pickupDate = new Date(form.pickupDate);
+      const expiresAt = new Date(pickupDate);
+      expiresAt.setDate(expiresAt.getDate() + 30);
+
+      // Create listing via API
+      await listingsAPI.create({
+        waste_type: form.wasteType,
+        volume: parseFloat(form.quantity) || 0,
+        unit: form.unit === 'L' ? 'liters' : 'kg',
+        quality: 'A',
+        min_bid: parseInt(form.minPrice) || 0,
+        reserve_price: 0,
+        auction_duration: '7d',
+        special_instructions: form.description + (form.specialInstructions ? '\n' + form.specialInstructions : ''),
+        collection_date: form.pickupDate,
+        collection_time: form.pickupTime,
+        location: 'Kigali',
+        status: 'open',
+      } as any);
+
+      // Sync data from backend so dashboard shows new listing
+      if (user) {
+        await syncFromAPI(user.role);
+        window.dispatchEvent(new Event('ecotrade_data_change'));
+      }
+
+      setSubmitted(true);
+    } catch (error) {
+      console.error('Failed to create listing:', error);
+      alert('Failed to create listing. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -131,11 +141,11 @@ export default function BusinessNewListing() {
         )}
 
         {!submitted && <div className="flex justify-between mt-6 pt-4 border-t">
-          <button onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900 disabled:opacity-50 text-gray-700 dark:text-gray-300">Back</button>
+          <button onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1 || isLoading} className="px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900 disabled:opacity-50 text-gray-700 dark:text-gray-300">Back</button>
           {step < 3 ? (
             <button onClick={() => setStep(step + 1)} disabled={step === 1 && (!form.wasteType || !form.quantity)} className="px-6 py-2 text-sm bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50">Next</button>
           ) : (
-            <button onClick={handleSubmit} disabled={!form.wasteType || !form.quantity || !form.minPrice || !form.pickupDate} className="px-6 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 disabled:opacity-50"><CheckCircle size={16} /> Submit Listing</button>
+            <button onClick={handleSubmit} disabled={!form.wasteType || !form.quantity || !form.minPrice || !form.pickupDate || isLoading} className="px-6 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 disabled:opacity-50">{isLoading ? 'Submitting...' : <><CheckCircle size={16} /> Submit Listing</>}</button>
           )}
         </div>}
       </div>

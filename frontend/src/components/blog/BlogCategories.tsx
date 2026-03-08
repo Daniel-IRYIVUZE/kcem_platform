@@ -1,23 +1,25 @@
 // components/blog/BlogCategories.tsx
 import { ChevronRight } from 'lucide-react';
+import type { BlogPost } from '../../services/api';
 
 interface BlogCategoriesProps {
   activeCategory: string;
   setActiveCategory: (category: string) => void;
+  posts?: BlogPost[];
 }
 
-const categories = [
-  { name: 'All', count: 50 },
-  { name: 'Circular Economy', count: 15 },
-  { name: 'Success Stories', count: 12 },
-  { name: 'Technology', count: 8 },
-  { name: 'Policy & Regulation', count: 6 },
-  { name: 'Tips & Guides', count: 5 },
-  { name: 'Interviews', count: 3 },
-  { name: 'Research', count: 1 }
-];
+const BlogCategories = ({ activeCategory, setActiveCategory, posts = [] }: BlogCategoriesProps) => {
+  // Derive categories dynamically from real post data
+  const categoryCounts = posts.reduce<Record<string, number>>((acc, p) => {
+    acc[p.category] = (acc[p.category] || 0) + 1;
+    return acc;
+  }, {});
 
-const BlogCategories = ({ activeCategory, setActiveCategory }: BlogCategoriesProps) => {
+  const categories = [
+    { name: 'All', count: posts.length },
+    ...Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count })),
+  ];
+
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg p-6">
       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Categories</h3>

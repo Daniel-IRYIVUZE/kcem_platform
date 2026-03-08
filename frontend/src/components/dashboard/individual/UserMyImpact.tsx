@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAll, create, update as dsUpdate, remove as removeEvent, generateId } from '../../../utils/dataStore';
-import type { PlatformUser, RecyclingEvent } from '../../../utils/dataStore';
+import { recyclingAPI, type RecyclingEvent } from '../../../services/api';
 import { Recycle, Leaf, Trophy, BarChart3, Star, Plus, X, Trash2 } from 'lucide-react';
 import StatCard from '../StatCard';
 import Widget from '../Widget';
@@ -16,45 +15,41 @@ const DROP_LOCS = ['Kicukiro Collection Point', 'Gasabo Eco-Center', 'Nyarugenge
 
 export default function UserMyImpact() {
   const [events, setEvents] = useState<RecyclingEvent[]>([]);
-  const [liveUser, setLiveUser] = useState<PlatformUser | null>(null);
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState<{ wasteType: RecyclingEvent['wasteType']; weight: number; location: string; notes: string }>({
-    wasteType: 'Plastic', weight: 0, location: DROP_LOCS[0], notes: '',
+  const [form, setForm] = useState<{ waste_type: string; weight: number; location: string; notes: string }>({
+    waste_type: 'Plastic', weight: 0, location: DROP_LOCS[0], notes: '',
   });
 
   const load = useCallback(() => {
-    setEvents(getAll<RecyclingEvent>('recyclingEvents').filter(e => e.userId === 'U011').sort((a, b) => b.date.localeCompare(a.date)));
-    const u = getAll<PlatformUser>('users').find(u => u.role === 'individual');
-    if (u) setLiveUser(u);
+    recyclingAPI.list({ limit: 100 }).then(setEvents).catch(() => {});
   }, []);
-  useEffect(() => { load(); window.addEventListener('ecotrade_data_change', load); return () => window.removeEventListener('ecotrade_data_change', load); }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const handleAddEvent = () => {
     if (!form.weight || form.weight <= 0) return;
-    const pts = Math.round(form.weight * (POINTS_MAP[form.wasteType] ?? 5));
-    create<RecyclingEvent>('recyclingEvents', {
-      id: generateId('RE'), userId: 'U011', userName: liveUser?.name ?? 'User',
-      date: new Date().toISOString().split('T')[0], wasteType: form.wasteType,
-      weight: form.weight, location: form.location, points: pts, notes: form.notes, verified: false,
-    });
-    if (liveUser) {
-      const newScore = Math.min(100, (liveUser.greenScore ?? 0) + Math.round(pts / 10));
-      dsUpdate<PlatformUser>('users', liveUser.id, { greenScore: newScore, monthlyWaste: (liveUser.monthlyWaste ?? 0) + form.weight });
-    }
+    const pts = Math.round(form.weight * (POINTS_MAP[form.waste_type] ?? 5));
+    recyclingAPI.create({
+      date: new Date().toISOString().split('T')[0],
+      waste_type: form.waste_type,
+      weight: form.weight,
+      location: form.location,
+      points: pts,
+      notes: form.notes,
+    }).then(load).catch(() => {});
     setShowModal(false);
-    setForm({ wasteType: 'Plastic', weight: 0, location: DROP_LOCS[0], notes: '' });
+    setForm({ waste_type: 'Plastic', weight: 0, location: DROP_LOCS[0], notes: '' });
   };
 
-  const handleDelete = (id: string) => removeEvent('recyclingEvents', id);
+  const handleDelete = (_id: number) => { /* no delete API — ignored */ };
 
   const totalKg = events.reduce((s, e) => s + e.weight, 0);
   const totalPts = events.reduce((s, e) => s + e.points, 0);
   const co2Saved = (totalKg * 1.3).toFixed(1);
-  const greenScore = liveUser?.greenScore ?? userProfile.greenScore;
+  const greenScore = userProfile.greenScore;
 
   const wasteChartLive = events.length > 0 ? {
-    labels: [...new Set(events.map(e => e.wasteType))],
-    datasets: [{ data: [...new Set(events.map(e => e.wasteType))].map(t => events.filter(e => e.wasteType === t).reduce((s, e) => s + e.weight, 0)) }],
+    labels: [...new Set(events.map(e => e.waste_type))],
+    datasets: [{ data: [...new Set(events.map(e => e.waste_type))].map(t => events.filter(e => e.waste_type === t).reduce((s, e) => s + e.weight, 0)) }],
   } : wasteByType;
 
   const unlocked = (kg: number) => events.length > 0 ? totalKg >= kg : userProfile.totalRecycled >= kg;
@@ -98,12 +93,12 @@ export default function UserMyImpact() {
           <DataTable
             columns={[
               { key: 'date', label: 'Date' },
-              { key: 'wasteType', label: 'Waste Type', render: (v: string) => <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium">{v}</span> },
+              { key: 'waste_type', label: 'Waste Type', render: (v: string) => <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium">{v}</span> },
               { key: 'weight', label: 'Weight', render: (v: number) => <span>{v} kg</span> },
               { key: 'points', label: 'Points', render: (v: number) => <span className="font-semibold text-green-600 dark:text-green-400">+{v}</span> },
               { key: 'location', label: 'Location' },
               { key: 'verified', label: 'Status', render: (v: boolean) => v ? <span className="text-xs text-green-600 dark:text-green-400 font-medium">✓ Verified</span> : <span className="text-xs text-yellow-700 dark:text-yellow-700">Pending</span> },
-              { key: 'id', label: '', render: (v: string) => <button onClick={() => handleDelete(v)} className="p-1 text-red-400 hover:text-red-600 dark:text-red-400"><Trash2 size={13} /></button> },
+              { key: 'id', label: '', render: (v: number) => <button onClick={() => handleDelete(v)} className="p-1 text-red-400 hover:text-red-600 dark:text-red-400"><Trash2 size={13} /></button> },
             ]}
             data={events}
             pageSize={8}
@@ -118,7 +113,7 @@ export default function UserMyImpact() {
             { name: 'Eco Warrior', desc: 'Recycled 50 kg of waste', earned: unlocked(50), icon: '🛡️' },
             { name: 'Planet Protector', desc: 'Recycled 100 kg of waste', earned: unlocked(100), icon: '🌍' },
             { name: 'Carbon Hero', desc: 'Saved 100 kg of CO₂', earned: parseFloat(co2Saved) >= 100 || userProfile.co2Saved >= 100, icon: '💨' },
-            { name: 'Perfect Sorter', desc: 'Sorted all 5 waste types', earned: new Set(events.map(e => e.wasteType)).size >= 5, icon: '✅' },
+            { name: 'Perfect Sorter', desc: 'Sorted all 5 waste types', earned: new Set(events.map(e => e.waste_type)).size >= 5, icon: '✅' },
             { name: 'Community Leader', desc: 'Referred 5 friends', earned: false, icon: '👥' },
             { name: 'Monthly Streak', desc: '6 consecutive months', earned: events.length >= 6, icon: '🔥' },
           ].map(a => (
@@ -141,14 +136,14 @@ export default function UserMyImpact() {
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Waste Type</label>
-                <select value={form.wasteType} onChange={e => setForm({ ...form, wasteType: e.target.value as RecyclingEvent['wasteType'] })} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:outline-none">
+                <select value={form.waste_type} onChange={e => setForm({ ...form, waste_type: e.target.value })} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:outline-none">
                   {WASTE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weight (kg)</label>
                 <input type="number" min="0.1" step="0.1" value={form.weight || ''} onChange={e => setForm({ ...form, weight: parseFloat(e.target.value) || 0 })} className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:outline-none" placeholder="Enter weight" />
-                {form.weight > 0 && <p className="text-xs text-green-600 dark:text-green-400 mt-1">≈ {Math.round(form.weight * (POINTS_MAP[form.wasteType] ?? 5))} eco pts · CO₂ saved: {(form.weight * 1.3).toFixed(1)} kg</p>}
+                {form.weight > 0 && <p className="text-xs text-green-600 dark:text-green-400 mt-1">≈ {Math.round(form.weight * (POINTS_MAP[form.waste_type] ?? 5))} eco pts · CO₂ saved: {(form.weight * 1.3).toFixed(1)} kg</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Drop-off Location</label>

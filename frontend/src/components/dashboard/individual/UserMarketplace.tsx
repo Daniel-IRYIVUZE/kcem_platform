@@ -24,7 +24,7 @@ export default function UserMarketplace() {
     <div className="space-y-6">
       {/* Toast */}
       {toast && (
-        <div className="flex items-center justify-between gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 px-4 py-2.5 rounded-xl text-sm">
+        <div className="flex items-center justify-between gap-2 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 px-4 py-2.5 rounded-xl text-sm">
           <span className="flex items-center gap-2"><CheckCircle size={15}/> {toast}</span>
           <button onClick={() => setToast(null)}><X size={14}/></button>
         </div>

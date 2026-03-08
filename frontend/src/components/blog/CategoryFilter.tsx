@@ -1,24 +1,19 @@
 // components/blog/CategoryFilter.tsx
+import type { BlogPost } from '../../services/api';
+
 interface CategoryFilterProps {
   activeCategory: string;
   setActiveCategory: (category: string) => void;
+  posts?: BlogPost[];
 }
 
-const categories = [
-  'All',
-  'Circular Economy',
-  'Success Stories',
-  'Technology',
-  'Policy & Regulation',
-  'Tips & Guides',
-  'Interviews',
-  'Research'
-];
+const CategoryFilter = ({ activeCategory, setActiveCategory, posts = [] }: CategoryFilterProps) => {
+  // Derive categories dynamically from actual post data
+  const categories = ['All', ...Array.from(new Set(posts.map(p => p.category))).sort()];
 
-const CategoryFilter = ({ activeCategory, setActiveCategory }: CategoryFilterProps) => {
   return (
     <div className="mb-8">
-      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Categories</h3>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Filter by Category</h3>
       <div className="flex flex-wrap gap-2">
         {categories.map((category) => (
           <button

@@ -35,6 +35,19 @@ const Navbar = () => {
   }, [location.pathname]);
 
   const checkAuth = () => {
+    // Primary: use ecotrade_token + ecotrade_user (set by AuthContext)
+    const token = localStorage.getItem('ecotrade_token');
+    const storedUser = localStorage.getItem('ecotrade_user');
+    if (token && storedUser) {
+      try {
+        const u = JSON.parse(storedUser);
+        setIsAuthenticated(true);
+        setUserRole(u.role || '');
+        setUserName(u.name || '');
+        return;
+      } catch {/* fall through */}
+    }
+    // Fallback: legacy keys
     const auth = localStorage.getItem('isAuthenticated') === 'true';
     const role = localStorage.getItem('userRole') || '';
     const name = localStorage.getItem('userName') || '';
@@ -55,6 +68,11 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
+    // Clear AuthContext keys
+    localStorage.removeItem('ecotrade_token');
+    localStorage.removeItem('ecotrade_user');
+    localStorage.removeItem('ecotrade_refresh_token');
+    // Clear legacy keys
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userRole');

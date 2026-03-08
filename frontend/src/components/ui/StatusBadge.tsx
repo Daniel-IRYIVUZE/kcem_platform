@@ -28,7 +28,7 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
 };
 
 const DOT_CLS: Record<string, string> = {
-  open: 'bg-cyan-500', active: 'bg-emerald-500', completed: 'bg-blue-500',
+  open: 'bg-cyan-500', active: 'bg-cyan-500', completed: 'bg-blue-500',
   pending: 'bg-amber-500', suspended: 'bg-red-500', 'en-route': 'bg-purple-500',
 };
 

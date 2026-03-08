@@ -1,7 +1,7 @@
 // components/dashboard/driver/DriverTodaysRoute.tsx
-import { useState, useEffect, useCallback } from 'react';
-import { getAll, update as dsUpdate } from '../../../utils/dataStore';
-import type { Collection } from '../../../utils/dataStore';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '../../../context/AuthContext';
+import { collectionsAPI, type Collection } from '../../../services/api';
 import {
   Map, CheckCircle, DollarSign, Phone, Clock, Navigation,
   Package, MapPin, Star, ChevronRight
@@ -10,28 +10,93 @@ import StatCard from '../StatCard';
 import PageHeader from '../../ui/PageHeader';
 import StatusBadge from '../../ui/StatusBadge';
 import { driverProfile, todaysStops } from './_shared';
+import 'leaflet/dist/leaflet.css';
 
 export default function DriverTodaysRoute() {
+  const { user: authUser } = useAuth();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [flash, setFlash] = useState<string | null>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<any>(null);
 
   const load = useCallback(() => {
-    const today = new Date().toISOString().split('T')[0];
-    const all = getAll<Collection>('collections');
-    const todayItems = all.filter(c => c.scheduledDate.startsWith(today) && c.driverName === driverProfile.name);
-    setCollections(todayItems.length > 0 ? todayItems : all.filter(c => c.status === 'scheduled' || c.status === 'en-route').slice(0, 5));
+    collectionsAPI.list({ status: 'scheduled', limit: 50 }).then(all => {
+      const today = new Date().toISOString().split('T')[0];
+      const todayItems = all.filter(c => c.scheduled_date?.startsWith(today));
+      setCollections(todayItems.length > 0 ? todayItems : all.slice(0, 5));
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
     load();
-    window.addEventListener('ecotrade_data_change', load);
-    return () => window.removeEventListener('ecotrade_data_change', load);
   }, [load]);
 
+  // Kigali hotel area coordinates for markers
+  const KIGALI_COORDS: [number, number][] = [
+    [-1.9441, 30.0619], [-1.9523, 30.0588], [-1.9380, 30.0701],
+    [-1.9600, 30.0550], [-1.9350, 30.0650],
+  ];
+
+  useEffect(() => {
+    if (!mapRef.current || leafletMapRef.current) return;
+    let L: typeof import('leaflet');
+    const init = async () => {
+      try {
+        L = await import('leaflet');
+        // Fix default icon paths
+        const DefaultIcon = L.icon({
+          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+          iconSize: [25, 41], iconAnchor: [12, 41],
+        });
+        L.Marker.prototype.options.icon = DefaultIcon;
+
+        const map = L.map(mapRef.current!, { zoomControl: true, scrollWheelZoom: false })
+          .setView([-1.9441, 30.0619], 13);
+        leafletMapRef.current = map;
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors', maxZoom: 18,
+        }).addTo(map);
+
+        // Add markers for each stop
+        stops.slice(0, 5).forEach((stop, i) => {
+          const coord = KIGALI_COORDS[i] || KIGALI_COORDS[0];
+          const color = stop.status === 'completed' || stop.status === 'collected' ? '#06b6d4' :
+                        stop.status === 'en_route' ? '#2563eb' : '#6b7280';
+          const icon = L.divIcon({
+            html: `<div style="background:${color};color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${i + 1}</div>`,
+            className: '', iconSize: [28, 28], iconAnchor: [14, 14],
+          });
+          L.marker(coord, { icon })
+            .addTo(map)
+            .bindPopup(`<b>${stop.hotel || 'Stop ' + (i + 1)}</b><br>${stop.address}<br>Status: ${stop.status}`);
+        });
+
+        // Draw simple route polyline
+        const coords = stops.slice(0, 5).map((_, i) => KIGALI_COORDS[i] || KIGALI_COORDS[0]);
+        if (coords.length > 1) {
+          L.polyline(coords, { color: '#06b6d4', weight: 3, dashArray: '6 4', opacity: 0.7 }).addTo(map);
+        }
+      } catch (err) {
+        console.error('Leaflet failed to load:', err);
+      }
+    };
+    init();
+    return () => {
+      if (leafletMapRef.current) {
+        leafletMapRef.current.remove();
+        leafletMapRef.current = null;
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const stops = collections.length > 0 ? collections.map((c, idx) => ({
-    id: c.id, hotel: c.hotelName, address: c.location || 'Kigali', type: c.wasteType,
-    quantity: `${c.volume} ${c.wasteType === 'UCO' ? 'L' : 'kg'}`,
-    time: c.scheduledTime || `0${9 + idx}:00 AM`, status: c.status, contact: '',
+    id: c.id, hotel: c.hotel_name, address: c.location || 'Kigali', type: c.waste_type,
+    quantity: `${c.volume} ${c.waste_type === 'UCO' ? 'L' : 'kg'}`,
+    time: c.scheduled_time || `0${9 + idx}:00 AM`, status: c.status, contact: '',
     notes: c.notes || '', _dsId: c.id,
   })) : todaysStops;
 
@@ -39,9 +104,9 @@ export default function DriverTodaysRoute() {
   const totalStops = stops.length;
   const progressPct = totalStops > 0 ? Math.round((completedStops / totalStops) * 100) : 0;
 
-  const handleMarkCollected = (dsId: string | undefined, _stopId: number | string) => {
+  const handleMarkCollected = (dsId: number | undefined, _stopId: number | string) => {
     if (dsId) {
-      dsUpdate<Collection>('collections', String(dsId), { status: 'collected', completedAt: new Date().toISOString() });
+      collectionsAPI.updateStatus(dsId, { status: 'collected' }).then(load).catch(() => {});
     }
     setFlash(`Stop marked as collected!`);
     setTimeout(() => setFlash(null), 2500);
@@ -58,8 +123,16 @@ export default function DriverTodaysRoute() {
 
   return (
     <div className="space-y-6 animate-fade-up">
+      {/* Greeting */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome, {authUser?.name || 'Driver'}!</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Your daily collection routes</p>
+        </div>
+      </div>
+
       {flash && (
-        <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 px-4 py-2.5 rounded-xl text-sm animate-slide-down">
+        <div className="flex items-center gap-2 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 px-4 py-2.5 rounded-xl text-sm animate-slide-down">
           <CheckCircle size={15}/> {flash}
         </div>
       )}
@@ -69,7 +142,7 @@ export default function DriverTodaysRoute() {
         subtitle={`Route KG-01 · ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`}
         icon={<Navigation size={20}/>}
         badge={`${completedStops}/${totalStops} stops`}
-        badgeColor={progressPct === 100 ? 'emerald' : 'cyan'}
+        badgeColor={progressPct === 100 ? 'cyan' : 'cyan'}
         actions={
           <div className="flex gap-2">
             <button className="btn-secondary flex items-center gap-1.5 text-sm" onClick={() => {
@@ -124,29 +197,14 @@ export default function DriverTodaysRoute() {
         </div>
       </div>
 
-      {/* Route Map Placeholder */}
+      {/* Route Map — Real Leaflet */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
           <Map size={16} className="text-cyan-600"/>
           <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Live Route Map</h3>
           <span className="ml-auto text-xs text-gray-400">Kigali, Rwanda</span>
         </div>
-        <div className="bg-cyan-50 dark:bg-cyan-900/10 h-48 flex items-center justify-center relative">
-          {/* Stylized map placeholder with stop markers */}
-          <div className="absolute inset-0 flex items-center justify-center gap-12">
-            {stops.slice(0, 4).map((stop, i) => (
-              <div key={stop.id} className="flex flex-col items-center gap-1">
-                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${(stop.status === 'completed' || stop.status === 'collected') ? 'bg-emerald-500 border-emerald-600 text-white' : stop.status === 'en-route' || stop.status === 'in_progress' ? 'bg-cyan-600 border-cyan-700 text-white animate-pulse' : 'bg-white border-gray-300 text-gray-600'}`}>
-                  {i + 1}
-                </div>
-                <span className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-16 text-center">{stop.hotel?.split(' ')[0]}</span>
-              </div>
-            ))}
-          </div>
-          <div className="text-center text-gray-400 dark:text-gray-500 mt-20">
-            <p className="text-xs">Interactive map with Leaflet.js</p>
-          </div>
-        </div>
+        <div ref={mapRef} style={{ height: '260px', width: '100%' }} />
       </div>
 
       {/* Stop Schedule */}
@@ -165,11 +223,11 @@ export default function DriverTodaysRoute() {
                 <div className="flex items-start gap-4">
                   {/* Step indicator */}
                   <div className="flex flex-col items-center flex-shrink-0">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDone ? 'bg-emerald-500 text-white' : isActive ? 'bg-cyan-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${isDone ? 'bg-cyan-500 text-white' : isActive ? 'bg-cyan-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
                       {isDone ? <CheckCircle size={16}/> : idx + 1}
                     </div>
                     {idx < stops.length - 1 && (
-                      <div className={`w-0.5 h-6 mt-1 ${isDone ? 'bg-emerald-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
+                      <div className={`w-0.5 h-6 mt-1 ${isDone ? 'bg-cyan-400' : 'bg-gray-200 dark:bg-gray-700'}`} />
                     )}
                   </div>
 
@@ -193,7 +251,7 @@ export default function DriverTodaysRoute() {
                       <div className="mt-3 flex flex-wrap gap-2">
                         <button
                           onClick={() => handleMarkCollected((stop as any)._dsId, stop.id)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 font-medium transition-colors"
                         >
                           <CheckCircle size={12}/> Mark Collected
                         </button>
@@ -210,7 +268,7 @@ export default function DriverTodaysRoute() {
                       </div>
                     )}
                     {isDone && (
-                      <div className="mt-2 flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+                      <div className="mt-2 flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400">
                         <CheckCircle size={12}/> Collection verified
                       </div>
                     )}

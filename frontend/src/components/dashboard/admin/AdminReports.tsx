@@ -1,8 +1,9 @@
 // pages/dashboard/admin/Reports.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, Download, BarChart2, Users, Leaf, DollarSign } from 'lucide-react';
-import { getAll, downloadCSV, downloadPDF } from '../../../utils/dataStore';
-import type { PlatformUser, WasteListing, Transaction, Collection } from '../../../utils/dataStore';
+import { downloadCSV, downloadPDF } from '../../../utils/dataStore';
+import { usersAPI, listingsAPI, transactionsAPI, collectionsAPI,
+  type APIUser, type WasteListing, type Transaction, type Collection } from '../../../services/api';
 
 const REPORT_TYPES = [
   { 
@@ -40,6 +41,10 @@ const REPORT_TYPES = [
 export default function AdminReports() {
   const [generating, setGenerating] = useState<string | null>(null);
   const [format, setFormat] = useState<'csv' | 'pdf'>('csv');
+  const [users, setUsers]             = useState<APIUser[]>([]);
+  const [listings, setListings]       = useState<WasteListing[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
@@ -47,14 +52,28 @@ export default function AdminReports() {
   });
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0]);
 
+  useEffect(() => {
+    Promise.all([
+      usersAPI.list({ limit: 500 }).catch(() => [] as APIUser[]),
+      listingsAPI.list({ limit: 500 }).catch(() => [] as WasteListing[]),
+      transactionsAPI.list({ limit: 500 }).catch(() => [] as Transaction[]),
+      collectionsAPI.list({ limit: 500 }).catch(() => [] as Collection[]),
+    ]).then(([us, ls, ts, cs]) => {
+      setUsers(us); setListings(ls); setTransactions(ts); setCollections(cs);
+    });
+  }, []);
+
+  const completedTransactions = transactions.filter(t => t.status === 'completed');
+  const stats = {
+    totalUsers: users.length,
+    activeListings: listings.filter(l => l.status === 'open').length,
+    totalRevenue: completedTransactions.reduce((s, t) => s + (t.amount || 0), 0),
+    co2Saved: collections.reduce((s, c) => s + (c.volume || 0) * 0.5, 0),
+  };
+
   const generateReport = (type: string) => {
     setGenerating(type);
     setTimeout(() => {
-      const users = getAll<PlatformUser>('users');
-      const listings = getAll<WasteListing>('listings');
-      const transactions = getAll<Transaction>('transactions');
-      const collections = getAll<Collection>('collections');
-
       if (format === 'pdf') {
         const reportTitle = (REPORT_TYPES.find(r => r.id === type)?.label || type) + ' Report';
         downloadPDF(reportTitle, `
@@ -76,50 +95,50 @@ export default function AdminReports() {
 
       switch (type) {
         case 'users':
-          downloadCSV('users_report', 
-            ['ID', 'Name', 'Email', 'Role', 'Status', 'Location', 'Joined'],
+          downloadCSV('users_report',
+            ['ID', 'Name', 'Email', 'Role', 'Status', 'Joined'],
             users.map(u => [
-              u.id, u.name, u.email, u.role, u.status, 
-              u.location, new Date(u.joinDate).toLocaleDateString()
+              String(u.id), u.full_name || '', u.email || '', u.role, u.status,
+              u.created_at ? new Date(u.created_at).toLocaleDateString() : ''
             ])
           );
           break;
         case 'listings':
-          downloadCSV('listings_report', 
+          downloadCSV('listings_report',
             ['ID', 'Hotel', 'Waste Type', 'Volume', 'Unit', 'Min Bid', 'Status', 'Date'],
             listings.map(l => [
-              l.id, l.hotelName || l.businessName || 'N/A', l.wasteType, String(l.volume), 
-              l.unit, String(l.minBid), l.status, 
-              new Date(l.createdAt).toLocaleDateString()
+              String(l.id), l.hotel_name || 'N/A', l.waste_type, String(l.volume),
+              l.unit, String(l.min_bid ?? 0), l.status,
+              l.created_at ? new Date(l.created_at).toLocaleDateString() : ''
             ])
           );
           break;
         case 'transactions':
-          downloadCSV('financial_report', 
+          downloadCSV('financial_report',
             ['ID', 'Listing', 'From', 'To', 'Amount', 'Fee', 'Status', 'Date'],
             transactions.map(t => [
-              t.id, t.listingId, t.from, t.to, 
-              String(t.amount), String(t.fee), t.status, 
-              new Date(t.date).toLocaleDateString()
+              String(t.id), String(t.listing_id || ''), t.from_user || '', t.to_user || '',
+              String(t.amount ?? 0), String(t.fee || 0), t.status,
+              t.created_at ? new Date(t.created_at).toLocaleDateString() : ''
             ])
           );
           break;
         case 'environmental':
-          downloadCSV('environmental_report', 
+          downloadCSV('environmental_report',
             ['ID', 'Hotel', 'Driver', 'Waste Type', 'Volume (kg/L)', 'Date'],
             collections.map(c => [
-              c.id, c.hotelName || c.businessName || 'N/A', c.driverName, c.wasteType, 
-              String(c.volume), new Date(c.scheduledDate).toLocaleDateString()
+              String(c.id), c.hotel_name || 'N/A', c.driver_name || '', c.waste_type || '',
+              String(c.volume), c.scheduled_date ? new Date(c.scheduled_date).toLocaleDateString() : ''
             ])
           );
           break;
         case 'collections':
-          downloadCSV('collections_report', 
+          downloadCSV('collections_report',
             ['ID', 'Hotel', 'Recycler', 'Driver', 'Volume', 'Status', 'Date'],
             collections.map(c => [
-              c.id, c.hotelName || c.businessName || 'N/A', c.recyclerName, c.driverName, 
-              String(c.volume), c.status, 
-              new Date(c.scheduledDate).toLocaleDateString()
+              String(c.id), c.hotel_name || 'N/A', c.recycler_name || '', c.driver_name || '',
+              String(c.volume), c.status,
+              c.scheduled_date ? new Date(c.scheduled_date).toLocaleDateString() : ''
             ])
           );
           break;
@@ -127,21 +146,6 @@ export default function AdminReports() {
       setGenerating(null);
     }, 600);
   };
-
-  const summaryStats = () => {
-    const users = getAll<PlatformUser>('users');
-    const listings = getAll<WasteListing>('listings');
-    const transactions = getAll<Transaction>('transactions').filter(t => t.status === 'completed');
-    const collections = getAll<Collection>('collections');
-    return {
-      totalUsers: users.length,
-      activeListings: listings.filter(l => l.status === 'open').length,
-      totalRevenue: transactions.reduce((s, t) => s + t.amount, 0),
-      co2Saved: collections.reduce((s, c) => s + c.volume * 0.5, 0),
-    };
-  };
-  
-  const stats = summaryStats();
 
   return (
     <div className="space-y-6">

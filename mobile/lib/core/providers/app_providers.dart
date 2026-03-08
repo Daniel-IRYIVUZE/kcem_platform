@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
+import '../services/api_service.dart';
 import '../services/data_service.dart';
 import '../services/notification_service.dart';
 import '../services/local_storage_service.dart';
@@ -57,18 +58,43 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, error: null);
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    // Check built-in demo users first, then user-registered accounts
-    final user = DataService.instance.login(email, password) ??
-        LocalStorageService.instance.loginRegisteredUser(email, password);
-
-    if (user != null) {
+    try {
+      // Try real backend API first
+      final response = await ApiService.login(email, password);
+      final userMap = response['user'] as Map<String, dynamic>;
+      final user = AppUser(
+        id: (userMap['id'] as int).toString(),
+        name: userMap['full_name'] as String? ?? email,
+        email: userMap['email'] as String? ?? email,
+        phone: userMap['phone'] as String? ?? '',
+        role: _mapRole(userMap['role'] as String? ?? 'business'),
+        verified: userMap['is_verified'] as bool? ?? false,
+        greenScore: 0,
+      );
       await LocalStorageService.instance.saveUser(user);
       state = AuthState(user: user);
       return true;
-    } else {
-      state = const AuthState(error: 'Invalid email or password');
+    } on ApiException catch (e) {
+      // Fall back to demo users on API error (e.g., unauthorized / not found)
+      final localUser = DataService.instance.login(email, password) ??
+          LocalStorageService.instance.loginRegisteredUser(email, password);
+      if (localUser != null) {
+        await LocalStorageService.instance.saveUser(localUser);
+        state = AuthState(user: localUser);
+        return true;
+      }
+      state = AuthState(error: e.message);
+      return false;
+    } catch (_) {
+      // Network / unexpected error — fall back to local demo users
+      final localUser = DataService.instance.login(email, password) ??
+          LocalStorageService.instance.loginRegisteredUser(email, password);
+      if (localUser != null) {
+        await LocalStorageService.instance.saveUser(localUser);
+        state = AuthState(user: localUser);
+        return true;
+      }
+      state = const AuthState(error: 'Login failed. Check your credentials and connection.');
       return false;
     }
   }
@@ -82,29 +108,53 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? businessName,
   }) async {
     state = state.copyWith(isLoading: true, error: null);
-    await Future.delayed(const Duration(milliseconds: 1000));
-
-    final userRole = _mapRole(role);
-    final user = AppUser(
-      id: 'user-reg-${DateTime.now().millisecondsSinceEpoch}',
-      name: name,
-      email: email,
-      phone: phone,
-      role: userRole,
-      businessName: businessName,
-      verified: true,
-      greenScore: 10,
-    );
-
-    // Persist for future logins
-    final userData = user.toMap();
-    userData['password'] = password;
-    await LocalStorageService.instance.saveRegisteredUser(userData);
-    await LocalStorageService.instance.saveUser(user);
-    await LocalStorageService.instance.markOnboardingSeen();
-
-    state = AuthState(user: user);
-    return true;
+    try {
+      // Try real API registration
+      await ApiService.register({
+        'full_name': name,
+        'email': email,
+        'phone': phone,
+        'password': password,
+        'role': role,
+      });
+      // After registration, log in to get tokens
+      final loginResp = await ApiService.login(email, password);
+      final userMap = loginResp['user'] as Map<String, dynamic>;
+      final user = AppUser(
+        id: (userMap['id'] as int).toString(),
+        name: userMap['full_name'] as String? ?? name,
+        email: userMap['email'] as String? ?? email,
+        phone: userMap['phone'] as String? ?? phone,
+        role: _mapRole(userMap['role'] as String? ?? role),
+        verified: userMap['is_verified'] as bool? ?? false,
+        greenScore: 10,
+        businessName: businessName,
+      );
+      await LocalStorageService.instance.saveUser(user);
+      await LocalStorageService.instance.markOnboardingSeen();
+      state = AuthState(user: user);
+      return true;
+    } catch (_) {
+      // Fall back to local registration
+      final userRole = _mapRole(role);
+      final user = AppUser(
+        id: 'user-reg-${DateTime.now().millisecondsSinceEpoch}',
+        name: name,
+        email: email,
+        phone: phone,
+        role: userRole,
+        businessName: businessName,
+        verified: true,
+        greenScore: 10,
+      );
+      final userData = user.toMap();
+      userData['password'] = password;
+      await LocalStorageService.instance.saveRegisteredUser(userData);
+      await LocalStorageService.instance.saveUser(user);
+      await LocalStorageService.instance.markOnboardingSeen();
+      state = AuthState(user: user);
+      return true;
+    }
   }
 
   Future<void> logout() async {
@@ -128,30 +178,188 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>(
   (ref) => AuthNotifier(),
 );
 
+// ── API Data Mapping Helpers ──────────────────────────────────────────────
+
+WasteType _mapWasteType(String s) {
+  switch (s.toLowerCase()) {
+    case 'uco':
+      return WasteType.uco;
+    case 'glass':
+      return WasteType.glass;
+    case 'paper/cardboard':
+    case 'paper_cardboard':
+    case 'paper':
+      return WasteType.paperCardboard;
+    default:
+      return WasteType.mixed;
+  }
+}
+
+ListingStatus _mapListingStatus(String s) {
+  switch (s.toLowerCase()) {
+    case 'open':
+      return ListingStatus.open;
+    case 'accepting':
+    case 'assigned':
+      return ListingStatus.assigned;
+    case 'collected':
+      return ListingStatus.collected;
+    case 'completed':
+      return ListingStatus.completed;
+    case 'expired':
+      return ListingStatus.expired;
+    case 'cancelled':
+      return ListingStatus.cancelled;
+    case 'draft':
+      return ListingStatus.draft;
+    default:
+      return ListingStatus.open;
+  }
+}
+
+CollectionStatus _mapCollectionStatus(String s) {
+  switch (s.toLowerCase()) {
+    case 'scheduled':
+      return CollectionStatus.scheduled;
+    case 'en_route':
+    case 'arrived':
+    case 'confirmed':
+      return CollectionStatus.enRoute;
+    case 'collected':
+      return CollectionStatus.collected;
+    case 'verified':
+      return CollectionStatus.verified;
+    case 'completed':
+      return CollectionStatus.completed;
+    default:
+      return CollectionStatus.missed;
+  }
+}
+
+WasteListing _listingFromApi(Map<String, dynamic> j) {
+  return WasteListing(
+    id: (j['id'] as int).toString(),
+    businessId: (j['hotel_id'] as int? ?? 0).toString(),
+    businessName: j['hotel_name'] as String? ?? 'Hotel',
+    wasteType: _mapWasteType(j['waste_type'] as String? ?? 'mixed'),
+    volume: (j['volume'] as num? ?? 0).toDouble(),
+    unit: j['unit'] as String? ?? 'kg',
+    quality: WasteQuality.a,
+    minBid: (j['min_bid'] as num? ?? j['minBid'] as num? ?? 0).toDouble(),
+    status: _mapListingStatus(j['status'] as String? ?? 'open'),
+    location: j['address'] as String? ?? '',
+    latitude: (j['latitude'] as num?)?.toDouble(),
+    longitude: (j['longitude'] as num?)?.toDouble(),
+    createdAt: j['created_at'] != null
+        ? DateTime.tryParse(j['created_at'] as String) ?? DateTime.now()
+        : DateTime.now(),
+  );
+}
+
+Collection _collectionFromApi(Map<String, dynamic> j) {
+  return Collection(
+    id: (j['id'] as int).toString(),
+    listingId: (j['listing_id'] as int? ?? 0).toString(),
+    businessName: j['hotel_name'] as String? ?? '',
+    recyclerName: j['recycler_name'] as String? ?? '',
+    driverId: j['driver_id'] != null ? (j['driver_id'] as int).toString() : null,
+    wasteType: WasteType.mixed,
+    volume: (j['actual_volume'] as num? ?? 0).toDouble(),
+    status: _mapCollectionStatus(j['status'] as String? ?? 'scheduled'),
+    scheduledDate: j['scheduled_date'] != null
+        ? DateTime.tryParse(j['scheduled_date'] as String) ?? DateTime.now()
+        : DateTime.now(),
+    scheduledTime: j['scheduled_time'] as String? ?? '09:00',
+    location: '',
+    earnings: 0,
+  );
+}
+
+Transaction _transactionFromApi(Map<String, dynamic> j) {
+  final statusStr = (j['status'] as String? ?? 'completed').toLowerCase();
+  return Transaction(
+    id: (j['id'] as int).toString(),
+    date: j['created_at'] != null
+        ? DateTime.tryParse(j['created_at'] as String) ?? DateTime.now()
+        : DateTime.now(),
+    from: j['hotel_id'] != null ? (j['hotel_id'] as int).toString() : '',
+    to: j['recycler_id'] != null ? (j['recycler_id'] as int).toString() : '',
+    wasteType: WasteType.mixed,
+    volume: 0,
+    amount: (j['gross_amount'] as num? ?? 0).toDouble(),
+    fee: (j['platform_fee'] as num? ?? 0).toDouble(),
+    status: TransactionStatus.values.firstWhere(
+      (e) => e.name == statusStr,
+      orElse: () => TransactionStatus.completed,
+    ),
+    listingId: j['listing_id'] != null ? (j['listing_id'] as int).toString() : '',
+  );
+}
+
+// ── Private API FutureProviders ───────────────────────────────────────────
+
+final _apiOpenListingsProvider = FutureProvider<List<WasteListing>>((ref) async {
+  try {
+    final resp = await ApiService.getListings(status: 'open', limit: 50);
+    final items = resp['items'] as List<dynamic>? ?? [];
+    return items.map((j) => _listingFromApi(j as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return DataService.instance.getOpenListings();
+  }
+});
+
+final _apiMyListingsProvider = FutureProvider<List<WasteListing>>((ref) async {
+  try {
+    final items = await ApiService.getMyListings();
+    return items.map((j) => _listingFromApi(j as Map<String, dynamic>)).toList();
+  } catch (_) {
+    final user = ref.read(authProvider).user;
+    return DataService.instance.getListingsForBusiness(user?.id ?? '');
+  }
+});
+
+final _apiMyCollectionsProvider = FutureProvider<List<Collection>>((ref) async {
+  try {
+    final items = await ApiService.getMyCollections();
+    return items.map((j) => _collectionFromApi(j as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return DataService.instance.getCollections();
+  }
+});
+
+final _apiMyTransactionsProvider = FutureProvider<List<Transaction>>((ref) async {
+  try {
+    final items = await ApiService.getMyTransactions();
+    return items.map((j) => _transactionFromApi(j as Map<String, dynamic>)).toList();
+  } catch (_) {
+    return DataService.instance.getTransactions();
+  }
+});
+
 // ── Listings Providers ─────────────────────────────────────────────────────
 
 final allListingsProvider = Provider<List<WasteListing>>(
   (ref) {
-    // Watch listingsNotifierProvider to recompute when listings are mutated
     ref.watch(listingsNotifierProvider);
-    return DataService.instance.getListings();
+    return ref.watch(_apiOpenListingsProvider).whenOrNull(data: (d) => d)
+        ?? DataService.instance.getListings();
   },
 );
 
 final openListingsProvider = Provider<List<WasteListing>>(
   (ref) {
     ref.watch(listingsNotifierProvider);
-    return DataService.instance.getOpenListings();
+    return ref.watch(_apiOpenListingsProvider).whenOrNull(data: (d) => d)
+        ?? DataService.instance.getOpenListings();
   },
 );
 
 final businessListingsProvider = Provider<List<WasteListing>>((ref) {
   final user = ref.watch(authProvider).user;
-  // Watch listingsNotifierProvider to stay reactive to CRUD mutations
-  final userListings = ref.watch(listingsNotifierProvider);
   if (user == null) return [];
-  // Return the full state from the reactive notifier for business users
-  return userListings;
+  // Prefer live API data; fall back to local CRUD notifier
+  return ref.watch(_apiMyListingsProvider).whenOrNull(data: (d) => d)
+      ?? ref.watch(listingsNotifierProvider);
 });
 
 final recyclerBidListingsProvider = Provider<List<WasteListing>>((ref) {
@@ -163,25 +371,30 @@ final recyclerBidListingsProvider = Provider<List<WasteListing>>((ref) {
 // ── Collections Providers ─────────────────────────────────────────────────
 
 final allCollectionsProvider = Provider<List<Collection>>(
-  (ref) => DataService.instance.getCollections(),
+  (ref) => ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d)
+      ?? DataService.instance.getCollections(),
 );
 
 final businessCollectionsProvider = Provider<List<Collection>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return [];
-  return DataService.instance.getCollectionsForBusiness(user.id);
+  // API already returns only this user's collections
+  return ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d)
+      ?? DataService.instance.getCollectionsForBusiness(user.id);
 });
 
 final driverCollectionsProvider = Provider<List<Collection>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return [];
-  return DataService.instance.getCollectionsForDriver(user.id);
+  return ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d)
+      ?? DataService.instance.getCollectionsForDriver(user.id);
 });
 
 final recyclerCollectionsProvider = Provider<List<Collection>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return [];
-  return DataService.instance.getCollectionsForRecycler(user.displayName);
+  return ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d)
+      ?? DataService.instance.getCollectionsForRecycler(user.displayName);
 });
 
 // ── Driver Route Provider ─────────────────────────────────────────────────
@@ -193,7 +406,8 @@ final driverRouteProvider = Provider<DriverRoute>(
 // ── Transactions Provider ─────────────────────────────────────────────────
 
 final transactionsProvider = Provider<List<Transaction>>(
-  (ref) => DataService.instance.getTransactions(),
+  (ref) => ref.watch(_apiMyTransactionsProvider).whenOrNull(data: (d) => d)
+      ?? DataService.instance.getTransactions(),
 );
 
 // ── Notifications Provider ────────────────────────────────────────────────
@@ -240,18 +454,61 @@ final unreadCountProvider = Provider<int>((ref) {
 final businessStatsProvider = Provider<Map<String, dynamic>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return {};
+  // Compute from real API data when available, else fall back to DataService
+  final apiListings = ref.watch(_apiMyListingsProvider).whenOrNull(data: (d) => d);
+  final apiCollections = ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d);
+  final apiTransactions = ref.watch(_apiMyTransactionsProvider).whenOrNull(data: (d) => d);
+  if (apiListings != null) {
+    final collections = apiCollections ?? [];
+    final transactions = apiTransactions ?? [];
+    return {
+      'totalListings': apiListings.length,
+      'activeListings': apiListings.where((l) => l.status == ListingStatus.open).length,
+      'completedCollections': collections.where((c) => c.status == CollectionStatus.completed).length,
+      'totalVolume': apiListings.fold<double>(0, (s, l) => s + l.volume),
+      'totalEarnings': transactions.fold<double>(0, (s, t) => s + t.amount),
+      'pendingBids': apiListings.fold<int>(0, (s, l) => s + l.activeBidCount),
+    };
+  }
   return DataService.instance.getBusinessStats(user.id);
 });
 
 final recyclerStatsProvider = Provider<Map<String, dynamic>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return {};
+  final apiCollections = ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d);
+  final apiTransactions = ref.watch(_apiMyTransactionsProvider).whenOrNull(data: (d) => d);
+  if (apiCollections != null) {
+    final transactions = apiTransactions ?? [];
+    return {
+      'totalBids': 0,
+      'activeBids': 0,
+      'wonBids': apiCollections.length,
+      'totalEarnings': transactions.fold<double>(0, (s, t) => s + t.amount),
+      'pendingCollections': apiCollections
+          .where((c) => c.status != CollectionStatus.completed && c.status != CollectionStatus.missed)
+          .length,
+    };
+  }
   return DataService.instance.getRecyclerStats(user.id);
 });
 
 final driverStatsProvider = Provider<Map<String, dynamic>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return {};
+  final apiCollections = ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d);
+  if (apiCollections != null) {
+    final completed = apiCollections.where((c) => c.status == CollectionStatus.completed).length;
+    return {
+      'todayStops': apiCollections.length,
+      'completedStops': completed,
+      'totalCollections': apiCollections.length,
+      'completedCollections': completed,
+      'totalEarnings': apiCollections.fold<double>(0, (s, c) => s + c.earnings),
+      'todayEarnings': 0.0,
+      'rating': user.rating,
+    };
+  }
   return DataService.instance.getDriverStats(user.id);
 });
 
@@ -424,6 +681,32 @@ class BidsNotifier extends StateNotifier<List<Bid>> {
     String? note,
     String collectionPreference = 'flexible',
   }) async {
+    // Try real API if listingId is numeric (came from backend)
+    final numericId = int.tryParse(listingId);
+    if (numericId != null) {
+      try {
+        final resp = await ApiService.placeBid(
+          listingId: numericId,
+          amount: amount,
+          notes: note,
+        );
+        final bid = Bid(
+          id: (resp['id'] as int? ?? DateTime.now().millisecondsSinceEpoch).toString(),
+          listingId: listingId,
+          recyclerId: recyclerId,
+          recyclerName: recyclerName,
+          amount: amount,
+          note: note,
+          collectionPreference: collectionPreference,
+          createdAt: DateTime.now(),
+        );
+        state = [...state, bid];
+        return bid;
+      } catch (_) {
+        // API failed — fall through to local
+      }
+    }
+    // Fallback: local/demo storage
     final bid = Bid(
       id: 'bid-${DateTime.now().millisecondsSinceEpoch}',
       listingId: listingId,

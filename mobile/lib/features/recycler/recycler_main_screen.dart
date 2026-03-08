@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
@@ -73,8 +75,11 @@ class _RecyclerHomeTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider).user;
     final listings = ref.watch(openListingsProvider);
     final stats = ref.watch(recyclerStatsProvider);
+    final dn = user?.displayName ?? 'GR';
+    final initials = (dn.length >= 2 ? dn.substring(0, 2) : dn).toUpperCase();
     return Scaffold(
       backgroundColor: context.cBg,
       body: CustomScrollView(
@@ -82,70 +87,73 @@ class _RecyclerHomeTab extends ConsumerWidget {
           SliverAppBar(
             backgroundColor: context.cSurf,
             floating: true,
-            expandedHeight: 70,
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              title: Row(
-                children: [
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _greeting(),
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w400),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+            toolbarHeight: 72,
+            automaticallyImplyLeading: false,
+            flexibleSpace: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _greeting(),
+                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w400),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            user?.displayName ?? 'GreenRecycle Ltd',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      icon: Icon(Icons.notifications_outlined, color: context.cText),
+                      onPressed: () => context.push(AppRoutes.notifications),
+                    ),
+                    PopupMenuButton<String>(
+                      onSelected: (val) {
+                        if (val == 'profile') onGoToProfile?.call();
+                        if (val == 'logout') ref.read(authProvider.notifier).logout();
+                      },
+                      offset: const Offset(0, 44),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      tooltip: 'Account',
+                      itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'profile',
+                          child: Row(children: [
+                            Icon(Icons.settings_outlined, size: 18),
+                            SizedBox(width: 10),
+                            Text('Settings & Profile'),
+                          ]),
                         ),
-                        const Text(
-                          'GreenRecycle Ltd',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        const PopupMenuDivider(),
+                        const PopupMenuItem(
+                          value: 'logout',
+                          child: Row(children: [
+                            Icon(Icons.logout, color: Colors.red, size: 18),
+                            SizedBox(width: 10),
+                            Text('Sign Out', style: TextStyle(color: Colors.red)),
+                          ]),
                         ),
                       ],
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: Icon(Icons.notifications_outlined, color: context.cText),
-                    onPressed: () => context.push(AppRoutes.notifications),
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (val) {
-                      if (val == 'profile') onGoToProfile?.call();
-                      if (val == 'logout') ref.read(authProvider.notifier).logout();
-                    },
-                    offset: const Offset(0, 44),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    tooltip: 'Account',
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
-                        value: 'profile',
-                        child: Row(children: [
-                          Icon(Icons.settings_outlined, size: 18),
-                          SizedBox(width: 10),
-                          Text('Settings & Profile'),
-                        ]),
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: AppColors.primaryLight,
+                        child: Text(initials, style: const TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w700, fontSize: 12)),
                       ),
-                      const PopupMenuDivider(),
-                      const PopupMenuItem(
-                        value: 'logout',
-                        child: Row(children: [
-                          Icon(Icons.logout, color: Colors.red, size: 18),
-                          SizedBox(width: 10),
-                          Text('Sign Out', style: TextStyle(color: Colors.red)),
-                        ]),
-                      ),
-                    ],
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: AppColors.primaryLight,
-                      child: const Text('GR', style: TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w700, fontSize: 12)),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -319,9 +327,12 @@ class _QuickBidCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '⚡ Quick Bid',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                Row(
+                  children: const [
+                    Icon(Icons.bolt_rounded, color: Colors.white70, size: 16),
+                    SizedBox(width: 4),
+                    Text('Quick Bid', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 const Text(
@@ -347,7 +358,7 @@ class _QuickBidCard extends StatelessWidget {
               ],
             ),
           ),
-          const Text('🏭', style: TextStyle(fontSize: 56)),
+          const Icon(Icons.factory_rounded, size: 56, color: Colors.white24),
         ],
       ),
     );
@@ -357,45 +368,45 @@ class _QuickBidCard extends StatelessWidget {
 class _MapPlaceholder extends StatelessWidget {
   const _MapPlaceholder();
 
+  static const _kigali = LatLng(-1.9441, 30.0619);
+  static const _pins = [
+    LatLng(-1.9350, 30.0560),
+    LatLng(-1.9508, 30.0710),
+    LatLng(-1.9620, 30.0520),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFD4EDDA),
-      child: Stack(
-        children: [
-          // Grid lines (road simulation)
-          ...List.generate(5, (i) => Positioned(
-            left: i * 60.0,
-            top: 0,
-            bottom: 0,
-            child: Container(width: 1, color: Colors.white.withOpacity(0.5)),
-          )),
-          ...List.generate(5, (i) => Positioned(
-            top: i * 40.0,
-            left: 0,
-            right: 0,
-            child: Container(height: 1, color: Colors.white.withOpacity(0.5)),
-          )),
-          // Map pins
-          ...[
-            {'x': 0.3, 'y': 0.4},
-            {'x': 0.6, 'y': 0.3},
-            {'x': 0.5, 'y': 0.6},
-          ].map((pos) => Positioned(
-            left: MediaQuery.of(context).size.width * (pos['x']!),
-            top: 190 * (pos['y']!),
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: const BoxDecoration(
-                color: AppColors.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.recycling, color: Colors.white, size: 14),
-            ),
-          )),
-        ],
+    return FlutterMap(
+      options: const MapOptions(
+        initialCenter: _kigali,
+        initialZoom: 12.5,
+        interactionOptions: InteractionOptions(
+          flags: InteractiveFlag.none,
+        ),
       ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.ecotrade.rwanda',
+        ),
+        MarkerLayer(
+          markers: _pins
+              .map((pt) => Marker(
+                    point: pt,
+                    width: 32,
+                    height: 32,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.recycling, color: Colors.white, size: 16),
+                    ),
+                  ))
+              .toList(),
+        ),
+      ],
     );
   }
 }
@@ -819,9 +830,9 @@ class _RecyclerProfileTab extends ConsumerWidget {
 
   void _showLanguageSheet(BuildContext context) {
     final languages = [
-      {'code': 'en', 'label': 'English',     'native': 'English',      'flag': '🇬🇧'},
-      {'code': 'rw', 'label': 'Kinyarwanda', 'native': 'Ikinyarwanda', 'flag': '🇷🇼'},
-      {'code': 'fr', 'label': 'French',      'native': 'Français',     'flag': '🇫🇷'},
+      {'code': 'en', 'label': 'English',     'native': 'English'},
+      {'code': 'rw', 'label': 'Kinyarwanda', 'native': 'Ikinyarwanda'},
+      {'code': 'fr', 'label': 'French',      'native': 'Français'},
     ];
     String selected = 'en';
     showModalBottomSheet(
@@ -858,7 +869,14 @@ class _RecyclerProfileTab extends ConsumerWidget {
                     ),
                     child: Row(
                       children: [
-                        Text(lang['flag']!, style: const TextStyle(fontSize: 24)),
+                        Container(
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.language_rounded, color: AppColors.primary, size: 20),
+                        ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(

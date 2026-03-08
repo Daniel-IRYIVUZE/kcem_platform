@@ -1,6 +1,6 @@
 // pages/Login/LoginPage.tsx
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Home } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoginForm from '../../components/auth/LoginForm';
@@ -18,6 +18,7 @@ const roleToDashboard: Record<string, string> = {
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
@@ -25,24 +26,33 @@ const LoginPage = () => {
   const [loginError, setLoginError] = useState('');
 
   const demoCredentials = [
-    { role: 'Admin',      email: 'admin@ecotrade.rw',       password: 'admin123'    },
-    { role: 'Business',   email: 'hotel@millecollines.rw',  password: 'hotel123'    },
-    { role: 'Recycler',   email: 'recycler@greenenergy.rw', password: 'recycler123' },
-    { role: 'Driver',     email: 'driver@ecotrade.rw',      password: 'driver123'   },
-    { role: 'Individual', email: 'marieclaire@gmail.com',  password: 'user123'     },
+    { role: 'Admin',      email: 'admin@ecotrade.rw',       password: 'Password123!' },
+    { role: 'Business',   email: 'hotel1@ecotrade.rw',      password: 'Password123!' },
+    { role: 'Recycler',   email: 'recycler1@ecotrade.rw',   password: 'Password123!' },
+    { role: 'Driver',     email: 'driver1@ecotrade.rw',     password: 'Password123!' },
   ];
 
   const handleLogin = async (email: string, password: string) => {
     setLoginError('');
     try {
       await login(email, password);
-      // After login, user state is updated — read role from context
-      // Use a brief timeout so state update propagates
+      
+        // Get the page user was trying to access (if any)
+        const from = (location.state as any)?.from || null;
+      
+        // Brief timeout to let state update propagate
       setTimeout(() => {
         const storedUser = localStorage.getItem('ecotrade_user');
         if (storedUser) {
           const u = JSON.parse(storedUser);
-          navigate(roleToDashboard[u.role] || '/dashboard', { replace: true });
+          
+            // If there's a "from" location and it's not login, redirect there
+            if (from && from !== '/login' && from !== '/signup') {
+              navigate(from, { replace: true });
+            } else {
+              // Otherwise go to role-specific dashboard
+              navigate(roleToDashboard[u.role] || '/dashboard', { replace: true });
+            }
         } else {
           navigate('/dashboard', { replace: true });
         }

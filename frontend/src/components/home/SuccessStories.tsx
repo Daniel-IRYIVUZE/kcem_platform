@@ -4,8 +4,8 @@ import { ChevronLeft, ChevronRight, Star, TrendingDown, TrendingUp } from 'lucid
 
 const stories = [
   {
-    hotel: 'Mille Collines Hotel',
-    location: 'Nyarugenge',
+    hotel: 'Hotel des Mille Collines',
+    location: 'Nyarugenge, Kigali',
     image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
     before: 'RWF 50,000 monthly disposal cost',
     after: 'RWF 30,000 monthly revenue',
@@ -18,8 +18,8 @@ const stories = [
     manager: 'Jean Pierre, Operations Manager'
   },
   {
-    hotel: 'Marriott Kigali',
-    location: 'Gasabo',
+    hotel: 'Kigali Marriott Hotel',
+    location: 'Gasabo, Kigali',
     image: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800',
     before: 'RWF 75,000 monthly disposal cost',
     after: 'RWF 45,000 monthly revenue',
@@ -32,8 +32,8 @@ const stories = [
     manager: 'Agathe Uwase, Sustainability Director'
   },
   {
-    hotel: 'Serena Hotel',
-    location: 'Kicukiro',
+    hotel: 'Kigali Serena Hotel',
+    location: 'Kicukiro, Kigali',
     image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800',
     before: 'RWF 35,000 monthly disposal cost',
     after: 'RWF 25,000 monthly revenue',

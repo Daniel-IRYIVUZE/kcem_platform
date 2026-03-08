@@ -8,7 +8,7 @@ interface MarketplaceHeroProps {
 
 const MarketplaceHero = ({ searchQuery, onSearch }: MarketplaceHeroProps) => {
   return (
-    <section className="text-white py-12" style={{ background: 'linear-gradient(135deg, #064e3b 0%, #065f46 30%, #0e7490 70%, #0369a1 100%)' }}>
+    <section className="text-white py-12" style={{ background: '#0f89ab' }}>
       <div className="max-w-11/12 mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl lg:text-5xl text-white font-bold mb-4">

@@ -1,6 +1,6 @@
 # EcoTrade Rwanda — Mobile Application
 
-EcoTrade Rwanda is a Flutter-based mobile application for Android, iOS, and Windows. It serves as the companion app to the EcoTrade web platform, providing waste generators, recyclers, drivers, hotel partners, and onboarding users with a native mobile experience. The app features role-based screens, offline-first data storage using Hive, location services, real-time notifications, and interactive waste marketplace functionality.
+EcoTrade Rwanda is a Flutter-based mobile application for Android, iOS, and Web. It serves as the companion app to the EcoTrade web platform, providing waste generators, recyclers, drivers, and hotel partners with a native mobile experience. The app features role-based screens, real OpenStreetMap maps via `flutter_map`, Riverpod state management, live FastAPI backend connectivity, and a fully polished UI with Material icons throughout (zero emojis).
 
 ## Table of Contents
 
@@ -20,7 +20,7 @@ EcoTrade Rwanda is a Flutter-based mobile application for Android, iOS, and Wind
 
 ## Introduction
 
-The mobile app is built with Flutter using Dart. It uses Riverpod for state management, go_router for navigation, Hive for local offline storage, and Dio for HTTP communication with the backend API. The app targets Android, iOS, and Windows desktop platforms from a single codebase.
+The mobile app is built with Flutter using Dart. It uses Riverpod for state management, go_router for navigation, and the HTTP package for REST API communication with the FastAPI backend at `http://localhost:8000/api`. All map screens use real OpenStreetMap tiles via `flutter_map` — no fake placeholder maps remain. The app falls back to locally cached data when the backend is unreachable.
 
 ---
 
@@ -60,11 +60,7 @@ cd EcoTrade_Rwanda/mobile
 flutter pub get
 ```
 
-3. If you are using Hive data models that require code generation, run:
-
-```bash
-dart run build_runner build --delete-conflicting-outputs
-```
+> Code generation with `build_runner` is not required — the project does not use Hive type adapters or other generated files.
 
 ---
 
@@ -163,55 +159,67 @@ mobile/
 
 ## Technology Stack
 
-| Layer              | Package                  | Version   |
-|--------------------|--------------------------|-----------|
-| Framework          | Flutter                  | 3.2.0+    |
-| Language           | Dart                     | 3.2.0+    |
-| State Management   | flutter_riverpod         | 2.5.1     |
-| Navigation         | go_router                | 13.2.0    |
-| HTTP Client        | dio                      | 5.4.3     |
-| Local Storage      | hive_flutter             | 1.1.0     |
-| Relational Storage | sqflite                  | 2.3.3     |
-| Maps               | flutter_map              | 6.1.0     |
-| Fonts              | google_fonts             | 6.2.1     |
-| Animations         | flutter_animate          | 4.5.0     |
-| Charts             | fl_chart                 | 0.67.0    |
-| Notifications      | flutter_local_notifications | 17.2.1+ |
-| Geo-location       | geolocator               | 11.0.0    |
-| Image Picker       | image_picker             | 1.0.7     |
-| QR Code            | qr_flutter               | 4.1.0     |
+| Layer | Package | Version |
+|--------------------|------------------------------|-----------|
+| Framework | Flutter | 3.2.0+ |
+| Language | Dart | 3.2.0+ |
+| State Management | flutter_riverpod | 2.5.1 |
+| Navigation | go_router | 13.2.0 |
+| HTTP Client | http | 1.2.0 |
+| Maps | flutter_map | 6.1.0 |
+| Map Coordinates | latlong2 | 0.9.1 |
+| Fonts | google_fonts | 6.2.1 |
+| Animations | flutter_animate | 4.5.0 |
+| Charts | fl_chart | 0.67.0 |
+| Notifications | flutter_local_notifications | 17.2.1 |
+| Geo-location | geolocator | 11.0.0 |
+| Image Picker | image_picker | 1.0.7 |
+| OTP Input | pinput | 5.0.0 |
+| Session Storage | shared_preferences | 2.2.3 |
+| Local Storage | hive_flutter | 1.1.0 |
+| Relational Storage | sqflite | 2.3.3 |
+| QR Code | qr_flutter | 4.1.0 |
 
 ---
 
 ## Features by Role
 
 ### Authentication (All Roles)
-- Email and password login
-- Two-factor authentication with OTP via Pinput widget
-- Registration flow with role selection
+- Email and password login with styled toast error alerts
+- Registration flow with role selection and interactive map-based location picker
 - Session persistence using shared_preferences
+- `EcoTrade.png` logo on the login screen
 
 ### Onboarding
-- Multi-step onboarding carousel with smooth page indicators
-- Role selection and initial profile setup
-- Lottie animations for each onboarding step
+- Multi-step carousel with smooth page indicators
+- Material icons throughout — no emojis
+- Overflow-safe layout with SingleChildScrollView
+
+### Splash Screen
+- `EcoTrade Portait.png` animated logo on the original gradient background
+- 5-stage animation: fade-in → elastic scale → shimmer → pulse up → pulse down
+
+### Real OpenStreetMap Maps (flutter_map + OpenStreetMap tiles)
+- **Register screen** — tap-to-place location marker; tapping moves the pin
+- **Driver navigation** — live route map with stop markers, zoom controls, driver position, and progress overlay
+- **Recycler home** — non-interactive 190px preview map centered on Kigali with listing pins
+- **Marketplace map view** — all listings plotted at real hotel latitude/longitude from the API; card strip below the map
+- **List Waste screen (Hotel)** — 160px interactive map for picking pickup location; tap anywhere to move the pin
 
 ### Driver
-- Daily collection schedule and route map
-- Real-time location tracking with geolocator
+- Daily collection schedule with real OpenStreetMap route map
 - Earnings history and statements
-- Offline support for areas with low connectivity
 
 ### Hotel Partner
 - Waste listing creation and management
-- Pickup scheduling and driver assignment
+- Interactive pickup location map (tap-to-pin)
 - Green Score sustainability tracking
 - Transaction and invoice history
 
 ### Recycler
 - Browse and bid on available waste listings
-- Inventory management
-- Supplier network and logistics planning
+- Marketplace map view with real coordinates from the backend
+- Inventory management and supplier network
 - Financial dashboard with payment history
 
 ---
@@ -250,9 +258,9 @@ The output executable will be located at: `build/windows/x64/runner/Release/`
 
 ## Known Issues
 
-- Windows desktop support is available but some platform-specific plugins such as geolocator may have limited functionality.
-- The iOS build requires a valid Apple Developer account and provisioning profile for device deployment.
-- Code generation with build_runner must be re-run whenever Hive model files are modified.
+- iOS build requires a valid Apple Developer account and provisioning profile for device deployment.
+- `flutter run -d chrome` (web) is supported for demo purposes; some native plugins (geolocator, image_picker) have limited functionality in the browser.
+- The `flutter_map` tile layer requires an internet connection to load OpenStreetMap tiles.
 
 ---
 
