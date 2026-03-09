@@ -86,13 +86,6 @@ function groupByBusiness(listings: Listing[]): HotelGroup[] {
   return Array.from(map.values());
 }
 
-function pillsHtml(wasteTypes: string[]): string {
-  return wasteTypes.map(wt =>
-    `<span style="display:inline-block;background:${WASTE_COLORS[wt] ?? '#888'};
-      border-radius:3px;padding:1px 5px;font-size:9px;color:#fff;font-weight:700;margin:1px">${wt}</span>`
-  ).join('');
-}
-
 function businessCardHtml(group: HotelGroup): string {
   const totalVol  = group.listings.reduce((s, l) => s + Math.round(l.volume), 0);
   const topBid    = Math.max(...group.listings.map(l => l.currentBid));
