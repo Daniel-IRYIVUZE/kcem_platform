@@ -1,9 +1,9 @@
 // components/dashboard/business/BusinessReports.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../../context/AuthContext';
 import {
-  listingsAPI, collectionsAPI, transactionsAPI,
-  type WasteListing, type Transaction, type Collection
+  listingsAPI, collectionsAPI, transactionsAPI, hotelsAPI,
+  type WasteListing, type Transaction, type Collection, type HotelProfile
 } from '../../../services/api';
 import { downloadPDF } from '../../../utils/dataStore';
 import { Download, Package, DollarSign } from 'lucide-react';
@@ -15,16 +15,17 @@ export default function BusinessReports() {
   const { user: authUser } = useAuth();
   const [generating, setGenerating] = useState<number | null>(null);
   const [counts, setCounts] = useState({ listings: 0, transactions: 0 });
+  const [hotel, setHotel] = useState<HotelProfile | null>(null);
   const now = new Date();
   const month = now.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-  // Fetch counts on mount
-  useState(() => {
+  useEffect(() => {
+    hotelsAPI.me().then(setHotel).catch(() => {});
     Promise.all([
       listingsAPI.mine().catch(() => []),
       transactionsAPI.mine({ limit: 200 } as Parameters<typeof transactionsAPI.mine>[0]).catch(() => []),
     ]).then(([l, t]) => setCounts({ listings: (l as WasteListing[]).length, transactions: (t as Transaction[]).length }));
-  });
+  }, []);
 
   const generateReport = async (type: string, id: number) => {
     setGenerating(id);
@@ -34,7 +35,7 @@ export default function BusinessReports() {
         transactionsAPI.mine({ limit: 200 } as Parameters<typeof transactionsAPI.mine>[0]).catch(() => []) as Promise<Transaction[]>,
         collectionsAPI.list({ limit: 200 } as Parameters<typeof collectionsAPI.list>[0]).catch(() => []) as Promise<Collection[]>,
       ]);
-      const hotelName = authUser?.name || 'Hotel';
+      const hotelName = hotel?.hotel_name || authUser?.name || 'Hotel';
 
       if (type === 'Waste Report') {
         const rows = listings.map(l => `<tr><td>${l.id}</td><td>${l.waste_type}</td><td>${l.volume}</td><td>${l.unit}</td><td>${l.status}</td><td>${l.created_at ? new Date(l.created_at).toLocaleDateString() : ''}</td><td>${l.bid_count || 0}</td></tr>`).join('');
@@ -76,13 +77,54 @@ export default function BusinessReports() {
           <table><thead><tr><th>ID</th><th>Hotel</th><th>Recycler</th><th>Driver</th><th>Type</th><th>Volume</th><th>Status</th><th>Date</th><th>Earnings</th></tr></thead>
           <tbody>${rows || '<tr><td colspan="9">No collections found.</td></tr>'}</tbody></table>`);
       } else if (type === 'Green Certificate') {
-        const score = (authUser as Record<string, unknown>)?.green_score || 92;
-        downloadPDF(`Green Score Certificate — ${hotelName}`,
-          `ECOTRADE RWANDA — GREEN SCORE CERTIFICATE\n\nIssued to: ${hotelName}\nDate: ${now.toDateString()}\nGreen Score: ${score}/100\n\nThis certifies that ${hotelName} has achieved a Green Score of ${score} through responsible waste management practices on the EcoTrade Rwanda platform.\n\nBreakdown:\n- Waste Sorting Quality: Excellent\n- Collection Frequency: ${collections.length} collections\n- Platform Engagement: Active\n- Total Listings: ${listings.length}\n\nEcoTrade Rwanda | Kigali, Rwanda | www.ecotrade.rw`);
+        const score = hotel?.green_score ?? (authUser as Record<string, unknown>)?.green_score ?? 'N/A';
+        const totalWaste = listings.reduce((s, l) => s + l.volume, 0);
+        downloadPDF(`Green Score Certificate — ${hotelName}`, `
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-value">${score}</div><div class="stat-label">Green Score / 100</div></div>
+            <div class="stat-card"><div class="stat-value">${collections.filter(c => c.status === 'completed').length}</div><div class="stat-label">Completed Collections</div></div>
+            <div class="stat-card"><div class="stat-value">${listings.length}</div><div class="stat-label">Waste Listings</div></div>
+            <div class="stat-card"><div class="stat-value">${totalWaste.toLocaleString()}</div><div class="stat-label">Total Volume Listed</div></div>
+          </div>
+          <h2>Certificate Details</h2>
+          <p><b>Issued to:</b> ${hotelName}</p>
+          <p><b>Issue Date:</b> ${now.toDateString()}</p>
+          <p><b>Green Score:</b> ${score} / 100</p>
+          <p><b>Rating:</b> ${Number(score) >= 80 ? 'Excellent ⭐⭐⭐⭐⭐' : Number(score) >= 60 ? 'Good ⭐⭐⭐⭐' : 'Developing ⭐⭐⭐'}</p>
+          <br>
+          <p>This certifies that <b>${hotelName}</b> has achieved a Green Score of <b>${score}</b> through responsible waste management practices on the EcoTrade Rwanda platform.</p>
+          <h2>Performance Breakdown</h2>
+          <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>
+            <tr><td>Total Listings Posted</td><td>${listings.length}</td></tr>
+            <tr><td>Open Listings</td><td>${listings.filter(l => l.status === 'open').length}</td></tr>
+            <tr><td>Completed Collections</td><td>${collections.filter(c => c.status === 'completed').length}</td></tr>
+            <tr><td>Total Waste Volume</td><td>${totalWaste.toLocaleString()} units</td></tr>
+            <tr><td>Completed Transactions</td><td>${transactions.filter(t => t.status === 'completed').length}</td></tr>
+          </tbody></table>`);
       } else if (type === 'Impact Report') {
-        const totalVol = collections.reduce((s, c) => s + (c.volume||0), 0);
-        downloadPDF(`Environmental Impact Report — ${hotelName}`,
-          `ENVIRONMENTAL IMPACT REPORT\n\n${hotelName} — ${month}\n\nSUMMARY\nTotal Waste Diverted: ${totalVol.toLocaleString()} kg/L\nTotal Collections: ${collections.length}\nActive Listings: ${listings.filter(l => l.status === 'open').length}\nCompleted Transactions: ${transactions.filter(t => t.status === 'completed').length}\n\nWASTE BREAKDOWN\n${['UCO','Glass','Paper/Cardboard','Mixed'].map(t => `${t}: ${listings.filter(l => l.waste_type === t).length} listings`).join('\n')}\n\nECO METRICS\nEstimated CO2 Saved: ${(totalVol * 0.5).toFixed(0)} kg\nLandfill Diverted: ${totalVol.toLocaleString()} units\n\nEcoTrade Rwanda | Kigali, Rwanda`);
+        const totalVol = collections.reduce((s, c) => s + (c.volume || 0), 0);
+        const wasteTypes = [...new Set(listings.map(l => l.waste_type))];
+        const wasteRows = wasteTypes.map(wt => {
+          const wListings = listings.filter(l => l.waste_type === wt);
+          return `<tr><td>${wt}</td><td>${wListings.length}</td><td>${wListings.reduce((s,l)=>s+l.volume,0).toLocaleString()}</td><td>${wListings.filter(l=>l.status==='completed').length}</td></tr>`;
+        }).join('') || '<tr><td colspan="4">No data</td></tr>';
+        downloadPDF(`Environmental Impact Report — ${hotelName}`, `
+          <div class="stat-grid">
+            <div class="stat-card"><div class="stat-value">${totalVol.toLocaleString()}</div><div class="stat-label">Total Waste Diverted</div></div>
+            <div class="stat-card"><div class="stat-value">${collections.length}</div><div class="stat-label">Total Collections</div></div>
+            <div class="stat-card"><div class="stat-value">${(totalVol * 0.5).toFixed(0)} kg</div><div class="stat-label">CO₂ Saved (est.)</div></div>
+            <div class="stat-card"><div class="stat-value">${transactions.filter(t => t.status === 'completed').length}</div><div class="stat-label">Completed Transactions</div></div>
+          </div>
+          <h2>Waste Type Breakdown</h2>
+          <table><thead><tr><th>Waste Type</th><th>Listings</th><th>Total Volume</th><th>Completed</th></tr></thead>
+          <tbody>${wasteRows}</tbody></table>
+          <h2>Collection Summary</h2>
+          <table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>
+            <tr><td>Active Listings</td><td>${listings.filter(l => l.status === 'open').length}</td></tr>
+            <tr><td>Completed Collections</td><td>${collections.filter(c => c.status === 'completed').length}</td></tr>
+            <tr><td>Pending Collections</td><td>${collections.filter(c => c.status === 'scheduled').length}</td></tr>
+            <tr><td>Total Revenue Generated</td><td>RWF ${transactions.filter(t=>t.status==='completed').reduce((s,t)=>s+(t.gross_amount||0),0).toLocaleString()}</td></tr>
+          </tbody></table>`);
       }
     } finally {
       setGenerating(null);
@@ -120,9 +162,9 @@ export default function BusinessReports() {
         />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard title="Reports Ready" value={reports.length} icon={<Download size={22} />} color="cyan" />
-        <StatCard title="Total Listings"  value={counts.listings}     icon={<Package   size={22} />} color="blue" />
-        <StatCard title="Transactions"    value={counts.transactions} icon={<DollarSign size={22} />} color="purple" />
+        <StatCard title="Reports Ready"  value={reports.length}           icon={<Download   size={22} />} color="cyan" />
+        <StatCard title="Total Listings" value={counts.listings}          icon={<Package    size={22} />} color="blue" />
+        <StatCard title="Transactions"   value={counts.transactions}      icon={<DollarSign size={22} />} color="purple" />
       </div>
     </div>
   );
