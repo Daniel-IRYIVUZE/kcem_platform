@@ -115,31 +115,147 @@ export default function RecyclerGreenImpact() {
 
   const handleDownloadCertificate = () => {
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-    const certText = [
-      '══════════════════════════════════════════════════════',
-      '        ECOTRADE RWANDA — GREEN RECYCLER CERTIFICATE',
-      '══════════════════════════════════════════════════════',
-      '',
-      'This certifies that',
-      '',
-      `  ${displayName}`,
-      '',
-      `has achieved a GREEN SCORE OF ${greenScore}/100`,
-      'demonstrating exemplary environmental performance and',
-      'commitment to sustainable waste recycling.',
-      '',
-      `  Issued on: ${today}`,
-      '  Platform : EcoTrade Rwanda',
-      '',
-      '══════════════════════════════════════════════════════',
-    ].join('\n');
-    const blob = new Blob([certText], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `EcoTrade_GreenCertificate_${displayName.replace(/\s+/g, '_')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const year  = new Date().getFullYear();
+    const certNo = `REMA/EcoTrade/${year}/${String(profile?.id ?? '000').padStart(4, '0')}`;
+    const wasteRows = Object.entries(byType).map(([t, { volume, co2 }]) =>
+      `<tr><td>${t}</td><td>${volume >= 1000 ? (volume/1000).toFixed(2) + ' t' : Math.round(volume) + ' kg'}</td><td>${Math.round(co2)} kg</td></tr>`
+    ).join('');
+
+    const win = window.open('', '_blank');
+    if (!win) return;
+    win.document.write(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><title>Green Recycler Certificate</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+Pro:wght@400;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Source Sans Pro',Arial,sans-serif;background:#f4f4f4;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:30px}
+  .page{width:794px;min-height:1123px;background:#fff;position:relative;padding:0}
+  /* Outer decorative border */
+  .outer-border{position:absolute;inset:16px;border:3px solid #1a5c2a;pointer-events:none}
+  .inner-border{position:absolute;inset:22px;border:1px solid #1a5c2a;pointer-events:none}
+  .corner{position:absolute;width:28px;height:28px;border-color:#1a5c2a}
+  .corner.tl{top:12px;left:12px;border-top:4px solid;border-left:4px solid}
+  .corner.tr{top:12px;right:12px;border-top:4px solid;border-right:4px solid}
+  .corner.bl{bottom:12px;left:12px;border-bottom:4px solid;border-left:4px solid}
+  .corner.br{bottom:12px;right:12px;border-bottom:4px solid;border-right:4px solid}
+  .content{padding:52px 64px}
+  /* Header */
+  .header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #1a5c2a;padding-bottom:20px;margin-bottom:24px}
+  .flag-stripe{width:8px;height:80px;background:linear-gradient(to bottom,#20603d 33%,#ffd700 33% 66%,#1a9ddc 66%);border-radius:2px;flex-shrink:0}
+  .header-center{flex:1;text-align:center;padding:0 20px}
+  .rema-title{font-size:11px;letter-spacing:2px;color:#666;text-transform:uppercase;margin-bottom:4px}
+  .rema-name{font-family:'Playfair Display',Georgia,serif;font-size:18px;font-weight:700;color:#1a5c2a;line-height:1.2}
+  .rema-sub{font-size:10px;color:#888;margin-top:3px;letter-spacing:1px;text-transform:uppercase}
+  .seal{width:72px;height:72px;border-radius:50%;border:3px solid #1a5c2a;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f0faf2;flex-shrink:0}
+  .seal-inner{font-size:9px;text-align:center;color:#1a5c2a;font-weight:700;letter-spacing:0.5px;line-height:1.4}
+  /* Body */
+  .cert-label{text-align:center;font-size:11px;letter-spacing:3px;color:#888;text-transform:uppercase;margin-bottom:10px}
+  .cert-title{font-family:'Playfair Display',Georgia,serif;text-align:center;font-size:30px;color:#1a5c2a;font-weight:700;margin-bottom:6px}
+  .cert-subtitle{text-align:center;font-size:11px;letter-spacing:2px;color:#aaa;text-transform:uppercase;margin-bottom:28px}
+  .divider{height:1px;background:linear-gradient(to right,transparent,#1a5c2a 30%,#1a5c2a 70%,transparent);margin:18px 0}
+  .presented-to{text-align:center;font-size:13px;color:#555;margin-bottom:8px}
+  .company-name{font-family:'Playfair Display',Georgia,serif;text-align:center;font-size:28px;color:#1c3a26;font-weight:700;margin-bottom:18px;border-bottom:2px dotted #1a5c2a;padding-bottom:12px;display:inline-block;width:100%}
+  .body-text{text-align:center;font-size:13px;color:#444;line-height:1.8;margin-bottom:20px;padding:0 20px}
+  /* Score highlight */
+  .score-box{display:flex;justify-content:center;margin:20px 0}
+  .score-inner{display:inline-flex;align-items:center;gap:20px;background:#f0faf2;border:1px solid #1a5c2a;border-radius:8px;padding:14px 36px}
+  .score-value{font-family:'Playfair Display',Georgia,serif;font-size:48px;font-weight:700;color:#1a5c2a;line-height:1}
+  .score-meta{text-align:left}
+  .score-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:1px}
+  .score-rating{font-size:14px;font-weight:700;color:#20603d;margin-top:2px}
+  /* Stats table */
+  .stats-table{width:100%;border-collapse:collapse;font-size:12px;margin:16px 0}
+  .stats-table th{background:#1a5c2a;color:#fff;padding:8px 12px;text-align:left;letter-spacing:0.5px}
+  .stats-table td{padding:7px 12px;border-bottom:1px solid #e8f5e9}
+  .stats-table tr:nth-child(even) td{background:#f9fefb}
+  /* Signature section */
+  .sig-section{display:flex;justify-content:space-between;margin-top:32px;padding-top:24px;border-top:1px solid #cde8d2}
+  .sig-block{text-align:center;width:40%}
+  .sig-line{border-top:1px solid #333;margin-bottom:6px;margin-top:32px}
+  .sig-name{font-size:12px;font-weight:600;color:#1c3a26}
+  .sig-title{font-size:10px;color:#888;margin-top:2px}
+  /* Footer */
+  .footer{margin-top:28px;padding-top:14px;border-top:1px solid #ddd;display:flex;justify-content:space-between;align-items:center}
+  .footer-left{font-size:10px;color:#aaa}
+  .cert-no{font-size:10px;color:#aaa;font-style:italic}
+  @media print{
+    body{background:#fff;padding:0}
+    .page{width:100%;box-shadow:none}
+  }
+</style></head><body>
+<div class="page">
+  <div class="outer-border"></div><div class="inner-border"></div>
+  <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  <div class="content">
+    <!-- Header -->
+    <div class="header">
+      <div class="flag-stripe"></div>
+      <div class="header-center">
+        <div class="rema-title">Republic of Rwanda</div>
+        <div class="rema-name">Rwanda Environment Management Authority</div>
+        <div class="rema-sub">In partnership with EcoTrade Rwanda</div>
+      </div>
+      <div class="seal">
+        <div class="seal-inner">OFFICIAL<br>SEAL<br>REMA<br>2026</div>
+      </div>
+    </div>
+    <!-- Certificate title -->
+    <div class="cert-label">This is to certify that</div>
+    <div class="cert-title">Certificate of Excellence</div>
+    <div class="cert-subtitle">Green Recycler Award — Environmental Performance</div>
+    <div class="divider"></div>
+    <div class="presented-to">This certificate is presented to</div>
+    <div class="company-name">${displayName}</div>
+    <div class="body-text">
+      In recognition of outstanding commitment to sustainable waste management, responsible recycling practices,
+      and measurable contribution to environmental preservation in Rwanda.
+      This organization has demonstrated exemplary performance on the EcoTrade Rwanda digital marketplace
+      for reverse logistics and circular economy.
+    </div>
+    <!-- Score -->
+    <div class="score-box">
+      <div class="score-inner">
+        <div class="score-value">${greenScore}<span style="font-size:20px">/100</span></div>
+        <div class="score-meta">
+          <div class="score-label">Green Score</div>
+          <div class="score-rating">${greenScore >= 90 ? 'Platinum Level' : greenScore >= 75 ? 'Gold Level' : greenScore >= 60 ? 'Silver Level' : 'Bronze Level'}</div>
+        </div>
+      </div>
+    </div>
+    <!-- Metrics table -->
+    <table class="stats-table">
+      <thead><tr><th>Performance Metric</th><th>Recorded Value</th></tr></thead>
+      <tbody>
+        <tr><td>Total Waste Recycled</td><td>${totalKg >= 1000 ? (totalKg/1000).toFixed(2) + ' tonnes' : Math.round(totalKg) + ' kg'}</td></tr>
+        <tr><td>Completed Collections</td><td>${completed.length}</td></tr>
+        <tr><td>Estimated CO&#8322; Saved</td><td>${co2SavedKg >= 1000 ? (co2SavedKg/1000).toFixed(2) + ' tonnes' : Math.round(co2SavedKg) + ' kg'}</td></tr>
+        <tr><td>Trees Equivalent Saved</td><td>${treesEquivalent} trees</td></tr>
+        ${wasteRows ? '<tr><td colspan="2" style="background:#f0faf2;font-weight:600;color:#1a5c2a;letter-spacing:0.5px;font-size:11px">WASTE TYPE BREAKDOWN</td></tr>' + wasteRows : ''}
+      </tbody>
+    </table>
+    <!-- Signatures -->
+    <div class="sig-section">
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-name">Director General</div>
+        <div class="sig-title">Rwanda Environment Management Authority (REMA)</div>
+      </div>
+      <div class="sig-block">
+        <div class="sig-line"></div>
+        <div class="sig-name">Chief Executive Officer</div>
+        <div class="sig-title">EcoTrade Rwanda Ltd</div>
+      </div>
+    </div>
+    <!-- Footer -->
+    <div class="footer">
+      <div class="footer-left">Issued: ${today}<br>Valid for the calendar year ${year}</div>
+      <div class="cert-no">Certificate No: ${certNo}</div>
+    </div>
+  </div>
+</div>
+</body></html>`);
+    win.document.close();
+    setTimeout(() => win.print(), 600);
   };
 
   return (
@@ -151,7 +267,7 @@ export default function RecyclerGreenImpact() {
           <div className="flex items-center gap-3">
             <Award size={32} className="flex-shrink-0" />
             <div>
-              <p className="font-bold text-lg">🎉 Perfect Green Score Achieved!</p>
+              <p className="font-bold text-lg">Perfect Green Score Achieved</p>
               <p className="text-green-100 text-sm">{displayName} has reached 100/100 — download your certification.</p>
             </div>
           </div>
