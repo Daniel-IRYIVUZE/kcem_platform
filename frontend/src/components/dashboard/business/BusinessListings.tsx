@@ -13,6 +13,8 @@ export default function BusinessListings() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showBidModal, setShowBidModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewListing, setViewListing] = useState<WasteListing | null>(null);
   const [listings, setListings] = useState<WasteListing[]>([]);
   const [selectedListing, setSelectedListing] = useState<WasteListing | null>(null);
   const [selectedBids, setSelectedBids] = useState<Bid[]>([]);
@@ -90,7 +92,7 @@ export default function BusinessListings() {
             { key: 'id', label: 'Actions', render: (_v: number, r: WasteListing) => (
               <div className="flex gap-1">
                 {r.status === 'open' && <button onClick={() => handleDelete(r.id)} className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:bg-red-900/20 rounded"><Trash2 size={15} /></button>}
-                <button className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-900/20 rounded"><Eye size={15} /></button>
+                <button onClick={() => { setViewListing(r); setShowViewModal(true); }} className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-900/20 rounded"><Eye size={15} /></button>
               </div>
             )},
           ]}
@@ -98,6 +100,62 @@ export default function BusinessListings() {
           pageSize={6}
         />
       </div>
+      {showViewModal && viewListing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowViewModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Listing #{viewListing.id}</h2>
+              <button onClick={() => setShowViewModal(false)} className="p-1 hover:bg-gray-100 dark:bg-gray-700 rounded"><X size={20} /></button>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Waste Type</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{viewListing.waste_type}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Volume</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{viewListing.volume} {viewListing.unit}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Min Bid</p>
+                  <p className="font-semibold text-cyan-600">RWF {(viewListing.min_bid ?? 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Highest Bid</p>
+                  <p className="font-semibold text-green-600">{viewListing.highest_bid > 0 ? `RWF ${viewListing.highest_bid.toLocaleString()}` : '—'}</p>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Status</p>
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                    viewListing.status === 'open' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400' :
+                    viewListing.status === 'assigned' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                    'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                  }`}>{viewListing.status}</span>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Total Bids</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{viewListing.bid_count || 0}</p>
+                </div>
+              </div>
+              {viewListing.description && (
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                  <p className="text-xs text-gray-400 mb-1">Description</p>
+                  <p className="text-gray-700 dark:text-gray-300">{viewListing.description}</p>
+                </div>
+              )}
+              <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                <p className="text-xs text-gray-400 mb-1">Posted</p>
+                <p className="text-gray-700 dark:text-gray-300">{new Date(viewListing.created_at).toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={() => { setShowViewModal(false); openBidsModal(viewListing); }} className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm hover:bg-cyan-700 font-medium">View Bids ({viewListing.bid_count || 0})</button>
+              <button onClick={() => setShowViewModal(false)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
       {showBidModal && selectedListing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowBidModal(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>

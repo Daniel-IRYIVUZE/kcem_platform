@@ -12,12 +12,12 @@ import {
 } from 'lucide-react';
 import StatCard from '../StatCard';
 import Widget from '../Widget';
-import ChartComponent from '../ChartComponent';
+import ChartComponent, { type ChartData } from '../ChartComponent';
 import PageHeader from '../../ui/PageHeader';
 import StatusBadge from '../../ui/StatusBadge';
 import EcoImpactPanel from '../../ui/EcoImpactPanel';
 import ActivityFeed, { type ActivityItem } from '../../ui/ActivityFeed';
-import { hotelProfile, revenueTrend, wasteBreakdown } from './_shared';
+import { hotelProfile } from './_shared';
 
 export default function BusinessOverview() {
   const navigate = useNavigate();
@@ -46,6 +46,37 @@ export default function BusinessOverview() {
   const unreadMsgs    = messages.filter(m => !m.is_read).length;
   const activeCollect = collections.filter(c => c.status === 'scheduled' || c.status === 'en-route');
   const sparkRevenue   = [35, 40, 45, 50, 55, 60, 65, 80, 90, 85, 95, 100];
+
+  // Build Revenue Trend chart from real transaction data (last 6 months)
+  const revenueTrend: ChartData = (() => {
+    const monthMap: Record<string, number> = {};
+    transactions.forEach(t => {
+      const month = t.created_at?.slice(0, 7) ?? '';
+      if (month) monthMap[month] = (monthMap[month] || 0) + (t.gross_amount || 0);
+    });
+    const sorted = Object.keys(monthMap).sort().slice(-6);
+    if (sorted.length === 0) {
+      return { labels: ['Jan','Feb','Mar','Apr','May','Jun'], datasets: [{ label: 'Revenue (RWF)', data: [0,0,0,0,0,0], borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,0.15)', fill: true }] };
+    }
+    return {
+      labels: sorted.map(m => { const d = new Date(m + '-01'); return d.toLocaleString('default', { month: 'short', year: '2-digit' }); }),
+      datasets: [{ label: 'Revenue (RWF)', data: sorted.map(m => monthMap[m]), borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,0.15)', fill: true }],
+    };
+  })();
+
+  // Build Waste Type Distribution from real listings
+  const wasteBreakdown: ChartData = (() => {
+    const typeMap: Record<string, number> = {};
+    listings.forEach(l => { typeMap[l.waste_type] = (typeMap[l.waste_type] || 0) + (l.volume || 1); });
+    const keys = Object.keys(typeMap);
+    if (keys.length === 0) {
+      return { labels: ['No data'], datasets: [{ label: 'Volume', data: [1], backgroundColor: '#e5e7eb' }] };
+    }
+    return {
+      labels: keys,
+      datasets: [{ label: 'Volume (kg)', data: keys.map(k => typeMap[k]) }],
+    };
+  })();
 
   // Build activity feed from recent listings + collections
   const activityItems: ActivityItem[] = [
