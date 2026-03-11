@@ -5,6 +5,7 @@ from app.database import get_db
 from app.crud import crud_listing, crud_hotel
 from app.auth.dependencies import get_current_active_user, require_role
 from app.schemas.listing import ListingCreate, ListingUpdate, ListingRead
+from app.schemas.hotel import HotelCreate
 from app.models.user import User, UserRole
 from app.utils.file_upload import save_upload
 
@@ -18,7 +19,20 @@ def create_listing(payload: ListingCreate, db: Session = Depends(get_db),
                    current_user: User = Depends(get_current_active_user)):
     hotel = crud_hotel.get_by_user(db, current_user.id)
     if not hotel:
-        raise HTTPException(400, "You must have a hotel profile to list waste.")
+        # Backward compatibility: listing ownership is still linked via `hotels` table.
+        # Auto-provision a minimal business profile so business users can list immediately.
+        hotel = crud_hotel.create(
+            db,
+            obj_in=HotelCreate(
+                hotel_name=f"{(current_user.full_name or 'Business').strip()} Business",
+                address=(payload.address or "Kigali").strip(),
+                city="Kigali",
+                phone=current_user.phone,
+                latitude=payload.latitude,
+                longitude=payload.longitude,
+            ),
+            user_id=current_user.id,
+        )
     listing = crud_listing.create(db, obj_in=payload, hotel_id=hotel.id)
     # Always use the hotel's exact coordinates so all listings cluster together on the map
     if hotel.latitude and hotel.longitude:

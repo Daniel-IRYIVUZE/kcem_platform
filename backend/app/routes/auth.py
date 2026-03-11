@@ -1,11 +1,13 @@
 """routes/auth.py — Authentication endpoints."""
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.crud import crud_user, crud_audit_log
 from app.auth.jwt import create_access_token, create_refresh_token, verify_refresh_token
 from app.auth.dependencies import get_current_active_user
+from app.auth.password import hash_password
 from app.schemas.user import (
     UserCreate, UserRead, TokenResponse,
     PasswordResetRequest, PasswordResetConfirm,
@@ -19,7 +21,18 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 def register(payload: UserCreate, db: Session = Depends(get_db)):
     if crud_user.get_by_email(db, payload.email):
         raise HTTPException(status_code=409, detail="Email already registered.")
-    user = crud_user.create_user(db, obj_in=payload)
+    phone = payload.phone.strip() if payload.phone else None
+    if phone == "":
+        phone = None
+    if phone and crud_user.get_by_phone(db, phone):
+        raise HTTPException(status_code=409, detail="Phone number already registered.")
+    if phone is not None:
+        payload.phone = phone
+    try:
+        user = crud_user.create_user(db, obj_in=payload)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Email or phone already registered.")
     crud_audit_log.log(db, user_id=user.id, action="register",
                        resource_type="user", resource_id=user.id)
     return user
@@ -47,6 +60,7 @@ def login(payload: dict, request: Request, db: Session = Depends(get_db)):
         refresh_token=refresh,
         token_type="bearer",
         role=user.role.value,
+        must_change_password=bool(getattr(user, 'must_change_password', False)),
         user=UserRead.model_validate(user),
     )
 
@@ -68,6 +82,7 @@ def refresh_token(payload: dict, db: Session = Depends(get_db)):
         refresh_token=new_refresh,
         token_type="bearer",
         role=user.role.value,
+        must_change_password=bool(getattr(user, 'must_change_password', False)),
         user=UserRead.model_validate(user),
     )
 
@@ -95,6 +110,20 @@ def reset_password(payload: PasswordResetConfirm, db: Session = Depends(get_db))
     if not ok:
         raise HTTPException(status_code=400, detail="Invalid or expired token.")
     return {"message": "Password reset successful."}
+
+
+@router.post("/change-password", status_code=200)
+def change_password(
+    payload: dict,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Change password (used for first-login forced change or voluntary change)."""
+    new_password = payload.get("new_password", "")
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
+    crud_user.change_password(db, user=current_user, new_password=new_password)
+    return {"message": "Password changed successfully."}
 
 
 @router.get("/me", response_model=UserRead)

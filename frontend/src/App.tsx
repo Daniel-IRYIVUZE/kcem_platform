@@ -1,9 +1,11 @@
 // App.tsx
+import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ScrollToTop from './components/common/ScrollToTop';
+import { authAPI } from './services/api';
 
 // Import Layout Components
 import Sidebar from './components/layout/Sidebar';
@@ -62,10 +64,30 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
 
 // Dashboard Layout Component
 const DashboardLayout = () => {
-  const { user } = useAuth();
-  
+  const { user, mustChangePassword, clearMustChangePassword } = useAuth();
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [pwdError, setPwdError] = useState('');
+  const [pwdLoading, setPwdLoading] = useState(false);
+
   if (!user) return <Navigate to="/login" replace />;
-  
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPwd.length < 8) { setPwdError('Password must be at least 8 characters.'); return; }
+    if (newPwd !== confirmPwd) { setPwdError('Passwords do not match.'); return; }
+    setPwdLoading(true);
+    setPwdError('');
+    try {
+      await authAPI.changePassword(newPwd);
+      clearMustChangePassword();
+    } catch (err) {
+      setPwdError(err instanceof Error ? err.message : 'Failed to change password.');
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-950 transition-colors duration-300" style={{ height: '100dvh' }}>
       <Sidebar userRole={user.role} />
@@ -77,6 +99,55 @@ const DashboardLayout = () => {
           </div>
         </main>
       </div>
+
+      {/* Force password change overlay for first-login drivers */}
+      {mustChangePassword && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">🔐</span>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-1">Change Your Password</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
+              You are using a temporary password. Please set a new password to continue.
+            </p>
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={newPwd}
+                  onChange={e => setNewPwd(e.target.value)}
+                  placeholder="At least 8 characters"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPwd}
+                  onChange={e => setConfirmPwd(e.target.value)}
+                  placeholder="Repeat new password"
+                  className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                  required
+                />
+              </div>
+              {pwdError && (
+                <p className="text-sm text-red-600 dark:text-red-400">{pwdError}</p>
+              )}
+              <button
+                type="submit"
+                disabled={pwdLoading}
+                className="w-full py-2.5 bg-cyan-600 text-white rounded-xl font-medium hover:bg-cyan-700 disabled:opacity-50 transition-colors"
+              >
+                {pwdLoading ? 'Saving…' : 'Set New Password'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

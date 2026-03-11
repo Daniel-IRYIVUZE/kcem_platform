@@ -3,12 +3,63 @@
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
+let refreshInFlight: Promise<string | null> | null = null;
+
+function isAuthPath(path: string): boolean {
+  return path.startsWith('/auth/login') || path.startsWith('/auth/register') || path.startsWith('/auth/refresh');
+}
+
+function clearSessionStorage() {
+  localStorage.removeItem('ecotrade_token');
+  localStorage.removeItem('ecotrade_refresh_token');
+  localStorage.removeItem('ecotrade_user');
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem('ecotrade_refresh_token');
+  if (!refreshToken) return null;
+
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/auth/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+
+        if (!res.ok) {
+          clearSessionStorage();
+          window.dispatchEvent(new Event('auth:expired'));
+          return null;
+        }
+
+        const body = await res.json() as LoginResponse;
+        localStorage.setItem('ecotrade_token', body.access_token);
+        if (body.refresh_token) {
+          localStorage.setItem('ecotrade_refresh_token', body.refresh_token);
+        }
+        return body.access_token;
+      } catch {
+        clearSessionStorage();
+        window.dispatchEvent(new Event('auth:expired'));
+        return null;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+  }
+
+  return refreshInFlight;
+}
+
 // ─── Generic fetch helper ────────────────────────────────────────────────────
 
 async function request<T>(
   path: string,
   options: RequestInit = {},
   isFormData = false,
+  hasRetried = false,
 ): Promise<T> {
   const token = localStorage.getItem('ecotrade_token');
 
@@ -20,6 +71,13 @@ async function request<T>(
   }
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+
+  if (res.status === 401 && !hasRetried && !isAuthPath(path)) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      return request<T>(path, options, isFormData, true);
+    }
+  }
 
   if (!res.ok) {
     let detail = `HTTP ${res.status}`;
@@ -75,14 +133,13 @@ export interface APIUser {
 
 export interface LoginResponse {
   access_token: string;
+  refresh_token?: string;
   token_type: string;
+  must_change_password?: boolean;
   user: APIUser;
 }
 
-export interface RegisterResponse {
-  message: string;
-  user: APIUser;
-}
+export type RegisterResponse = APIUser;
 
 export interface WasteListing {
   id: number;
@@ -103,6 +160,8 @@ export interface WasteListing {
   longitude?: number;
   special_instructions?: string;
   notes?: string;
+  collection_window_start?: string;
+  collection_window_end?: string;
   contact_person?: string;
   status: string;
   location?: string;
@@ -120,6 +179,12 @@ export interface WasteListing {
   actual_weight?: number;
 }
 
+export interface ListingImage {
+  id: number;
+  url: string;
+  is_primary: boolean;
+}
+
 export interface Bid {
   id: number;
   listing_id: number;
@@ -130,6 +195,11 @@ export interface Bid {
   collection_preference?: string;
   status: string;
   created_at: string;
+  // Enriched listing details
+  hotel_name?: string;
+  waste_type?: string;
+  volume?: number;
+  unit?: string;
 }
 
 export interface Transaction {
@@ -189,6 +259,13 @@ export interface Collection {
   unit?: string;
   location?: string;
   earnings?: number;
+  // Coordinates — destination + driver live position (populated by backend)
+  listing_lat?: number;
+  listing_lng?: number;
+  hotel_lat?: number;
+  hotel_lng?: number;
+  driver_lat?: number;
+  driver_lng?: number;
 }
 
 /** Result shape returned by POST /collections/auto-assign */
@@ -379,11 +456,23 @@ export const authAPI = {
       body: JSON.stringify({ email, password }),
     }),
 
-  register: (formData: FormData) =>
+  refresh: (refreshToken: string) =>
+    request<LoginResponse>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    }),
+
+  register: (data: { email: string; full_name: string; password: string; phone?: string; role: string }) =>
     request<RegisterResponse>('/auth/register', {
       method: 'POST',
-      body: formData,
-    }, true),
+      body: JSON.stringify(data),
+    }),
+
+  changePassword: (newPassword: string) =>
+    request<{ message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ new_password: newPassword }),
+    }),
 };
 
 // ─── Users ───────────────────────────────────────────────────────────────────
@@ -467,6 +556,15 @@ export const listingsAPI = {
 
   acceptBid: (_listingId: number, bidId: number) =>
     request<Bid>(`/bids/${bidId}/accept`, { method: 'POST' }),
+
+  uploadImage: (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request<ListingImage>(`/listings/${id}/images`, {
+      method: 'POST',
+      body: formData,
+    }, true);
+  },
 };
 
 export const bidsAPI = {
@@ -484,6 +582,9 @@ export const bidsAPI = {
 
   increase: (bidId: number, amount: number) =>
     request<Bid>(`/bids/${bidId}/increase`, { method: 'PATCH', body: JSON.stringify({ amount }) }),
+
+  backfillCollections: () =>
+    request<{ created: number; message: string }>('/bids/backfill-collections', { method: 'POST' }),
 };
 
 // ─── Transactions ─────────────────────────────────────────────────────────────
@@ -564,6 +665,10 @@ export const collectionsAPI = {
       method: 'POST',
     });
   },
+
+  /** Get live tracking data for a collection (driver GPS + hotel location + ETA). */
+  tracking: (collectionId: number) =>
+    request<CollectionTracking>(`/collections/${collectionId}/tracking`),
 };
 
 // ─── Support Tickets ──────────────────────────────────────────────────────────
@@ -843,8 +948,12 @@ export interface DriverProfile {
   total_trips: number;
   is_verified: boolean;
   created_at: string;
+  updated_at?: string;
+  last_login?: string | null;
+  has_logged_in?: boolean;
   // Enriched fields (added client-side or from user join)
   name?: string;
+  email?: string;
   vehicle_type?: string;
   plate_number?: string;
   capacity_kg?: number;
@@ -865,6 +974,7 @@ export interface VehicleItem {
 
 export const vehiclesAPI = {
   list: () => request<VehicleItem[]>('/drivers/fleet-vehicles'),
+  listMine: () => request<VehicleItem[]>('/drivers/me/vehicles'),
   create: (data: { plate_number: string; vehicle_type: string; capacity_kg: number; make?: string; model?: string; year?: number }) =>
     request<VehicleItem>('/drivers/fleet-vehicles', { method: 'POST', body: JSON.stringify(data) }),
   delete: (id: number) => request<void>(`/drivers/fleet-vehicles/${id}`, { method: 'DELETE' }),
@@ -876,12 +986,47 @@ export const driversAPI = {
     return request<DriverProfile[]>(`/drivers${q ? `?${q}` : ''}`);
   },
   available: () => request<DriverProfile[]>('/drivers/available'),
-  get: (id: number) => request<DriverProfile>(`/drivers/${id}`),
+  get: (id: number) => request<DriverProfile>(`/drivers/details/${id}`),
   me: () => request<DriverProfile>('/drivers/me'),
+  myRecycler: () => request<DriverProfile[]>('/drivers/my-recycler'),
   setAvailability: (available: boolean) =>
     request<DriverProfile>('/drivers/me/availability', {
       method: 'PATCH',
       body: JSON.stringify({ available }),
+    }),
+  updateLocation: (lat: number, lng: number) =>
+    request<DriverProfile>('/drivers/me/location', {
+      method: 'PATCH',
+      body: JSON.stringify({ lat, lng }),
+    }),
+  register: (data: {
+    full_name: string;
+    email: string;
+    phone?: string;
+    license_number?: string;
+    vehicle_id?: number;
+  }) =>
+    request<DriverProfile>('/drivers/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  delete: (driverId: number) =>
+    request<void>(`/drivers/${driverId}`, { method: 'DELETE' }),
+  assignVehicle: (driverId: number, vehicleId: number | null) =>
+    request<DriverProfile>(`/drivers/${driverId}/vehicle`, {
+      method: 'PATCH',
+      body: JSON.stringify({ vehicle_id: vehicleId }),
+    }),
+  sendReminder: (driverId: number) =>
+    request<{ message: string }>(`/drivers/${driverId}/remind`, { method: 'POST' }),
+  sendDirectionAlert: (driverId: number, data: { message: string; destination?: string; distance_km?: number }) =>
+    request<{ message: string }>(`/drivers/${driverId}/direction-alert`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  clearAssignments: (driverId: number) =>
+    request<{ message: string; cleared_count: number }>(`/drivers/${driverId}/clear-assignments`, {
+      method: 'POST',
     }),
 };
 
@@ -894,6 +1039,22 @@ export const hotelCollectionAPI = {
       body: JSON.stringify(data),
     }),
 };
+
+// ─── Collection tracking ──────────────────────────────────────────────────────
+
+export interface CollectionTracking {
+  collection_id: number;
+  status: string | null;
+  hotel_lat: number | null;
+  hotel_lng: number | null;
+  hotel_name: string | null;
+  hotel_address: string | null;
+  driver_lat: number | null;
+  driver_lng: number | null;
+  driver_name: string | null;
+  distance_m: number | null;
+  eta_minutes: number | null;
+}
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 

@@ -314,7 +314,11 @@ const MarketplacePage = () => {
       window.dispatchEvent(new Event('ecotrade_data_change'));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to place bid.';
-      showToast(message, 'error');
+      if (message.toLowerCase().includes('already have an active bid')) {
+        showToast('You already have an active bid on this listing. Increase your existing bid from My Bids.', 'error');
+      } else {
+        showToast(message, 'error');
+      }
     } finally {
       setShowBidModal(false);
       setSelectedListingForBid(null);

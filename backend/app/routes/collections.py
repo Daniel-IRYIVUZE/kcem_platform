@@ -233,4 +233,84 @@ def auto_assign(
     except ValueError as exc:
         raise HTTPException(422, str(exc))
 
+    # Send assignment notifications to each assigned driver (only when applying)
+    if apply:
+        for item in results:
+            try:
+                col = crud_collection.get(db, item["collection_id"])
+                if col and col.driver:
+                    notify_driver_assigned(
+                        db,
+                        driver_user_id=col.driver.user_id,
+                        hotel_name=item["location"].get("label", "Hotel"),
+                        waste_type=item["location"].get("waste_type", "Waste"),
+                        volume=item["location"].get("volume") or 0,
+                        collection_id=col.id,
+                    )
+            except Exception:  # pragma: no cover
+                pass
+
     return results
+
+
+# ── Live collection tracking ──────────────────────────────────────────────────
+
+@router.get("/{collection_id}/tracking")
+def get_collection_tracking(
+    collection_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_active_user),
+):
+    """Return real-time tracking data for a collection.
+
+    Used by the driver (to see the collection/hotel location on the map) and
+    by the hotel (to see the driver's live GPS position + ETA).
+
+    Response fields
+    ---------------
+    hotel_lat / hotel_lng : float | null   — waste pickup location
+    driver_lat / driver_lng : float | null — driver's last-known position
+    distance_m : int | null                — straight-line distance (metres)
+    eta_minutes : int | null               — estimated time (30 km/h average)
+    """
+    from app.services.assignment_service import haversine_m
+
+    col = crud_collection.get(db, collection_id)
+    if not col:
+        raise HTTPException(404, "Collection not found.")
+
+    hotel_lat = hotel_lng = hotel_name = hotel_address = None
+
+    if col.listing and col.listing.hotel:
+        hotel_lat = col.listing.hotel.latitude
+        hotel_lng = col.listing.hotel.longitude
+        hotel_name = col.listing.hotel.hotel_name
+        hotel_address = col.listing.hotel.address
+
+    driver_lat = driver_lng = driver_name = None
+    distance_m = eta_minutes = None
+
+    if col.driver:
+        driver_lat = col.driver.current_lat
+        driver_lng = col.driver.current_lng
+        driver_name = col.driver.user.full_name if col.driver.user else None
+
+        if driver_lat and driver_lng and hotel_lat and hotel_lng:
+            dist = haversine_m(driver_lat, driver_lng, hotel_lat, hotel_lng)
+            distance_m = round(dist)
+            # 30 km/h city average → seconds = metres / (30_000/3600)
+            eta_minutes = max(1, round(dist / (30_000 / 60)))
+
+    return {
+        "collection_id": col.id,
+        "status": col.status.value if col.status else None,
+        "hotel_lat": hotel_lat,
+        "hotel_lng": hotel_lng,
+        "hotel_name": hotel_name,
+        "hotel_address": hotel_address,
+        "driver_lat": driver_lat,
+        "driver_lng": driver_lng,
+        "driver_name": driver_name,
+        "distance_m": distance_m,
+        "eta_minutes": eta_minutes,
+    }

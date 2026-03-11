@@ -1,5 +1,5 @@
 """crud/bid.py — Bid CRUD operations."""
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.crud.base import CRUDBase
 from app.models.bid import Bid, BidStatus
 from app.schemas.bid import BidCreate, BidUpdate
@@ -9,11 +9,13 @@ class CRUDBid(CRUDBase[Bid, BidCreate, BidUpdate]):
 
     def get_by_listing(self, db: Session, listing_id: int) -> list[Bid]:
         return (db.query(Bid)
+                .options(joinedload(Bid.listing))
                 .filter(Bid.listing_id == listing_id, Bid.status.in_([BidStatus.active]))
                 .order_by(Bid.amount.desc()).all())
 
     def get_by_recycler(self, db: Session, recycler_id: int, *, skip: int = 0, limit: int = 20) -> list[Bid]:
         return (db.query(Bid)
+                .options(joinedload(Bid.listing))
                 .filter(Bid.recycler_id == recycler_id)
                 .order_by(Bid.created_at.desc())
                 .offset(skip).limit(limit).all())

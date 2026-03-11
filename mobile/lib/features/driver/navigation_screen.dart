@@ -38,10 +38,14 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final stops = ref.watch(driverRouteProvider).stops;
-    final nextIdx = stops.indexWhere(
-        (s) => s.status == RouteStopStatus.pending || s.status == RouteStopStatus.arrived || s.status == RouteStopStatus.collecting);
-    final nextStop = nextIdx >= 0 ? stops[nextIdx] : (stops.isNotEmpty ? stops.last : null);
-    final completedCount = stops.where((s) => s.status == RouteStopStatus.completed).length;
+    final nextIdx = stops.indexWhere((s) =>
+        s.status == RouteStopStatus.pending ||
+        s.status == RouteStopStatus.arrived ||
+        s.status == RouteStopStatus.collecting);
+    final nextStop =
+        nextIdx >= 0 ? stops[nextIdx] : (stops.isNotEmpty ? stops.last : null);
+    final completedCount =
+        stops.where((s) => s.status == RouteStopStatus.completed).length;
     return Scaffold(
       body: Stack(
         children: [
@@ -63,13 +67,18 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                 PolylineLayer(
                   polylines: [
                     Polyline(
-                      points: _stopCoords.take(completedCount + 1 > _stopCoords.length ? _stopCoords.length : completedCount + 1).toList(),
+                      points: _stopCoords
+                          .take(completedCount + 1 > _stopCoords.length
+                              ? _stopCoords.length
+                              : completedCount + 1)
+                          .toList(),
                       color: AppColors.primary,
                       strokeWidth: 4,
                     ),
                     if (completedCount < _stopCoords.length - 1)
                       Polyline(
-                        points: _stopCoords.sublist(completedCount > 0 ? completedCount : 0),
+                        points: _stopCoords
+                            .sublist(completedCount > 0 ? completedCount : 0),
                         color: AppColors.info,
                         strokeWidth: 4,
                         isDotted: true,
@@ -80,11 +89,15 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                 MarkerLayer(markers: [
                   Marker(
                     point: _driverPos,
-                    width: 60, height: 60,
+                    width: 60,
+                    height: 60,
                     child: _AnimatedDriverMarker(),
                   ),
                   // Stop markers
-                  ...List.generate(_stopCoords.length < stops.length ? _stopCoords.length : stops.length, (i) {
+                  ...List.generate(
+                      _stopCoords.length < stops.length
+                          ? _stopCoords.length
+                          : stops.length, (i) {
                     final isDone = i < completedCount;
                     final isNext = i == completedCount;
                     return Marker(
@@ -93,15 +106,39 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                       height: isNext ? 44 : 36,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: isDone ? AppColors.primary : isNext ? Colors.white : Colors.white,
+                          color: isDone
+                              ? AppColors.primary
+                              : isNext
+                                  ? Colors.white
+                                  : Colors.white,
                           shape: BoxShape.circle,
-                          border: Border.all(color: isDone ? AppColors.primary : isNext ? AppColors.primary : AppColors.border, width: isNext ? 2.5 : 1.5),
-                          boxShadow: isNext ? [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 12, spreadRadius: 3)] : null,
+                          border: Border.all(
+                              color: isDone
+                                  ? AppColors.primary
+                                  : isNext
+                                      ? AppColors.primary
+                                      : AppColors.border,
+                              width: isNext ? 2.5 : 1.5),
+                          boxShadow: isNext
+                              ? [
+                                  BoxShadow(
+                                      color: AppColors.primary.withOpacity(0.4),
+                                      blurRadius: 12,
+                                      spreadRadius: 3)
+                                ]
+                              : null,
                         ),
                         child: Center(
                           child: isDone
-                              ? const Icon(Icons.check, color: Colors.white, size: 16)
-                              : Text('${i + 1}', style: TextStyle(fontWeight: FontWeight.w700, color: isNext ? AppColors.primary : AppColors.textSecondary, fontSize: 13)),
+                              ? const Icon(Icons.check,
+                                  color: Colors.white, size: 16)
+                              : Text('${i + 1}',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      color: isNext
+                                          ? AppColors.primary
+                                          : AppColors.textSecondary,
+                                      fontSize: 13)),
                         ),
                       ),
                     );
@@ -109,7 +146,9 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                 ]),
                 // OSM attribution
                 RichAttributionWidget(
-                  attributions: [TextSourceAttribution('OpenStreetMap contributors')],
+                  attributions: [
+                    TextSourceAttribution('OpenStreetMap contributors')
+                  ],
                 ),
               ],
             ),
@@ -135,28 +174,40 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8)
+                          ],
                         ),
-                        child: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+                        child: const Icon(Icons.arrow_back,
+                            color: AppColors.textPrimary),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8)],
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 8)
+                          ],
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.navigation, color: AppColors.primary, size: 18),
+                            const Icon(Icons.navigation,
+                                color: AppColors.primary, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'Navigating to ${nextStop?.businessName ?? 'Next Stop'}',
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600, fontSize: 14),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -180,9 +231,12 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)],
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8)
+                ],
               ),
-              child: const Icon(Icons.volume_up, color: AppColors.primary, size: 22),
+              child: const Icon(Icons.volume_up,
+                  color: AppColors.primary, size: 22),
             ),
           ),
 
@@ -192,11 +246,22 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
             right: 16,
             child: Column(
               children: [
-                _MapButton(icon: Icons.add, onTap: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1)),
+                _MapButton(
+                    icon: Icons.add,
+                    onTap: () => _mapController.move(
+                        _mapController.camera.center,
+                        _mapController.camera.zoom + 1)),
                 const SizedBox(height: 8),
-                _MapButton(icon: Icons.remove, onTap: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1)),
+                _MapButton(
+                    icon: Icons.remove,
+                    onTap: () => _mapController.move(
+                        _mapController.camera.center,
+                        _mapController.camera.zoom - 1)),
                 const SizedBox(height: 8),
-                _MapButton(icon: Icons.my_location, color: AppColors.primary, onTap: () => _mapController.move(_driverPos, 14.5)),
+                _MapButton(
+                    icon: Icons.my_location,
+                    color: AppColors.primary,
+                    onTap: () => _mapController.move(_driverPos, 14.5)),
               ],
             ),
           ),
@@ -209,8 +274,14 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
             child: Container(
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 20, offset: const Offset(0, -4))],
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 20,
+                      offset: const Offset(0, -4))
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -219,7 +290,9 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                   Container(
                     width: 36,
                     height: 4,
-                    decoration: BoxDecoration(color: context.cBorder, borderRadius: BorderRadius.circular(2)),
+                    decoration: BoxDecoration(
+                        color: context.cBorder,
+                        borderRadius: BorderRadius.circular(2)),
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -232,7 +305,8 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                             color: AppColors.primary,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: const Icon(Icons.turn_right, color: Colors.white, size: 28),
+                          child: const Icon(Icons.turn_right,
+                              color: Colors.white, size: 28),
                         ),
                         const SizedBox(width: 14),
                         const Expanded(
@@ -241,12 +315,15 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                             children: [
                               Text(
                                 'Turn right onto KN 4 Ave',
-                                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700, fontSize: 16),
                               ),
                               SizedBox(height: 2),
                               Text(
                                 'In 300m',
-                                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                                style: TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 13),
                               ),
                             ],
                           ),
@@ -256,11 +333,15 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                           children: [
                             const Text(
                               '2.3 km',
-                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primary),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                  color: AppColors.primary),
                             ),
                             Text(
                               '8 min',
-                              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                              style: TextStyle(
+                                  color: AppColors.textSecondary, fontSize: 13),
                             ),
                           ],
                         ),
@@ -274,12 +355,15 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () => context.push(AppRoutes.driverCollection),
+                            onPressed: () =>
+                                context.push(AppRoutes.driverCollection),
                             style: ElevatedButton.styleFrom(
                               minimumSize: const Size(0, 52),
                               backgroundColor: AppColors.primary,
                             ),
-                            child: const Text('Arrived at Stop', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                            child: const Text('Arrived at Stop',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w700, fontSize: 15)),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -288,7 +372,8 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                             showModalBottomSheet(
                               context: context,
                               shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                                borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(24)),
                               ),
                               builder: (_) => SafeArea(
                                 child: Column(
@@ -296,19 +381,27 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                                   children: [
                                     const SizedBox(height: 8),
                                     Container(
-                                      width: 36, height: 4,
-                                      decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+                                      width: 36,
+                                      height: 4,
+                                      decoration: BoxDecoration(
+                                          color: AppColors.border,
+                                          borderRadius:
+                                              BorderRadius.circular(2)),
                                     ),
                                     ListTile(
-                                      leading: const Icon(Icons.share_location, color: AppColors.primary),
+                                      leading: const Icon(Icons.share_location,
+                                          color: AppColors.primary),
                                       title: const Text('Share Location'),
                                       onTap: () {
                                         Navigator.pop(context);
-                                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(const SnackBar(
                                           content: Row(children: [
-                                            Icon(Icons.check_circle, color: Colors.white, size: 18),
+                                            Icon(Icons.check_circle,
+                                                color: Colors.white, size: 18),
                                             SizedBox(width: 8),
-                                            Text('Location shared with dispatcher'),
+                                            Text(
+                                                'Location shared with dispatcher'),
                                           ]),
                                           backgroundColor: AppColors.primary,
                                           behavior: SnackBarBehavior.floating,
@@ -316,7 +409,9 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                                       },
                                     ),
                                     ListTile(
-                                      leading: const Icon(Icons.report_problem_outlined, color: AppColors.error),
+                                      leading: const Icon(
+                                          Icons.report_problem_outlined,
+                                          color: AppColors.error),
                                       title: const Text('Report Issue'),
                                       onTap: () {
                                         Navigator.pop(context);
@@ -324,7 +419,8 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                                       },
                                     ),
                                     ListTile(
-                                      leading: const Icon(Icons.skip_next, color: AppColors.warning),
+                                      leading: const Icon(Icons.skip_next,
+                                          color: AppColors.warning),
                                       title: const Text('Skip Stop'),
                                       onTap: () {
                                         Navigator.pop(context);
@@ -369,20 +465,24 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Describe the issue you are experiencing:', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            const Text('Describe the issue you are experiencing:',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
             const SizedBox(height: 12),
             TextField(
               controller: ctrl,
               maxLines: 3,
               decoration: const InputDecoration(
-                hintText: 'e.g. Road blocked, wrong address, business closed...',
+                hintText:
+                    'e.g. Road blocked, wrong address, business closed...',
                 border: OutlineInputBorder(),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
@@ -397,7 +497,9 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
               ));
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Submit', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            child: const Text('Submit',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -409,13 +511,16 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Skip This Stop?', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text('Skip This Stop?',
+            style: TextStyle(fontWeight: FontWeight.w800)),
         content: const Text(
-          'Skipping a stop will notify the dispatcher and reschedule this collection. '  
+          'Skipping a stop will notify the dispatcher and reschedule this collection. '
           'Are you sure you want to skip?',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
@@ -430,7 +535,9 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
               ));
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
-            child: const Text('Yes, Skip', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+            child: const Text('Yes, Skip',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -450,7 +557,9 @@ class _AnimatedDriverMarkerState extends State<_AnimatedDriverMarker>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 2))
+          ..repeat();
   }
 
   @override
@@ -482,9 +591,12 @@ class _AnimatedDriverMarkerState extends State<_AnimatedDriverMarker>
             color: AppColors.info,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 3),
-            boxShadow: [BoxShadow(color: AppColors.info.withOpacity(0.4), blurRadius: 8)],
+            boxShadow: [
+              BoxShadow(color: AppColors.info.withOpacity(0.4), blurRadius: 8)
+            ],
           ),
-          child: const Icon(Icons.local_shipping, color: Colors.white, size: 20),
+          child:
+              const Icon(Icons.local_shipping, color: Colors.white, size: 20),
         ),
       ],
     );
@@ -507,7 +619,9 @@ class _MapButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)
+          ],
         ),
         child: Icon(icon, size: 20, color: color ?? AppColors.textPrimary),
       ),

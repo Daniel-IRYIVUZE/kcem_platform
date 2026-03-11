@@ -1,9 +1,9 @@
-// components/dashboard/business/BusinessDrivers.tsx
-import { useState, useEffect, useCallback } from 'react';
-import { Star, Truck, MapPin, Phone, CheckCircle, Clock, AlertCircle, X, UserCheck, RefreshCw, Zap } from 'lucide-react';
+// components/dashboard/recycler/RecyclerDrivers.tsx
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Star, Truck, MapPin, Phone, CheckCircle, Clock, AlertCircle, X, UserCheck, RefreshCw, Zap, UserPlus, Wand2, Trash2, Car } from 'lucide-react';
 import StatCard from '../StatCard';
-import { driversAPI, collectionsAPI } from '../../../services/api';
-import type { DriverProfile } from '../../../services/api';
+import { driversAPI, collectionsAPI, vehiclesAPI, bidsAPI } from '../../../services/api';
+import type { DriverProfile, VehicleItem } from '../../../services/api';
 
 /* ─── Types ─────────────────────────────────────────────────── */
 interface EnrichedCollection {
@@ -58,6 +58,127 @@ function Stars({ rating }: { rating: number }) {
       ))}
       <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">{rating.toFixed(1)}</span>
     </span>
+  );
+}
+
+/* ─── Add Driver Modal ──────────────────────────────────────────── */
+function AddDriverModal({
+  vehicles,
+  onClose,
+  onCreated,
+}: {
+  vehicles: VehicleItem[];
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [form, setForm] = useState({
+    full_name: '', email: '', phone: '', license_number: '', vehicle_id: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handle = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.full_name.trim() || !form.email.trim()) {
+      setError('Name and email are required.'); return;
+    }
+    setLoading(true); setError('');
+    try {
+      await driversAPI.register({
+        full_name: form.full_name,
+        email: form.email,
+        phone: form.phone || undefined,
+        license_number: form.license_number || undefined,
+        vehicle_id: form.vehicle_id ? Number(form.vehicle_id) : undefined,
+      });
+      setSuccess('Driver account created! A welcome email with temporary login credentials has been sent.');
+      setTimeout(() => { onCreated(); onClose(); }, 2500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create driver.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-fade-up" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add New Driver</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">An email with temporary login credentials will be sent.</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"><X size={18} /></button>
+        </div>
+
+        {success ? (
+          <div className="flex items-start gap-3 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-green-700 dark:text-green-400">
+            <CheckCircle size={18} className="flex-shrink-0 mt-0.5" />
+            <span className="text-sm">{success}</span>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name *</label>
+              <input name="full_name" value={form.full_name} onChange={handle} required
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                placeholder="Driver full name" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address *</label>
+              <input name="email" type="email" value={form.email} onChange={handle} required
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                placeholder="driver@example.com" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                <input name="phone" value={form.phone} onChange={handle}
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                  placeholder="+250 7xx xxx xxx" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">License No.</label>
+                <input name="license_number" value={form.license_number} onChange={handle}
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                  placeholder="DL-12345" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Assign Vehicle</label>
+              <select name="vehicle_id" value={form.vehicle_id} onChange={handle}
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                <option value="">— Select vehicle (optional) —</option>
+                {vehicles.map(v => (
+                  <option key={v.id} value={v.id}>{v.vehicle_type} · {v.plate_number}</option>
+                ))}
+              </select>
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-1.5">
+                <AlertCircle size={14} />{error}
+              </p>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={onClose}
+                className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                Cancel
+              </button>
+              <button type="submit" disabled={loading}
+                className="flex-1 px-4 py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-medium hover:bg-cyan-700 disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
+                {loading ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating…</> : <><UserPlus size={15} /> Create Driver</>}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -144,8 +265,70 @@ function AssignDriverModal({
   );
 }
 
+/* ─── Assign Vehicle Modal ────────────────────────────────────── */
+function AssignVehicleModal({
+  driver, vehicles, onConfirm, onClose,
+}: {
+  driver: DriverProfile;
+  vehicles: VehicleItem[];
+  onConfirm: (vehicleId: number | null) => void;
+  onClose: () => void;
+}) {
+  const [selected, setSelected] = useState<string>(driver.vehicle_id ? String(driver.vehicle_id) : '');
+  const unassignedVehicles = vehicles.filter(v => v.id === driver.vehicle_id || true); // show all fleet vehicles
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-white">Assign Vehicle</h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400"><X size={18} /></button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Assigning vehicle to <span className="font-semibold text-gray-900 dark:text-white">{driver.name || `Driver #${driver.id}`}</span>
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Vehicle</label>
+            <select
+              value={selected}
+              onChange={e => setSelected(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none"
+            >
+              <option value="">— No Vehicle (Unassign) —</option>
+              {unassignedVehicles.map(v => (
+                <option key={v.id} value={v.id}>
+                  {v.vehicle_type} — {v.plate_number} ({v.capacity_kg.toLocaleString()} kg)
+                  {v.id === driver.vehicle_id ? ' ✓ Current' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+          {unassignedVehicles.length === 0 && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">No fleet vehicles registered yet. Add vehicles from the Fleet page.</p>
+          )}
+        </div>
+        <div className="px-6 pb-5 flex gap-3 justify-end">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
+          <button
+            onClick={() => onConfirm(selected ? Number(selected) : null)}
+            className="px-5 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium flex items-center gap-2"
+          >
+            <Car size={15} /> {selected ? 'Assign Vehicle' : 'Unassign Vehicle'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Driver Card ─────────────────────────────────────────────── */
-function DriverCard({ driver, onAssign }: { driver: DriverProfile; onAssign: () => void }) {
+function DriverCard({ driver, onAssign, onDelete, onAssignVehicle }: {
+  driver: DriverProfile;
+  onAssign: () => void;
+  onDelete: () => void;
+  onAssignVehicle: () => void;
+}) {
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-lg hover:border-cyan-300 dark:hover:border-cyan-700 transition-all group">
       <div className="flex items-start justify-between mb-3">
@@ -189,14 +372,42 @@ function DriverCard({ driver, onAssign }: { driver: DriverProfile; onAssign: () 
         )}
       </div>
 
-      <button
-        onClick={onAssign}
-        disabled={driver.status !== 'available'}
-        className="w-full py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-medium hover:bg-cyan-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 group-hover:shadow-md"
-      >
-        <UserCheck size={15} />
-        {driver.status === 'available' ? 'Assign to Collection' : 'Not Available'}
-      </button>
+      <div className="flex flex-col gap-2">
+        {driver.status === 'available' && !driver.vehicle_id && (
+          <div className="w-full py-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl text-xs font-medium text-yellow-700 dark:text-yellow-400 flex items-center justify-center gap-1.5">
+            <UserCheck size={13} /> No Vehicle — Assign Vehicle First
+          </div>
+        )}
+        {driver.status === 'available' && driver.vehicle_id && (
+          <div className="w-full py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-xs font-medium text-green-700 dark:text-green-400 flex items-center justify-center gap-1.5">
+            <UserCheck size={13} /> Ready — Auto-assigned when needed
+          </div>
+        )}
+        {driver.status === 'on_route' && (
+          <div className="w-full py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl text-xs font-medium text-blue-700 dark:text-blue-400 flex items-center justify-center gap-1.5">
+            <Zap size={13} /> On Trip — Already Assigned
+          </div>
+        )}
+        {driver.status === 'off_duty' && (
+          <div className="w-full py-2 bg-gray-50 dark:bg-gray-700/40 rounded-xl text-xs font-medium text-gray-400 flex items-center justify-center gap-1.5">
+            Off Duty
+          </div>
+        )}
+        <div className="flex gap-2">
+          <button
+            onClick={onAssignVehicle}
+            className="flex-1 py-2 border border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-400 rounded-xl text-xs font-medium hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-colors flex items-center justify-center gap-1.5"
+          >
+            <Car size={13} /> {driver.vehicle_id ? 'Change Vehicle' : 'Assign Vehicle'}
+          </button>
+          <button
+            onClick={onDelete}
+            className="px-3 py-2 border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 rounded-xl text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-1.5"
+          >
+            <Trash2 size={13} /> Remove
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -205,29 +416,63 @@ function DriverCard({ driver, onAssign }: { driver: DriverProfile; onAssign: () 
 export default function BusinessDrivers() {
   const [drivers, setDrivers] = useState<DriverProfile[]>([]);
   const [collections, setCollections] = useState<EnrichedCollection[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'on_route' | 'off_duty'>('all');
   const [selectedDriver, setSelectedDriver] = useState<DriverProfile | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [flash, setFlash] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [assigning, setAssigning] = useState(false);
+  const [autoAssigning, setAutoAssigning] = useState(false);
+  const [assignVehicleDriver, setAssignVehicleDriver] = useState<DriverProfile | null>(null);
+  const [deletingDriver, setDeletingDriver] = useState<number | null>(null);
 
   const showFlash = (type: 'success' | 'error', msg: string) => {
     setFlash({ type, msg });
-    setTimeout(() => setFlash(null), 4000);
+    setTimeout(() => setFlash(null), 5000);
+  };
+
+  const handleDeleteDriver = async (driver: DriverProfile) => {
+    if (!confirm(`Remove ${driver.name || `Driver #${driver.id}`} from your organisation? This cannot be undone.`)) return;
+    setDeletingDriver(driver.id);
+    try {
+      await driversAPI.delete(driver.id);
+      showFlash('success', `✅ Driver removed successfully.`);
+      load();
+    } catch (err: unknown) {
+      showFlash('error', err instanceof Error ? err.message : 'Failed to remove driver.');
+    } finally {
+      setDeletingDriver(null);
+    }
+  };
+
+  const handleAssignVehicle = async (vehicleId: number | null) => {
+    if (!assignVehicleDriver) return;
+    try {
+      await driversAPI.assignVehicle(assignVehicleDriver.id, vehicleId);
+      showFlash('success', vehicleId ? `✅ Vehicle assigned to ${assignVehicleDriver.name || 'driver'}.` : `✅ Vehicle unassigned from ${assignVehicleDriver.name || 'driver'}.`);
+      setAssignVehicleDriver(null);
+      load();
+    } catch (err: unknown) {
+      showFlash('error', err instanceof Error ? err.message : 'Failed to assign vehicle.');
+    }
   };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [driversData, collectionsData] = await Promise.all([
-        driversAPI.list({ limit: 50 }),
+      // Backfill missing collections for accepted bids, then auto-assign nearby drivers
+      await bidsAPI.backfillCollections().catch(() => null);
+      await collectionsAPI.autoAssign(true, true).catch(() => null);
+      const [driversData, collectionsData, vehiclesData] = await Promise.all([
+        driversAPI.myRecycler().catch(() => driversAPI.list({ limit: 50 })),
         collectionsAPI.list({ limit: 50 }),
+        vehiclesAPI.list().catch(() => []),
       ]);
-
       setDrivers(driversData);
       setCollections(collectionsData as EnrichedCollection[]);
+      setVehicles(vehiclesData);
     } catch {
-      // API unavailable — collections stay empty
       setCollections([]);
     } finally {
       setLoading(false);
@@ -259,6 +504,21 @@ export default function BusinessDrivers() {
     }
   };
 
+  const handleAutoAssign = async () => {
+    setAutoAssigning(true);
+    try {
+      const result = await collectionsAPI.autoAssign(true, true);
+      const count = Array.isArray(result) ? result.length : (result as { assigned?: number })?.assigned ?? 0;
+      showFlash('success', `✅ Auto-assigned ${count} collection(s) to nearby available drivers.`);
+      load();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Auto-assign failed.';
+      showFlash('error', msg);
+    } finally {
+      setAutoAssigning(false);
+    }
+  };
+
   const filtered = statusFilter === 'all' ? drivers : drivers.filter(d => d.status === statusFilter);
   const available = drivers.filter(d => d.status === 'available').length;
   const on_route = drivers.filter(d => d.status === 'on_route').length;
@@ -279,15 +539,29 @@ export default function BusinessDrivers() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Drivers & Availability</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">View all drivers and assign them to your waste collections</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Manage your drivers and assign them to waste collections</p>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
-        </button>
+        <div className="flex gap-2 flex-wrap">
+          {pendingCollections > 0 && (
+            <button
+              onClick={handleAutoAssign}
+              disabled={autoAssigning}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Wand2 size={15} className={autoAssigning ? 'animate-spin' : ''} />
+              {autoAssigning ? 'Assigning…' : 'Auto-Assign All'}
+            </button>
+          )}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-sm font-medium transition-colors"
+          >
+            <UserPlus size={15} /> Add Driver
+          </button>
+          <button onClick={load} disabled={loading} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* KPI Cards */}
@@ -324,7 +598,9 @@ export default function BusinessDrivers() {
             <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm">
               {pendingCollections} collection{pendingCollections > 1 ? 's' : ''} awaiting driver assignment
             </p>
-            <p className="text-xs text-amber-700 dark:text-amber-400">Click "Assign to Collection" on any available driver below.</p>
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Click "Auto-Assign All" to auto-assign nearby drivers, or manually assign using driver cards below.
+            </p>
           </div>
         </div>
       )}
@@ -339,7 +615,9 @@ export default function BusinessDrivers() {
         <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
           <Truck size={40} className="mx-auto mb-3 text-gray-300 dark:text-gray-600" />
           <p className="text-gray-500 dark:text-gray-400">No drivers found</p>
-          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try refreshing or changing the filter</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+            {drivers.length === 0 ? 'Add your first driver using the "Add Driver" button above.' : 'Try changing the filter.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -348,6 +626,8 @@ export default function BusinessDrivers() {
               key={driver.id}
               driver={driver}
               onAssign={() => setSelectedDriver(driver)}
+              onDelete={() => handleDeleteDriver(driver)}
+              onAssignVehicle={() => setAssignVehicleDriver(driver)}
             />
           ))}
         </div>
@@ -360,6 +640,25 @@ export default function BusinessDrivers() {
           collections={collections}
           onConfirm={handleAssign}
           onClose={() => setSelectedDriver(null)}
+        />
+      )}
+
+      {/* Assign Vehicle to Driver Modal */}
+      {assignVehicleDriver && (
+        <AssignVehicleModal
+          driver={assignVehicleDriver}
+          vehicles={vehicles}
+          onConfirm={handleAssignVehicle}
+          onClose={() => setAssignVehicleDriver(null)}
+        />
+      )}
+
+      {/* Add Driver Modal */}
+      {showAddModal && (
+        <AddDriverModal
+          vehicles={vehicles}
+          onClose={() => setShowAddModal(false)}
+          onCreated={load}
         />
       )}
 

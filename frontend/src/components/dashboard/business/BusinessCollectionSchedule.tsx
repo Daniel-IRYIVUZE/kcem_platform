@@ -1,24 +1,234 @@
 // components/dashboard/business/BusinessCollectionSchedule.tsx
-import { useState, useEffect } from 'react';
-import { collectionsAPI, type Collection } from '../../../services/api';
-import { Calendar, Clock, CheckCircle, Download } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { collectionsAPI, type Collection, type CollectionTracking } from '../../../services/api';
+import { formatDist } from '../../../utils/geo';
+import { Calendar, Clock, CheckCircle, Download, MapPin, X, Navigation, Locate } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
 import { StatusBadge } from './_shared';
+import 'leaflet/dist/leaflet.css';
 
 function downloadCSV(name: string, cols: string[], rows: (string | number)[][]) {
   const csv = [cols.join(','), ...rows.map(r => r.join(','))].join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv])); a.download = `${name}.csv`; a.click();
 }
 
+/* ─── Live Tracking Map Modal ──────────────────────────────────────────────── */
+function TrackingModal({ collectionId, onClose }: { collectionId: number; onClose: () => void }) {
+  const [tracking, setTracking] = useState<CollectionTracking | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const leafletMapRef = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
+  const driverMarkerRef = useRef<any>(null);
+  const hotelMarkerRef = useRef<any>(null);
+  const isMapReady = useRef(false);
+
+  const fetchTracking = useCallback(async () => {
+    try {
+      const data = await collectionsAPI.tracking(collectionId);
+      setTracking(data);
+      setError(null);
+      return data;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load tracking data.');
+      return null;
+    }
+  }, [collectionId]);
+
+  // Init map
+  useEffect(() => {
+    if (!mapRef.current || leafletMapRef.current) return;
+    const init = async () => {
+      const L = await import('leaflet').catch(() => null);
+      if (!L || !mapRef.current) return;
+      leafletRef.current = L;
+      const DefaultIcon = L.icon({
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+        iconSize: [25, 41], iconAnchor: [12, 41],
+      });
+      L.Marker.prototype.options.icon = DefaultIcon;
+      const map = L.map(mapRef.current, { zoomControl: true, scrollWheelZoom: false })
+        .setView([-1.9441, 30.0619], 14);
+      leafletMapRef.current = map;
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors', maxZoom: 19,
+      }).addTo(map);
+      isMapReady.current = true;
+    };
+    init();
+    return () => {
+      leafletMapRef.current?.remove();
+      leafletMapRef.current = null;
+      leafletRef.current = null;
+      isMapReady.current = false;
+    };
+  }, []);
+
+  // Update markers when tracking data or map readiness changes
+  const updateMarkers = useCallback((data: CollectionTracking) => {
+    const L = leafletRef.current;
+    const map = leafletMapRef.current;
+    if (!L || !map || !isMapReady.current) return;
+
+    const points: [number, number][] = [];
+
+    // Hotel marker
+    if (data.hotel_lat != null && data.hotel_lng != null) {
+      const pos: [number, number] = [data.hotel_lat, data.hotel_lng];
+      points.push(pos);
+      const icon = L.divIcon({
+        html: `<div style="background:#d97706;color:#fff;width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)">🏨</div>`,
+        className: '', iconSize: [38, 38], iconAnchor: [19, 38],
+      });
+      if (hotelMarkerRef.current) {
+        hotelMarkerRef.current.setLatLng(pos);
+      } else {
+        hotelMarkerRef.current = L.marker(pos, { icon })
+          .addTo(map)
+          .bindPopup(`<b>${data.hotel_name || 'Pickup Location'}</b><br>${data.hotel_address || ''}`);
+      }
+    }
+
+    // Driver marker
+    if (data.driver_lat != null && data.driver_lng != null) {
+      const pos: [number, number] = [data.driver_lat, data.driver_lng];
+      points.push(pos);
+      const icon = L.divIcon({
+        html: `<div style="background:#0891b2;color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)">🚛</div>`,
+        className: '', iconSize: [38, 38], iconAnchor: [19, 19],
+      });
+      if (driverMarkerRef.current) {
+        driverMarkerRef.current.setLatLng(pos);
+      } else {
+        driverMarkerRef.current = L.marker(pos, { icon })
+          .addTo(map)
+          .bindPopup(`<b>${data.driver_name || 'Driver'}</b><br>Live location`);
+      }
+    }
+
+    // Fit map to show both markers
+    if (points.length === 2) {
+      // Draw/update route line
+      L.polyline(points, { color: '#06b6d4', weight: 3, dashArray: '6 4', opacity: 0.8 }).addTo(map);
+      const group = L.latLngBounds(points);
+      map.fitBounds(group.pad(0.3));
+    } else if (points.length === 1) {
+      map.setView(points[0], 15);
+    }
+  }, []);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchTracking();
+  }, [fetchTracking]);
+
+  // Poll every 15 seconds for live updates
+  useEffect(() => {
+    const interval = setInterval(fetchTracking, 15_000);
+    return () => clearInterval(interval);
+  }, [fetchTracking]);
+
+  // Update map markers when tracking data arrives
+  useEffect(() => {
+    if (!tracking) return;
+    // Wait a tick for map to be ready
+    const t = setTimeout(() => updateMarkers(tracking), 200);
+    return () => clearTimeout(t);
+  }, [tracking, updateMarkers]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center gap-2">
+            <MapPin size={16} className="text-cyan-600 dark:text-cyan-400" />
+            <h3 className="font-semibold text-gray-900 dark:text-white">Live Driver Tracking</h3>
+            <span className="text-xs text-gray-400">· Collection #{collectionId}</span>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* ETA / Distance */}
+        {tracking && (
+          <div className="grid grid-cols-3 gap-0 border-b border-gray-200 dark:border-gray-700">
+            <div className="p-4 text-center border-r border-gray-200 dark:border-gray-700">
+              <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400">
+                {tracking.distance_m != null
+                  ? tracking.distance_m < 1000
+                    ? `${tracking.distance_m}m`
+                    : `${(tracking.distance_m / 1000).toFixed(1)}km`
+                  : '—'}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Distance</p>
+            </div>
+            <div className="p-4 text-center border-r border-gray-200 dark:border-gray-700">
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                {tracking.eta_minutes != null ? `${tracking.eta_minutes} min` : '—'}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">ETA</p>
+            </div>
+            <div className="p-4 text-center">
+              <div className={`flex items-center justify-center gap-1 text-sm font-medium ${tracking.driver_lat != null ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                <Locate size={13} /> {tracking.driver_lat != null ? 'Live GPS' : 'No GPS'}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{tracking.driver_name || 'Driver'}</p>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="px-5 py-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20">
+            {error}
+          </div>
+        )}
+
+        {/* Map */}
+        <div ref={mapRef} style={{ height: '300px', width: '100%' }} />
+
+        {/* Info footer */}
+        <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+            <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 bg-amber-500 rounded text-center text-white" style={{fontSize:10}}>🏨</span> Pickup location</span>
+            <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 bg-cyan-600 rounded-full text-center text-white" style={{fontSize:10}}>🚛</span> Driver (live)</span>
+          </div>
+          <div className="flex items-center gap-1 text-xs text-gray-400">
+            <Navigation size={11} /> Updates every 15s
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Component ─────────────────────────────────────────────────────────── */
 export default function BusinessCollectionSchedule() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [trackingCollectionId, setTrackingCollectionId] = useState<number | null>(null);
+  const [trackingMap, setTrackingMap] = useState<Record<number, CollectionTracking>>({});
 
   useEffect(() => {
     collectionsAPI.list({ limit: 200 } as Parameters<typeof collectionsAPI.list>[0])
-      .then(data => setCollections(data || []))
+      .then(data => {
+        setCollections(data || []);
+        // Fetch tracking for all collections that have a driver assigned
+        const withDriver = (data || []).filter(c => c.driver_id);
+        if (withDriver.length === 0) return;
+        Promise.allSettled(withDriver.map(c => collectionsAPI.tracking(c.id))).then(results => {
+          const map: Record<number, CollectionTracking> = {};
+          results.forEach((r, i) => {
+            if (r.status === 'fulfilled') map[withDriver[i].id] = r.value;
+          });
+          setTrackingMap(map);
+        });
+      })
       .catch(() => setCollections([]))
       .finally(() => setLoading(false));
   }, []);
@@ -35,6 +245,8 @@ export default function BusinessCollectionSchedule() {
     driverName: c.driver_name || 'Pending',
     status: c.status,
     earnings: c.earnings,
+    _canTrack: (c.status === 'en_route' || c.status === 'on_route' || c.status === 'scheduled') && !!c.driver_id,
+    _tracking: trackingMap[c.id] ?? null,
   }));
 
   const handleExport = () => downloadCSV('collection_schedule',
@@ -77,8 +289,39 @@ export default function BusinessCollectionSchedule() {
               { key: 'volume', label: 'Volume' },
               { key: 'recyclerName', label: 'Recycler' },
               { key: 'driverName', label: 'Driver' },
+              {
+                key: '_tracking', label: 'Driver Distance',
+                render: (_v: unknown, r: typeof displayData[0]) => {
+                  const t = r._tracking as CollectionTracking | null;
+                  if (!t || t.distance_m == null) return <span className="text-xs text-gray-400">—</span>;
+                  return (
+                    <div className="flex flex-col">
+                      <span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 flex items-center gap-1">
+                        <MapPin size={10} /> {formatDist(t.distance_m)}
+                      </span>
+                      {t.eta_minutes != null && (
+                        <span className="text-xs text-blue-500 dark:text-blue-400 flex items-center gap-1 mt-0.5">
+                          <Clock size={10} /> {t.eta_minutes} min ETA
+                        </span>
+                      )}
+                    </div>
+                  );
+                },
+              },
               { key: 'status', label: 'Status', render: (v: string) => <StatusBadge status={v} /> },
               { key: 'earnings', label: 'Earnings', render: (v: number) => <span className="font-semibold text-green-600 dark:text-green-400">RWF {(v || 0).toLocaleString()}</span> },
+              {
+                key: '_canTrack', label: 'Track',
+                render: (_v: unknown, r: typeof displayData[0]) =>
+                  r._canTrack ? (
+                    <button
+                      onClick={() => setTrackingCollectionId(r.id)}
+                      className="flex items-center gap-1 px-2.5 py-1 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-medium rounded-lg transition-colors"
+                    >
+                      <MapPin size={11} /> Track
+                    </button>
+                  ) : null,
+              },
             ]}
             data={displayData}
             pageSize={10}
@@ -88,6 +331,15 @@ export default function BusinessCollectionSchedule() {
           <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No collections found. Collections are created when a bid is accepted.</p>
         )}
       </div>
+
+      {trackingCollectionId != null && (
+        <TrackingModal
+          collectionId={trackingCollectionId}
+          onClose={() => setTrackingCollectionId(null)}
+        />
+      )}
     </div>
   );
 }
+
+

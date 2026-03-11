@@ -1,13 +1,12 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
-import type { Bid, WasteListing } from '../../../services/api';
+import type { Bid } from '../../../services/api';
 import { Eye, TrendingUp, CheckCircle, AlertTriangle } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
-import { bidsAPI, listingsAPI } from '../../../services/api';
+import { bidsAPI } from '../../../services/api';
 
 export default function RecyclerBids() {
   const [bids, setBids] = useState<Bid[]>([]);
-  const [listings, setListings] = useState<WasteListing[]>([]);
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
@@ -15,29 +14,15 @@ export default function RecyclerBids() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const [data, ls] = await Promise.all([
-        bidsAPI.mine({ limit: 100 }),
-        listingsAPI.list({ limit: 500 }).catch(() => [] as WasteListing[]),
-      ]);
+      const data = await bidsAPI.mine({ limit: 100 });
       setBids(data);
-      setListings(ls);
     } catch { /* offline */ }
     finally { setLoading(false); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  const enrichedBids = bids.map(bid => {
-    const listing = listings.find(l => l.id === bid.listing_id);
-    return {
-      ...bid,
-      hotelName: listing?.hotel_name || `Listing #${bid.listing_id}`,
-      wasteType: listing?.waste_type || '—',
-      volume: listing ? `${listing.volume} ${listing.unit}` : '—',
-    };
-  });
-
-  const filtered = statusFilter === 'all' ? enrichedBids : enrichedBids.filter(b => b.status === statusFilter);
+  const filtered = statusFilter === 'all' ? bids : bids.filter(b => b.status === statusFilter);
 
   const handleWithdrawBid = async (bidId: number) => {
     try {
@@ -48,16 +33,16 @@ export default function RecyclerBids() {
     setTimeout(() => setFlash(null), 3000);
   };
 
-  const total = enrichedBids.length;
-  const active = enrichedBids.filter(b => b.status === 'active').length;
-  const won = enrichedBids.filter(b => b.status === 'won' || b.status === 'accepted').length;
-  const lost = enrichedBids.filter(b => b.status === 'lost' || b.status === 'rejected').length;
+  const total = bids.length;
+  const active = bids.filter(b => b.status === 'active').length;
+  const won = bids.filter(b => b.status === 'won' || b.status === 'accepted').length;
+  const lost = bids.filter(b => b.status === 'lost' || b.status === 'rejected').length;
 
   const displayData = filtered.map(b => ({
     id: b.id,
-    hotel: b.hotelName,
-    type: b.wasteType,
-    quantity: b.volume,
+    hotel: b.hotel_name || `Listing #${b.listing_id}`,
+    type: b.waste_type || '—',
+    quantity: b.volume && b.unit ? `${b.volume} ${b.unit}` : '—',
     myBid: `RWF ${(b.amount ?? 0).toLocaleString()}`,
     status: b.status,
     bidDate: new Date(b.created_at).toLocaleDateString(),

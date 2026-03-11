@@ -1,25 +1,27 @@
 // components/dashboard/business/BusinessListings.tsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { listingsAPI, type WasteListing, type Bid } from '../../../services/api';
 import { downloadCSV } from '../../../utils/dataStore';
 import { Package, CheckCircle, Clock, Eye, PlusCircle, Download, Search, Trash2, X } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
 import { StatusBadge } from './_shared';
+import BusinessListingFormDrawer from './BusinessListingFormDrawer';
 
 export default function BusinessListings() {
-  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showBidModal, setShowBidModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showCreateDrawer, setShowCreateDrawer] = useState(false);
   const [viewListing, setViewListing] = useState<WasteListing | null>(null);
   const [listings, setListings] = useState<WasteListing[]>([]);
   const [selectedListing, setSelectedListing] = useState<WasteListing | null>(null);
   const [selectedBids, setSelectedBids] = useState<Bid[]>([]);
   const [bidsLoading, setBidsLoading] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  const [bidModalMessage, setBidModalMessage] = useState<string | null>(null);
+  const [bidModalMessageType, setBidModalMessageType] = useState<'success' | 'error'>('success');
 
   const loadListings = () => listingsAPI.mine().then(setListings).catch(() => {});
   useEffect(() => { loadListings(); }, []);
@@ -33,6 +35,7 @@ export default function BusinessListings() {
   const openBidsModal = (listing: WasteListing) => {
     setSelectedListing(listing);
     setSelectedBids([]);
+    setBidModalMessage(null);
     setShowBidModal(true);
     setBidsLoading(true);
     listingsAPI.getBids(listing.id).then(bids => { setSelectedBids(bids); setBidsLoading(false); }).catch(() => setBidsLoading(false));
@@ -41,9 +44,16 @@ export default function BusinessListings() {
   const handleAcceptBid = async (listingId: number, bidId: number) => {
     try {
       await listingsAPI.acceptBid(listingId, bidId);
-      setFlash('Bid accepted!'); setTimeout(() => setFlash(null), 2000);
-      setShowBidModal(false); loadListings();
-    } catch { setFlash('Failed to accept bid.'); setTimeout(() => setFlash(null), 2000); }
+      setBidModalMessageType('success');
+      setBidModalMessage('Bid accepted successfully.');
+      // Refresh listing summary and bid list to reflect accepted/rejected statuses.
+      loadListings();
+      listingsAPI.getBids(listingId).then(setSelectedBids).catch(() => {});
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to accept bid.';
+      setBidModalMessageType('error');
+      setBidModalMessage(msg);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -64,7 +74,7 @@ export default function BusinessListings() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My Waste Listings</h1>
         <div className="flex gap-2">
           <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 border rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900"><Download size={16}/> CSV</button>
-          <button onClick={() => navigate('new-listing')} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm hover:bg-cyan-700"><PlusCircle size={16} /> Add New Listing</button>
+          <button onClick={() => setShowCreateDrawer(true)} className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm hover:bg-cyan-700"><PlusCircle size={16} /> New Listing</button>
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
@@ -157,12 +167,21 @@ export default function BusinessListings() {
         </div>
       )}
       {showBidModal && selectedListing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowBidModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => { setShowBidModal(false); setBidModalMessage(null); }}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div><h2 className="text-xl font-bold">Bids for #{selectedListing.id}</h2><p className="text-sm text-gray-500 dark:text-gray-400">{selectedListing.waste_type} — {selectedListing.volume} {selectedListing.unit} · Min: RWF {(selectedListing.min_bid ?? 0).toLocaleString()}</p></div>
-              <button onClick={() => setShowBidModal(false)} className="p-1 hover:bg-gray-100 dark:bg-gray-700 rounded"><X size={20} /></button>
+              <button onClick={() => { setShowBidModal(false); setBidModalMessage(null); }} className="p-1 hover:bg-gray-100 dark:bg-gray-700 rounded"><X size={20} /></button>
             </div>
+            {bidModalMessage && (
+              <div className={`mb-4 p-3 rounded-lg border text-sm ${
+                bidModalMessageType === 'success'
+                  ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+              }`}>
+                {bidModalMessage}
+              </div>
+            )}
             {bidsLoading ? (
               <p className="text-center text-gray-400 dark:text-gray-500 py-8">Loading bids…</p>
             ) : selectedBids.length === 0 ? (
@@ -192,6 +211,16 @@ export default function BusinessListings() {
           </div>
         </div>
       )}
+
+      <BusinessListingFormDrawer
+        open={showCreateDrawer}
+        onClose={() => setShowCreateDrawer(false)}
+        onCreated={() => {
+          setFlash('Listing created successfully.');
+          setTimeout(() => setFlash(null), 2000);
+          loadListings();
+        }}
+      />
     </div>
   );
 }

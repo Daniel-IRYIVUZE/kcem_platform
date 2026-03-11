@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { listingsAPI, type WasteListing } from '../../../services/api';
+import { bidsAPI, listingsAPI, type WasteListing } from '../../../services/api';
 import { Search, X } from 'lucide-react';
 import DataTable from '../DataTable';
 
@@ -8,12 +8,34 @@ export default function RecyclerAvailableWaste() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [showBidModal, setShowBidModal] = useState(false);
   const [bidAmount, setBidAmount] = useState('');
-  const [bidFlash, setBidFlash] = useState<string | null>(null);
+  const [bidFormMessage, setBidFormMessage] = useState<string | null>(null);
+  const [bidFormMessageType, setBidFormMessageType] = useState<'success' | 'error'>('error');
   const [listings, setListings] = useState<WasteListing[]>([]);
+  const [activeBidListingIds, setActiveBidListingIds] = useState<Set<number>>(new Set());
+  const [activeBidByListingId, setActiveBidByListingId] = useState<Map<number, number>>(new Map());
   const [selectedListing, setSelectedListing] = useState<WasteListing | null>(null);
+  const [withdrawingListingId, setWithdrawingListingId] = useState<number | null>(null);
+  const [pageMessage, setPageMessage] = useState<string | null>(null);
+  const [pageMessageType, setPageMessageType] = useState<'success' | 'error'>('success');
 
   const load = useCallback(async () => {
-    try { setListings(await listingsAPI.list({ status: 'open', limit: 100 })); } catch {}
+    try {
+      const [openListings, myBids] = await Promise.all([
+        listingsAPI.list({ status: 'open', limit: 100 }),
+        bidsAPI.mine({ limit: 200 }),
+      ]);
+      setListings(openListings);
+      const activeBids = myBids.filter((b) => b.status === 'active');
+      setActiveBidListingIds(new Set(activeBids.map((b) => b.listing_id)));
+      setActiveBidByListingId(new Map(activeBids.map((b) => [b.listing_id, b.id])));
+    } catch {
+      // Fallback: still show listings even if bid history fails to load.
+      try {
+        setListings(await listingsAPI.list({ status: 'open', limit: 100 }));
+      } catch {}
+      setActiveBidListingIds(new Set());
+      setActiveBidByListingId(new Map());
+    }
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -27,13 +49,44 @@ export default function RecyclerAvailableWaste() {
     if (!selectedListing || !bidAmount) return;
     const amount = parseInt(bidAmount);
     if (isNaN(amount) || amount <= 0) return;
+    setBidFormMessage(null);
     try {
       await listingsAPI.placeBid(selectedListing.id, { amount, note: '' });
-      setBidFlash(`Bid of RWF ${amount.toLocaleString()} submitted!`);
-      setTimeout(() => setBidFlash(null), 3000);
-      setShowBidModal(false);
-      load();
-    } catch { setBidFlash('Failed to submit bid. Please try again.'); setTimeout(() => setBidFlash(null), 3000); }
+      setBidFormMessageType('success');
+      setBidFormMessage(`Bid of RWF ${amount.toLocaleString()} submitted successfully.`);
+      setTimeout(() => {
+        setShowBidModal(false);
+        setBidFormMessage(null);
+      }, 1200);
+      await load();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to submit bid. Please try again.';
+      setBidFormMessageType('error');
+      if (msg.toLowerCase().includes('already have an active bid')) {
+        setBidFormMessage('You already placed a bid on this listing. Open My Bids to increase or withdraw it.');
+      } else {
+        setBidFormMessage(msg);
+      }
+    }
+  };
+
+  const handleWithdrawBid = async (listingId: number) => {
+    const bidId = activeBidByListingId.get(listingId);
+    if (!bidId) return;
+    setWithdrawingListingId(listingId);
+    setPageMessage(null);
+    try {
+      await bidsAPI.withdraw(bidId);
+      setPageMessageType('success');
+      setPageMessage('Bid withdrawn successfully.');
+      await load();
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to withdraw bid.';
+      setPageMessageType('error');
+      setPageMessage(msg);
+    } finally {
+      setWithdrawingListingId(null);
+    }
   };
 
   const displayData = filtered.map(l => ({
@@ -46,11 +99,19 @@ export default function RecyclerAvailableWaste() {
 
   return (
     <div className="space-y-6">
-      {bidFlash && <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 px-4 py-2 rounded-lg text-sm">{bidFlash}</div>}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Available Waste</h1>
         <span className="text-sm bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full font-medium">{listings.length} listings available</span>
       </div>
+      {pageMessage && (
+        <div className={`px-4 py-2 rounded-lg border text-sm ${
+          pageMessageType === 'success'
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+            : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+        }`}>
+          {pageMessage}
+        </div>
+      )}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
         <div className="flex flex-col md:flex-row gap-3 mb-4">
           <div className="relative flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" /><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search listings..." className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent" /></div>
@@ -67,7 +128,15 @@ export default function RecyclerAvailableWaste() {
             { key: 'bids', label: 'Bids', render: (v: number) => <span className={`font-semibold ${v > 0 ? 'text-cyan-600' : 'text-gray-400 dark:text-gray-500'}`}>{v}</span> },
             { key: 'pickupDate', label: 'Expires' },
             { key: 'id', label: 'Action', render: (_v: string, r: typeof displayData[0]) => (
-              <button onClick={() => { setSelectedListing(r._raw); setBidAmount(''); setShowBidModal(true); }} className="px-3 py-1.5 text-xs bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium">Place Bid</button>
+              activeBidListingIds.has(r._raw.id)
+                ? <button
+                    onClick={() => handleWithdrawBid(r._raw.id)}
+                    disabled={withdrawingListingId === r._raw.id}
+                    className="px-3 py-1.5 text-xs bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded hover:bg-red-100 dark:hover:bg-red-900/35 font-medium disabled:opacity-60"
+                  >
+                    {withdrawingListingId === r._raw.id ? 'Withdrawing…' : 'Withdraw Bid'}
+                  </button>
+                : <button onClick={() => { setSelectedListing(r._raw); setBidAmount(''); setBidFormMessage(null); setShowBidModal(true); }} className="px-3 py-1.5 text-xs bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium">Place Bid</button>
             )},
           ]}
           data={displayData}
@@ -76,9 +145,9 @@ export default function RecyclerAvailableWaste() {
         {listings.length === 0 && <p className="text-center text-gray-400 dark:text-gray-500 py-8 text-sm">No open listings available.</p>}
       </div>
       {showBidModal && selectedListing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowBidModal(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => { setShowBidModal(false); setBidFormMessage(null); }}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4"><h2 className="text-xl font-bold text-gray-900 dark:text-white">Place Bid</h2><button onClick={() => setShowBidModal(false)} className="p-1 hover:bg-gray-100 dark:bg-gray-700 rounded"><X size={20} /></button></div>
+            <div className="flex items-center justify-between mb-4"><h2 className="text-xl font-bold text-gray-900 dark:text-white">Place Bid</h2><button onClick={() => { setShowBidModal(false); setBidFormMessage(null); }} className="p-1 hover:bg-gray-100 dark:bg-gray-700 rounded"><X size={20} /></button></div>
             <div className="space-y-3 mb-4">
               <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -89,6 +158,15 @@ export default function RecyclerAvailableWaste() {
                 </div>
               </div>
               <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Bid Amount (RWF)</label><input type="number" value={bidAmount} onChange={e => setBidAmount(e.target.value)} min={selectedListing.min_bid ?? 0} placeholder={`Min: ${(selectedListing.min_bid ?? 0).toLocaleString()}`} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" /></div>
+              {bidFormMessage && (
+                <div className={`text-sm px-3 py-2 rounded-lg border ${
+                  bidFormMessageType === 'success'
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                }`}>
+                  {bidFormMessage}
+                </div>
+              )}
             </div>
             <div className="flex gap-2">
               <button onClick={() => setShowBidModal(false)} className="flex-1 px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900 text-gray-700 dark:text-gray-300">Cancel</button>

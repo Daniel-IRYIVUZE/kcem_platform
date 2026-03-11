@@ -26,5 +26,10 @@ class BidRead(BaseModel):
     notes:           Optional[str]
     created_at:      datetime
     updated_at:      datetime
+    # Enriched listing details
+    hotel_name:      Optional[str] = None
+    waste_type:      Optional[str] = None
+    volume:          Optional[float] = None
+    unit:            Optional[str] = None
 
     model_config = {"from_attributes": True}

@@ -1,8 +1,7 @@
 // pages/Dashboard/BusinessDashboard.tsx
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import BusinessOverview from '../../components/dashboard/business/BusinessOverview';
 import BusinessListings from '../../components/dashboard/business/BusinessListings';
-import BusinessNewListing from '../../components/dashboard/business/BusinessNewListing';
 import BusinessRevenue from '../../components/dashboard/business/BusinessRevenue';
 import BusinessGreenScore from '../../components/dashboard/business/BusinessGreenScore';
 import BusinessCollectionSchedule from '../../components/dashboard/business/BusinessCollectionSchedule';
@@ -19,7 +18,7 @@ const BusinessDashboard = () => (
     <Route index element={<BusinessOverview />} />
     <Route path="overview" element={<BusinessOverview />} />
     <Route path="listings" element={<BusinessListings />} />
-    <Route path="new-listing" element={<BusinessNewListing />} />
+    <Route path="new-listing" element={<Navigate to="/dashboard/business/listings" replace />} />
     <Route path="revenue" element={<BusinessRevenue />} />
     <Route path="greenscore" element={<BusinessGreenScore />} />
     <Route path="schedule" element={<BusinessCollectionSchedule />} />

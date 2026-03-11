@@ -57,6 +57,7 @@ def _run_migrations() -> None:
     from sqlalchemy import text
     migrations = [
         "ALTER TABLE blog_posts ADD COLUMN author_display_name VARCHAR(150)",
+        "ALTER TABLE users ADD COLUMN must_change_password BOOLEAN DEFAULT 0",
     ]
     with engine.connect() as conn:
         for stmt in migrations:
@@ -81,6 +82,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
+    # Accept any localhost/127.0.0.1 dev port for browser preflight requests.
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

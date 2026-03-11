@@ -34,7 +34,12 @@ class CRUDDriver(CRUDBase[Driver, DriverCreate, DriverUpdate]):
 class CRUDVehicle(CRUDBase[Vehicle, VehicleCreate, VehicleUpdate]):
 
     def get_by_driver(self, db: Session, driver_id: int) -> list[Vehicle]:
-        return db.query(Vehicle).filter(Vehicle.driver_id == driver_id).all()
+        return (
+            db.query(Vehicle)
+            .join(Driver, Driver.vehicle_id == Vehicle.id)
+            .filter(Driver.id == driver_id)
+            .all()
+        )
 
     def get_by_recycler(self, db: Session, recycler_id: int) -> list[Vehicle]:
         return db.query(Vehicle).filter(Vehicle.recycler_id == recycler_id).all()

@@ -55,6 +55,7 @@ class User(Base):
     is_email_verified     = Column(Boolean, default=False)
     avatar_url            = Column(String(500), nullable=True)
     refresh_token         = Column(Text, nullable=True)
+    must_change_password  = Column(Boolean, default=False)
     reset_token           = Column(String(255), nullable=True)
     reset_token_expires   = Column(DateTime(timezone=True), nullable=True)
     email_verify_token    = Column(String(255), nullable=True)

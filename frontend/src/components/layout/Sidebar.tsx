@@ -4,7 +4,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   Home, Users, Package, Truck, Settings, BarChart3, DollarSign,
   Calendar, Map, FileText, ShoppingCart, Recycle, LogOut, ChevronLeft,
-  ChevronRight, Menu, X, Shield, ClipboardList, Trophy, MessageSquare, MapPin, Phone, Star, PlusCircle, Eye,
+  ChevronRight, Menu, X, Shield, ClipboardList, Trophy, MessageSquare, MapPin, Phone, Star, Eye,
   CheckCircle, Warehouse, Route,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -51,7 +51,6 @@ const roleConfigs: Record<string, {
     navItems: [
       { path: '/dashboard/business', label: 'Dashboard', icon: <BarChart3 size={20} /> },
       { path: '/dashboard/business/listings', label: 'My Waste Listings', icon: <Package size={20} /> },
-      { path: '/dashboard/business/new-listing', label: 'Add New Listing', icon: <PlusCircle size={20} /> },
       { path: '/dashboard/business/revenue', label: 'Revenue', icon: <DollarSign size={20} /> },
       { path: '/dashboard/business/greenscore', label: 'Green Score', icon: <Trophy size={20} /> },
       { path: '/dashboard/business/schedule', label: 'Collection Schedule', icon: <Calendar size={20} /> },
@@ -210,7 +209,7 @@ const Sidebar = ({ userRole }: SidebarProps) => {
       <aside className={sidebarClasses}>
         {/* Header */}
         <div className={`
-          flex items-center justify-between px-4 py-5 min-h-[72px]
+          flex items-center justify-between px-4 py-5 min-h-18
           ${isDark ? 'border-b border-gray-800' : 'border-b border-gray-200'}
         `}>
           {/* Logo */}

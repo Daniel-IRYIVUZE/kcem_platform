@@ -17,6 +17,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int = 3600
     role: Optional[str] = None
+    must_change_password: bool = False
     user: "UserRead"
 
 
@@ -81,6 +82,7 @@ class UserRead(BaseModel):
     avatar_url:       Optional[str]
     last_login:       Optional[datetime]
     created_at:       datetime
+    must_change_password: bool = False
 
     model_config = {"from_attributes": True}
 

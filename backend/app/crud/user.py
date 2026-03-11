@@ -106,6 +106,43 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             .offset(skip).limit(limit).all()
         )
 
+    def create_driver_user(
+        self,
+        db: Session,
+        *,
+        full_name: str,
+        email: str,
+        phone: str | None = None,
+    ) -> "tuple[User, str]":
+        """Create a driver user account with a temporary random password.
+
+        Returns (user, temp_password) – the caller should email temp_password to the driver.
+        """
+        import string
+        alphabet = string.ascii_letters + string.digits
+        temp_password = "".join(secrets.choice(alphabet) for _ in range(12))
+
+        db_obj = User(
+            email=email.lower(),
+            full_name=full_name,
+            phone=phone,
+            password_hash=hash_password(temp_password),
+            role=UserRole.driver,
+            status=UserStatus.active,
+            is_email_verified=True,   # skip email-verify flow for company-created accounts
+            must_change_password=True,
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj, temp_password
+
+    def change_password(self, db: Session, *, user: User, new_password: str) -> None:
+        """Change a user's password and clear the must_change_password flag."""
+        user.password_hash = hash_password(new_password)
+        user.must_change_password = False
+        db.commit()
+
     # ── Documents ────────────────────────────────────────────────────────────
     def add_document(self, db: Session, *, user_id: int, obj_in: "DocumentUpload") -> UserDocument:
         doc = UserDocument(

@@ -13,8 +13,13 @@ export default function DriverVehicle() {
   const [vehicle, setVehicle] = useState<VehicleItem | null>(null);
 
   useEffect(() => {
-    driversAPI.me().then(setDriver).catch(() => {});
-    vehiclesAPI.list().then(list => { if (list.length > 0) setVehicle(list[0]); }).catch(() => {});
+    driversAPI.me().then(d => {
+      setDriver(d);
+      vehiclesAPI.listMine().then(list => {
+        const linked = d.vehicle_id ? list.find(v => v.id === d.vehicle_id) : list[0];
+        if (linked) setVehicle(linked);
+      }).catch(() => {});
+    }).catch(() => {});
   }, []);
 
   const vehicleName = vehicle

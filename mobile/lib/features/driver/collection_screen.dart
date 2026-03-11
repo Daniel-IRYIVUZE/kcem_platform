@@ -15,7 +15,12 @@ class CollectionScreen extends ConsumerStatefulWidget {
 
 class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   int _step = 0;
-  final List<String> _steps = ['Arrive', 'Weigh & Photo', 'PIN Verify', 'Complete'];
+  final List<String> _steps = [
+    'Arrive',
+    'Weigh & Photo',
+    'PIN Verify',
+    'Complete'
+  ];
   final TextEditingController _weightCtrl = TextEditingController();
   String _unit = 'kg';
   final List<String> _photos = [];
@@ -33,9 +38,14 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   Widget build(BuildContext context) {
     final route = ref.watch(driverRouteProvider);
     final stops = route.stops;
-    final stopIdx = stops.indexWhere((s) => s.status == RouteStopStatus.collecting || s.status == RouteStopStatus.arrived || s.status == RouteStopStatus.pending);
-    final currentStop = stopIdx >= 0 ? stops[stopIdx] : (stops.isNotEmpty ? stops.first : null);
-    final completedCount = stops.where((s) => s.status == RouteStopStatus.completed).length;
+    final stopIdx = stops.indexWhere((s) =>
+        s.status == RouteStopStatus.collecting ||
+        s.status == RouteStopStatus.arrived ||
+        s.status == RouteStopStatus.pending);
+    final currentStop =
+        stopIdx >= 0 ? stops[stopIdx] : (stops.isNotEmpty ? stops.first : null);
+    final completedCount =
+        stops.where((s) => s.status == RouteStopStatus.completed).length;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -44,7 +54,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Chip(
-              label: Text('Stop ${completedCount + 1} of ${stops.length}', style: const TextStyle(fontSize: 12, color: AppColors.primary)),
+              label: Text('Stop ${completedCount + 1} of ${stops.length}',
+                  style:
+                      const TextStyle(fontSize: 12, color: AppColors.primary)),
               backgroundColor: AppColors.primaryLight,
             ),
           ),
@@ -61,25 +73,34 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 350),
                 transitionBuilder: (child, anim) => SlideTransition(
-                  position: Tween<Offset>(begin: const Offset(0.3, 0), end: Offset.zero).animate(anim),
+                  position: Tween<Offset>(
+                          begin: const Offset(0.3, 0), end: Offset.zero)
+                      .animate(anim),
                   child: FadeTransition(opacity: anim, child: child),
                 ),
                 child: [
-                  _ArriveStep(stop: currentStop, onNext: () => setState(() => _step = 1)),
+                  _ArriveStep(
+                      stop: currentStop,
+                      onNext: () => setState(() => _step = 1)),
                   _WeighPhotoStep(
                     weightCtrl: _weightCtrl,
                     unit: _unit,
                     photos: _photos,
                     onUnitChange: (u) => setState(() => _unit = u),
-                    onAddPhoto: () => setState(() => _photos.add('photo_${_photos.length}')),
+                    onAddPhoto: () =>
+                        setState(() => _photos.add('photo_${_photos.length}')),
                     onNext: () => setState(() => _step = 2),
                   ),
                   _PinVerifyStep(
                     pinCtrl: _pinCtrl,
                     error: _pinError,
                     onNext: () {
-                      if (_pinCtrl.text == '1234' || _pinCtrl.text.length >= 4) {
-                        setState(() { _step = 3; _pinError = false; });
+                      if (_pinCtrl.text == '1234' ||
+                          _pinCtrl.text.length >= 4) {
+                        setState(() {
+                          _step = 3;
+                          _pinError = false;
+                        });
                       } else {
                         setState(() => _pinError = true);
                       }
@@ -130,7 +151,11 @@ class _StepBar extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: done ? AppColors.primary : active ? context.cPrimaryLight : context.cSurf,
+                  color: done
+                      ? AppColors.primary
+                      : active
+                          ? context.cPrimaryLight
+                          : context.cSurf,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: done || active ? AppColors.primary : context.cBorder,
@@ -140,11 +165,13 @@ class _StepBar extends StatelessWidget {
                 child: Center(
                   child: done
                       ? const Icon(Icons.check, color: Colors.white, size: 14)
-                      : Text('${idx + 1}', style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: active ? AppColors.primary : context.cTextSec,
-                        )),
+                      : Text('${idx + 1}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color:
+                                active ? AppColors.primary : context.cTextSec,
+                          )),
                 ),
               ),
               const SizedBox(height: 4),
@@ -152,8 +179,11 @@ class _StepBar extends StatelessWidget {
                 steps[idx],
                 style: TextStyle(
                   fontSize: 10,
-                  fontWeight: active || done ? FontWeight.w600 : FontWeight.w400,
-                  color: active || done ? AppColors.primary : AppColors.textSecondary,
+                  fontWeight:
+                      active || done ? FontWeight.w600 : FontWeight.w400,
+                  color: active || done
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
                 ),
               ),
             ],
@@ -176,7 +206,9 @@ class _ArriveStep extends StatelessWidget {
     final wasteLabel = stop?.wasteType.label ?? 'Waste';
     final unit = stop?.wasteType == WasteType.uco ? 'L' : 'kg';
     final volume = stop?.volume.toStringAsFixed(0) ?? '—';
-    final contact = stop?.contactPerson != null ? '${stop!.contactPerson} (Contact)' : 'Contact on site';
+    final contact = stop?.contactPerson != null
+        ? '${stop!.contactPerson} (Contact)'
+        : 'Contact on site';
     return Column(
       key: const ValueKey('arrive'),
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,9 +225,13 @@ class _ArriveStep extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(businessName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                        Text(businessName,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 16)),
                         const SizedBox(height: 2),
-                        Text(location, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                        Text(location,
+                            style: const TextStyle(
+                                color: AppColors.textSecondary, fontSize: 13)),
                       ],
                     ),
                   ),
@@ -212,16 +248,23 @@ class _ArriveStep extends StatelessWidget {
                     label: const Text('Call'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 34),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 0),
                       textStyle: const TextStyle(fontSize: 12),
                     ),
                   ),
                 ],
               ),
               const Divider(height: 24),
-              _DetailRow(icon: Icons.recycling, label: 'Waste Type', value: wasteLabel),
+              _DetailRow(
+                  icon: Icons.recycling,
+                  label: 'Waste Type',
+                  value: wasteLabel),
               const SizedBox(height: 8),
-              _DetailRow(icon: Icons.inventory_2, label: 'Est. Volume', value: '$volume $unit'),
+              _DetailRow(
+                  icon: Icons.inventory_2,
+                  label: 'Est. Volume',
+                  value: '$volume $unit'),
               const SizedBox(height: 8),
               _DetailRow(icon: Icons.person, label: 'Contact', value: contact),
             ],
@@ -232,7 +275,8 @@ class _ArriveStep extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Collection Notes', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              const Text('Collection Notes',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -243,12 +287,14 @@ class _ArriveStep extends StatelessWidget {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.info_outline, color: AppColors.warning, size: 18),
+                    Icon(Icons.info_outline,
+                        color: AppColors.warning, size: 18),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Please use the service entrance on the north side. Ask for Jean Pierre on arrival.',
-                        style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary),
                       ),
                     ),
                   ],
@@ -260,8 +306,10 @@ class _ArriveStep extends StatelessWidget {
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: onNext,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-          child: const Text('I Have Arrived', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 52)),
+          child: const Text('I Have Arrived',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
         ),
       ],
     ).animate().fadeIn(duration: 300.ms);
@@ -295,7 +343,8 @@ class _WeighPhotoStep extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Actual Weight', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              const Text('Actual Weight',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
               const SizedBox(height: 14),
               Row(
                 children: [
@@ -303,18 +352,20 @@ class _WeighPhotoStep extends StatelessWidget {
                     child: TextField(
                       controller: weightCtrl,
                       keyboardType: TextInputType.number,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                          fontSize: 24, fontWeight: FontWeight.w700),
                       decoration: InputDecoration(
                         hintText: '0.0',
-                        hintStyle: TextStyle(color: AppColors.textSecondary.withOpacity(0.4)),
+                        hintStyle: TextStyle(
+                            color: AppColors.textSecondary.withOpacity(0.4)),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   SegmentedButton<String>(
-                    segments: const [
-                      ButKilogramsegment(value: 'kg', label: Text('kg')),
-                      ButKilogramsegment(value: 'tonnes', label: Text('T')),
+                    segments: [
+                      ButtonSegment(value: 'kg', label: const Text('kg')),
+                      ButtonSegment(value: 'tonnes', label: const Text('T')),
                     ],
                     selected: {unit},
                     onSelectionChanged: (s) => onUnitChange(s.first),
@@ -326,7 +377,11 @@ class _WeighPhotoStep extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              const _DetailRow(icon: Icons.inventory_2, label: 'Expected', value: '80 kg', small: true),
+              const _DetailRow(
+                  icon: Icons.inventory_2,
+                  label: 'Expected',
+                  value: '80 kg',
+                  small: true),
             ],
           ),
         ),
@@ -338,8 +393,12 @@ class _WeighPhotoStep extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Photos', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                  Text('${photos.length}/5 photos', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                  const Text('Photos',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  Text('${photos.length}/5 photos',
+                      style: const TextStyle(
+                          color: AppColors.textSecondary, fontSize: 13)),
                 ],
               ),
               const SizedBox(height: 12),
@@ -349,15 +408,16 @@ class _WeighPhotoStep extends StatelessWidget {
                   scrollDirection: Axis.horizontal,
                   children: [
                     ...photos.map((p) => Container(
-                      width: 80,
-                      height: 80,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.image, color: AppColors.primary),
-                    )),
+                          width: 80,
+                          height: 80,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child:
+                              const Icon(Icons.image, color: AppColors.primary),
+                        )),
                     if (photos.length < 5)
                       GestureDetector(
                         onTap: onAddPhoto,
@@ -367,14 +427,21 @@ class _WeighPhotoStep extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: context.cSurf,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: context.cBorder, style: BorderStyle.solid),
+                            border: Border.all(
+                                color: context.cBorder,
+                                style: BorderStyle.solid),
                           ),
                           child: const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.camera_alt, color: AppColors.primary, size: 24),
+                              Icon(Icons.camera_alt,
+                                  color: AppColors.primary, size: 24),
                               SizedBox(height: 4),
-                              Text('Add', style: TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.w600)),
+                              Text('Add',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w600)),
                             ],
                           ),
                         ),
@@ -388,8 +455,10 @@ class _WeighPhotoStep extends StatelessWidget {
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: onNext,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-          child: const Text('Continue to Verification', style: TextStyle(fontWeight: FontWeight.w700)),
+          style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 52)),
+          child: const Text('Continue to Verification',
+              style: TextStyle(fontWeight: FontWeight.w700)),
         ),
       ],
     ).animate().fadeIn(duration: 300.ms);
@@ -401,7 +470,8 @@ class _PinVerifyStep extends StatelessWidget {
   final bool error;
   final VoidCallback onNext;
 
-  const _PinVerifyStep({required this.pinCtrl, required this.error, required this.onNext});
+  const _PinVerifyStep(
+      {required this.pinCtrl, required this.error, required this.onNext});
 
   @override
   Widget build(BuildContext context) {
@@ -416,10 +486,12 @@ class _PinVerifyStep extends StatelessWidget {
             color: AppColors.primaryLight,
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.verified_user, color: AppColors.primary, size: 40),
+          child: const Icon(Icons.verified_user,
+              color: AppColors.primary, size: 40),
         ),
         const SizedBox(height: 16),
-        const Text('Hotel Staff Verification', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20)),
+        const Text('Hotel Staff Verification',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20)),
         const SizedBox(height: 6),
         const Text(
           'Ask the hotel staff to enter their\n4-digit collection PIN',
@@ -437,7 +509,10 @@ class _PinVerifyStep extends StatelessWidget {
                 obscureText: true,
                 maxLength: 6,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: 12),
+                style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 12),
                 decoration: InputDecoration(
                   counterText: '',
                   hintText: '• • • •',
@@ -450,8 +525,10 @@ class _PinVerifyStep extends StatelessWidget {
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: onNext,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-          child: const Text('Verify & Complete', style: TextStyle(fontWeight: FontWeight.w700)),
+          style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 52)),
+          child: const Text('Verify & Complete',
+              style: TextStyle(fontWeight: FontWeight.w700)),
         ),
       ],
     ).animate().fadeIn(duration: 300.ms);
@@ -475,8 +552,11 @@ class _CompleteStep extends StatelessWidget {
             gradient: AppColors.primaryGradient,
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 56),
-        ).animate().scale(delay: 100.ms, duration: 500.ms, curve: Curves.elasticOut),
+          child: const Icon(Icons.check_circle_outline,
+              color: Colors.white, size: 56),
+        )
+            .animate()
+            .scale(delay: 100.ms, duration: 500.ms, curve: Curves.elasticOut),
         const SizedBox(height: 20),
         const Text(
           'Collection Complete!',
@@ -507,15 +587,23 @@ class _CompleteStep extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-                child: const Icon(Icons.payments, color: Colors.white, size: 18),
+                decoration: const BoxDecoration(
+                    color: AppColors.primary, shape: BoxShape.circle),
+                child:
+                    const Icon(Icons.payments, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 12),
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Earnings for this stop', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                  Text('RWF 3,500', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primary)),
+                  Text('Earnings for this stop',
+                      style: TextStyle(
+                          color: AppColors.textSecondary, fontSize: 12)),
+                  Text('RWF 3,500',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          color: AppColors.primary)),
                 ],
               ),
             ],
@@ -524,8 +612,10 @@ class _CompleteStep extends StatelessWidget {
         const SizedBox(height: 24),
         ElevatedButton(
           onPressed: onDone,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-          child: const Text('Next Stop →', style: TextStyle(fontWeight: FontWeight.w700)),
+          style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 52)),
+          child: const Text('Next Stop →',
+              style: TextStyle(fontWeight: FontWeight.w700)),
         ),
         const SizedBox(height: 8),
         TextButton(
@@ -549,8 +639,12 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          Text(label,
+              style: const TextStyle(
+                  color: AppColors.textSecondary, fontSize: 13)),
+          Text(value,
+              style:
+                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
         ],
       ),
     );
@@ -571,7 +665,9 @@ class _Card extends StatelessWidget {
         color: color ?? context.cSurf,
         borderRadius: BorderRadius.circular(16),
         border: color == null ? Border.all(color: context.cBorder) : null,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+        ],
       ),
       child: child,
     );
@@ -583,7 +679,11 @@ class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
   final bool small;
-  const _DetailRow({required this.icon, required this.label, required this.value, this.small = false});
+  const _DetailRow(
+      {required this.icon,
+      required this.label,
+      required this.value,
+      this.small = false});
 
   @override
   Widget build(BuildContext context) {
@@ -591,8 +691,12 @@ class _DetailRow extends StatelessWidget {
       children: [
         Icon(icon, size: small ? 14 : 16, color: AppColors.primary),
         const SizedBox(width: 8),
-        Text('$label: ', style: TextStyle(color: AppColors.textSecondary, fontSize: small ? 12 : 13)),
-        Text(value, style: TextStyle(fontWeight: FontWeight.w600, fontSize: small ? 12 : 13)),
+        Text('$label: ',
+            style: TextStyle(
+                color: AppColors.textSecondary, fontSize: small ? 12 : 13)),
+        Text(value,
+            style: TextStyle(
+                fontWeight: FontWeight.w600, fontSize: small ? 12 : 13)),
       ],
     );
   }

@@ -1,8 +1,17 @@
 """schemas/driver.py"""
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from app.models.driver import VehicleStatus, DriverStatus
+
+
+class DriverRegisterByRecycler(BaseModel):
+    """Payload for a recycler registering a new driver account."""
+    full_name: str
+    email: EmailStr
+    phone: Optional[str] = None
+    license_number: Optional[str] = None
+    vehicle_id: Optional[int] = None
 
 
 class VehicleCreate(BaseModel):
@@ -66,6 +75,9 @@ class DriverRead(BaseModel):
     total_trips:    int
     is_verified:    bool
     created_at:     datetime
+    updated_at:     Optional[datetime] = None
+    last_login:     Optional[datetime] = None
+    has_logged_in:  bool = False
 
     # Enriched from relationships
     name:           Optional[str] = None
@@ -93,6 +105,7 @@ class DriverRead(BaseModel):
             "total_trips": driver.total_trips,
             "is_verified": driver.is_verified,
             "created_at": driver.created_at,
+            "updated_at": getattr(driver, "updated_at", None),
         }
         if driver.user:
             data["name"] = driver.user.full_name or driver.user.email

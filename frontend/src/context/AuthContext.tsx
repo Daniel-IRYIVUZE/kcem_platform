@@ -27,10 +27,12 @@ export type User = {
 type AuthContextType = {
   user: User | null;
   loading: boolean;
+  mustChangePassword: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   verify2FA: (code: string) => Promise<boolean>;
   updateUser: (data: Partial<User>) => void;
+  clearMustChangePassword: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -74,6 +76,7 @@ function apiUserToUser(apiUser: {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mustChangePassword, setMustChangePassword] = useState(false);
 
   // Restore session on mount from localStorage and verify token
   useEffect(() => {
@@ -122,6 +125,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     restoreSession();
   }, []);
 
+  // Listen for API-level auth expiry so UI logs out immediately.
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      setUser(null);
+      localStorage.removeItem('ecotrade_user');
+      localStorage.removeItem('ecotrade_token');
+      localStorage.removeItem('ecotrade_refresh_token');
+      window.dispatchEvent(new Event('authChange'));
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+    return () => window.removeEventListener('auth:expired', handleAuthExpired);
+  }, []);
+
   // Auto-refresh token before expiration (optional but recommended)
   useEffect(() => {
     if (!user) return;
@@ -151,10 +168,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       // Store token
       localStorage.setItem('ecotrade_token', res.access_token);
+      if (res.refresh_token) {
+        localStorage.setItem('ecotrade_refresh_token', res.refresh_token);
+      }
 
       // Set user state
       const mappedUser = apiUserToUser(res.user);
       setUser(mappedUser);
+      
+      // Flag first-login password change requirement
+      if (res.must_change_password) {
+        setMustChangePassword(true);
+      }
       
       // Persist user data for quick restoration
       localStorage.setItem('ecotrade_user', JSON.stringify(mappedUser));
@@ -176,6 +201,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     setUser(null);
+    setMustChangePassword(false);
     localStorage.removeItem('ecotrade_user');
     localStorage.removeItem('ecotrade_token');
     localStorage.removeItem('ecotrade_refresh_token');
@@ -195,8 +221,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('ecotrade_user', JSON.stringify(updated));
   };
 
+  const clearMustChangePassword = () => setMustChangePassword(false);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, verify2FA, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, mustChangePassword, login, logout, verify2FA, updateUser, clearMustChangePassword }}>
       {children}
     </AuthContext.Provider>
   );

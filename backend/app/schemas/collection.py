@@ -71,6 +71,13 @@ class CollectionRead(BaseModel):
     unit:          Optional[str] = None
     location:      Optional[str] = None
     earnings:      Optional[float] = None
+    # Coordinates (destination + driver live position)
+    listing_lat:   Optional[float] = None
+    listing_lng:   Optional[float] = None
+    hotel_lat:     Optional[float] = None
+    hotel_lng:     Optional[float] = None
+    driver_lat:    Optional[float] = None
+    driver_lng:    Optional[float] = None
 
     @model_validator(mode='before')
     @classmethod
@@ -81,18 +88,28 @@ class CollectionRead(BaseModel):
             if data.hotel:
                 data.__dict__.setdefault('hotel_name', data.hotel.hotel_name)
                 data.__dict__.setdefault('location',   data.hotel.address)
+                data.__dict__.setdefault('hotel_lat',  data.hotel.latitude)
+                data.__dict__.setdefault('hotel_lng',  data.hotel.longitude)
             if data.recycler:
                 data.__dict__.setdefault('recycler_name', data.recycler.company_name)
-            if data.driver and data.driver.user:
-                data.__dict__.setdefault('driver_name', data.driver.user.full_name or data.driver.user.email)
+            if data.driver:
+                if data.driver.user:
+                    data.__dict__.setdefault('driver_name', data.driver.user.full_name or data.driver.user.email)
+                data.__dict__.setdefault('driver_lat', data.driver.current_lat)
+                data.__dict__.setdefault('driver_lng', data.driver.current_lng)
             if data.listing:
                 listing = data.listing
-                data.__dict__.setdefault('waste_type', listing.waste_type.value if listing.waste_type else None)
-                data.__dict__.setdefault('volume',     listing.volume)
-                data.__dict__.setdefault('unit',       listing.unit)
-                # Fallback hotel_name from listing if not already set
-                if not data.__dict__.get('hotel_name') and listing.hotel:
-                    data.__dict__['hotel_name'] = listing.hotel.hotel_name
+                data.__dict__.setdefault('waste_type',   listing.waste_type.value if listing.waste_type else None)
+                data.__dict__.setdefault('volume',       listing.volume)
+                data.__dict__.setdefault('unit',         listing.unit)
+                data.__dict__.setdefault('listing_lat',  listing.latitude)
+                data.__dict__.setdefault('listing_lng',  listing.longitude)
+                # Fallback hotel coords/name from listing if not already set
+                if listing.hotel:
+                    if not data.__dict__.get('hotel_name'):
+                        data.__dict__['hotel_name'] = listing.hotel.hotel_name
+                    data.__dict__.setdefault('hotel_lat', listing.hotel.latitude)
+                    data.__dict__.setdefault('hotel_lng', listing.hotel.longitude)
             if data.transaction:
                 data.__dict__.setdefault('earnings', data.transaction.net_amount or 0.0)
         except Exception:
