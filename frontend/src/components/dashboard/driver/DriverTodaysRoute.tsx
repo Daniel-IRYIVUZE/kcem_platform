@@ -308,7 +308,7 @@ export default function DriverTodaysRoute() {
       {/* Greeting */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome, {authUser?.name || 'Driver'}!</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome, {profileName}!</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Your daily collection routes</p>
         </div>
         {/* GPS status indicator */}

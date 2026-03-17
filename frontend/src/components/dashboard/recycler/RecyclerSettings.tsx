@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { usersAPI, recyclersAPI } from '../../../services/api';
 import type { RecyclerProfile } from '../../../services/api';
 import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '../../../context/AuthContext';
 
 const WASTE_TYPES = [
   { key: 'UCO', label: 'UCO (Used Cooking Oil)' },
@@ -16,7 +17,9 @@ const WASTE_TYPES = [
 ];
 
 export default function RecyclerSettings() {
+  const { updateUser } = useAuth();
   const [profile, setProfile] = useState<RecyclerProfile | null>(null);
+  const [hasRecyclerProfile, setHasRecyclerProfile] = useState(false);
 
   const [fullName, setFullName]     = useState('');
   const [email, setEmail]           = useState('');
@@ -36,28 +39,44 @@ export default function RecyclerSettings() {
   const [errMsg, setErrMsg] = useState('');
 
   useEffect(() => {
-    Promise.all([usersAPI.me(), recyclersAPI.me()]).then(([u, r]) => {
+    Promise.all([
+      usersAPI.me().catch(() => null),
+      recyclersAPI.me().catch(() => null),
+    ]).then(([u, r]) => {
+      if (!u) return;
+
       setFullName(u.full_name || '');
       setEmail(u.email || '');
       setUserPhone(u.phone || '');
+      updateUser({ name: u.full_name || '' });
+
+      if (!r) return;
+
+      setHasRecyclerProfile(true);
       setProfile(r);
       setCompanyName(r.company_name || '');
       setAddress(r.address || '');
       setCity(r.city || 'Kigali');
       setPhone(r.phone || '');
-      setWebsite((r as unknown as { website?: string }).website || '');
+      setWebsite(r.website || '');
       setDescription(r.description || '');
       setStorageCapacity(String(r.storage_capacity || ''));
       if (r.waste_types_handled) {
         try {
-          const parsed = JSON.parse(r.waste_types_handled);
+          const parsed = typeof r.waste_types_handled === 'string'
+            ? JSON.parse(r.waste_types_handled)
+            : r.waste_types_handled;
           setSelectedWasteTypes(Array.isArray(parsed) ? parsed : []);
         } catch {
-          setSelectedWasteTypes(r.waste_types_handled.split(',').map(s => s.trim()).filter(Boolean));
+          setSelectedWasteTypes(
+            typeof r.waste_types_handled === 'string'
+              ? r.waste_types_handled.split(',').map(s => s.trim()).filter(Boolean)
+              : []
+          );
         }
       }
     }).catch(() => {});
-  }, []);
+  }, [updateUser]);
 
   const toggleWasteType = (key: string) =>
     setSelectedWasteTypes(prev =>
@@ -68,19 +87,35 @@ export default function RecyclerSettings() {
     setSaving(true);
     setStatus('idle');
     try {
-      await Promise.all([
-        usersAPI.updateMe({ full_name: fullName, phone: userPhone, email }),
-        recyclersAPI.update({
-          company_name: companyName,
-          address,
-          city,
-          phone,
-          website,
-          description,
-          waste_types_handled: selectedWasteTypes,
-          storage_capacity: storageCapacity ? Number(storageCapacity) : undefined,
-        }),
-      ]);
+      const name = fullName.trim();
+      const company = companyName.trim();
+      const companyAddress = address.trim();
+
+      if (!name) throw new Error('Full name is required.');
+      if (!company) throw new Error('Company name is required.');
+      if (!companyAddress) throw new Error('Address is required.');
+
+      await usersAPI.updateMe({ full_name: name, phone: userPhone.trim() || undefined });
+
+      const recyclerPayload = {
+        company_name: company,
+        address: companyAddress,
+        city: city.trim() || 'Kigali',
+        phone: phone.trim() || undefined,
+        website: website.trim() || undefined,
+        description: description.trim() || undefined,
+        waste_types_handled: selectedWasteTypes,
+        storage_capacity: storageCapacity ? Number(storageCapacity) : undefined,
+      };
+
+      if (hasRecyclerProfile) {
+        await recyclersAPI.update(recyclerPayload);
+      } else {
+        await recyclersAPI.create(recyclerPayload);
+        setHasRecyclerProfile(true);
+      }
+
+      updateUser({ name, companyName: company, phone: userPhone.trim() || undefined, email });
       setStatus('success');
     } catch (e: unknown) {
       setErrMsg(e instanceof Error ? e.message : 'Save failed. Please try again.');

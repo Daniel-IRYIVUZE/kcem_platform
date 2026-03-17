@@ -62,7 +62,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Try real backend API first
       final response = await ApiService.login(email, password);
       final userMap = response['user'] as Map<String, dynamic>;
-      final user = AppUser(
+      var user = AppUser(
         id: (userMap['id'] as int).toString(),
         name: userMap['full_name'] as String? ?? email,
         email: userMap['email'] as String? ?? email,
@@ -71,6 +71,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
         verified: userMap['is_verified'] as bool? ?? false,
         greenScore: 0,
       );
+      
+      // Enrich user with role-specific profile data
+      try {
+        if (user.role == UserRole.business) {
+          final hotelData = await ApiService.getMyHotel();
+          user = user.copyWith(
+            businessName: hotelData['hotel_name'] as String?,
+          );
+        } else if (user.role == UserRole.recycler) {
+          final recyclerData = await ApiService.getMyRecycler();
+          user = user.copyWith(
+            companyName: recyclerData['company_name'] as String?,
+          );
+        }
+      } catch (_) {
+        // Profile fetch failed, continue with basic user data
+      }
+      
       await LocalStorageService.instance.saveUser(user);
       state = AuthState(user: user);
       return true;

@@ -7,6 +7,7 @@ import { recyclersAPI, collectionsAPI, transactionsAPI } from '../../../services
 import { computeGreenScore } from './_shared';
 import type { RecyclerProfile, Collection, Transaction } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
+import { getDashboardDisplayName } from '../../../utils/userDisplayName';
 
 // kg CO2 saved per kg of each waste type (mirrors backend factors)
 const CO2_FACTORS: Record<string, number> = {
@@ -53,7 +54,7 @@ export default function RecyclerGreenImpact() {
 
   const greenScore = computeGreenScore(profile?.green_score, totalCollectedKg, completed.length);
 
-  const displayName = profile?.company_name || authUser?.name || 'Your Company';
+  const displayName = profile?.company_name || getDashboardDisplayName(authUser, 'Your Company');
 
   // Revenue trend for chart (last 6 months)
   const impactTrend = useMemo(() => {

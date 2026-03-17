@@ -6,6 +6,7 @@ import { Trophy, TrendingUp, Download, Award } from 'lucide-react';
 import Widget from '../Widget';
 import ChartComponent from '../ChartComponent';
 import { useAuth } from '../../../context/AuthContext';
+import { getDashboardDisplayName } from '../../../utils/userDisplayName';
 
 export default function BusinessGreenScore() {
   const { user: authUser } = useAuth();
@@ -39,7 +40,7 @@ export default function BusinessGreenScore() {
 
   // Prefer API score
   const greenScore = apiScore !== null ? apiScore : calculatedScore;
-  const displayName = hotelName || authUser?.name || 'Your Hotel';
+  const displayName = hotelName || getDashboardDisplayName(authUser, 'Your Hotel');
 
   const handleDownloadCertificate = () => {
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });

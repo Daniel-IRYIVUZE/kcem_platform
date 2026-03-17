@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { authAPI, usersAPI } from '../services/api';
+import { authAPI, usersAPI, hotelsAPI, recyclersAPI, driversAPI } from '../services/api';
 import { syncFromAPI } from '../utils/apiSync';
 
 export type UserRole = 'admin' | 'business' | 'recycler' | 'driver' | 'individual';
@@ -72,6 +72,29 @@ function apiUserToUser(apiUser: {
   };
 }
 
+async function enrichUserWithRoleProfile(user: User): Promise<User> {
+  try {
+    if (user.role === 'business') {
+      const hotel = await hotelsAPI.me();
+      return { ...user, businessName: hotel.hotel_name || user.businessName };
+    }
+
+    if (user.role === 'recycler') {
+      const recycler = await recyclersAPI.me();
+      return { ...user, companyName: recycler.company_name || user.companyName };
+    }
+
+    if (user.role === 'driver') {
+      const driver = await driversAPI.me();
+      return { ...user, name: driver.name || user.name };
+    }
+  } catch {
+    // Keep base user if profile fetch fails
+  }
+
+  return user;
+}
+
 // ─── Provider ─────────────────────────────────────────────────────────────────
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -103,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Verify token is still valid by calling /me endpoint
       try {
         const apiUser = await usersAPI.me();
-        const freshUser = apiUserToUser(apiUser);
+        const freshUser = await enrichUserWithRoleProfile(apiUserToUser(apiUser));
         setUser(freshUser);
         // Update cache with fresh data
         localStorage.setItem('ecotrade_user', JSON.stringify(freshUser));
@@ -146,8 +169,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Refresh token every 50 minutes (tokens expire in 60 minutes)
     const refreshInterval = setInterval(() => {
       usersAPI.me()
-        .then((apiUser) => {
-          const freshUser = apiUserToUser(apiUser);
+        .then(async (apiUser) => {
+          const freshUser = await enrichUserWithRoleProfile(apiUserToUser(apiUser));
           setUser(freshUser);
           localStorage.setItem('ecotrade_user', JSON.stringify(freshUser));
         })
@@ -173,7 +196,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Set user state
-      const mappedUser = apiUserToUser(res.user);
+      const mappedUser = await enrichUserWithRoleProfile(apiUserToUser(res.user));
       setUser(mappedUser);
       
       // Flag first-login password change requirement

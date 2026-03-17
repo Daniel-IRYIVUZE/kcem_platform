@@ -857,6 +857,8 @@ export interface HotelProfile {
 
 export const hotelsAPI = {
   me: () => request<HotelProfile>('/hotels/me'),
+  create: (data: { hotel_name: string; address: string; city?: string; phone?: string; website?: string; description?: string }) =>
+    request<HotelProfile>('/hotels', { method: 'POST', body: JSON.stringify(data) }),
   list: (params?: { skip?: number; limit?: number }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
     return request<HotelProfile[]>(`/hotels${q ? `?${q}` : ''}`);
@@ -876,7 +878,8 @@ export interface RecyclerProfile {
   address?: string;
   city?: string;
   phone?: string;
-  waste_types_handled?: string;
+  website?: string;
+  waste_types_handled?: string[] | string;
   storage_capacity?: number;
   fleet_size?: number;
   green_score: number;
@@ -890,6 +893,16 @@ export interface RecyclerProfile {
 
 export const recyclersAPI = {
   me: () => request<RecyclerProfile>('/recyclers/me'),
+  create: (data: {
+    company_name: string;
+    address: string;
+    city?: string;
+    phone?: string;
+    website?: string;
+    description?: string;
+    waste_types_handled?: string[];
+    storage_capacity?: number;
+  }) => request<RecyclerProfile>('/recyclers', { method: 'POST', body: JSON.stringify(data) }),
   update: (data: {
     company_name?: string;
     address?: string;

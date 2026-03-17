@@ -385,6 +385,10 @@ class ApiService {
   
   // ── Hotels ──────────────────────────────────────────────────────────────────
   
+  static Future<Map<String, dynamic>> getMyHotel() async {
+    return await _request('GET', '/hotels/me');
+  }
+  
   static Future<Map<String, dynamic>> getHotelProfile(int userId) async {
     return await _request('GET', '/hotels/$userId');
   }
@@ -393,7 +397,15 @@ class ApiService {
     return await _request('PATCH', '/hotels/$userId', body: data);
   }
   
+  static Future<Map<String, dynamic>> updateMyHotel(Map<String, dynamic> data) async {
+    return await _request('PATCH', '/hotels/me', body: data);
+  }
+  
   // ── Recyclers ───────────────────────────────────────────────────────────────
+  
+  static Future<Map<String, dynamic>> getMyRecycler() async {
+    return await _request('GET', '/recyclers/me');
+  }
   
   static Future<Map<String, dynamic>> getRecyclerProfile(int userId) async {
     return await _request('GET', '/recyclers/$userId');
@@ -401,6 +413,10 @@ class ApiService {
   
   static Future<Map<String, dynamic>> updateRecyclerProfile(int userId, Map<String, dynamic> data) async {
     return await _request('PATCH', '/recyclers/$userId', body: data);
+  }
+  
+  static Future<Map<String, dynamic>> updateMyRecycler(Map<String, dynamic> data) async {
+    return await _request('PATCH', '/recyclers/me', body: data);
   }
   
   // ── Drivers ─────────────────────────────────────────────────────────────────

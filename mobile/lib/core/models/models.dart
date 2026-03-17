@@ -134,6 +134,37 @@ class AppUser {
   // JSON aliases
   Map<String, dynamic> toJson() => toMap();
   factory AppUser.fromJson(Map<String, dynamic> j) => AppUser.fromMap(j);
+
+  AppUser copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? phone,
+    UserRole? role,
+    bool? verified,
+    String? businessName,
+    String? companyName,
+    int? greenScore,
+    String? vehicleType,
+    String? vehiclePlate,
+    double? rating,
+    int? completedRoutes,
+  }) =>
+      AppUser(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        email: email ?? this.email,
+        phone: phone ?? this.phone,
+        role: role ?? this.role,
+        verified: verified ?? this.verified,
+        businessName: businessName ?? this.businessName,
+        companyName: companyName ?? this.companyName,
+        greenScore: greenScore ?? this.greenScore,
+        vehicleType: vehicleType ?? this.vehicleType,
+        vehiclePlate: vehiclePlate ?? this.vehiclePlate,
+        rating: rating ?? this.rating,
+        completedRoutes: completedRoutes ?? this.completedRoutes,
+      );
 }
 
 // ─── WasteListing ──────────────────────────────────────────────────────────

@@ -18,6 +18,7 @@ import StatusBadge from '../../ui/StatusBadge';
 import EcoImpactPanel from '../../ui/EcoImpactPanel';
 import ActivityFeed, { type ActivityItem } from '../../ui/ActivityFeed';
 import { hotelProfile } from './_shared';
+import { getDashboardDisplayName } from '../../../utils/userDisplayName';
 
 export default function BusinessOverview() {
   const navigate = useNavigate();
@@ -46,6 +47,7 @@ export default function BusinessOverview() {
   const unreadMsgs    = messages.filter(m => !m.is_read).length;
   const activeCollect = collections.filter(c => c.status === 'scheduled' || c.status === 'en-route');
   const sparkRevenue   = [35, 40, 45, 50, 55, 60, 65, 80, 90, 85, 95, 100];
+  const displayName = getDashboardDisplayName(authUser, hotelProfile.name);
 
   // Build Revenue Trend chart from real transaction data (last 6 months)
   const revenueTrend: ChartData = (() => {
@@ -105,7 +107,7 @@ export default function BusinessOverview() {
   return (
     <div className="space-y-6 animate-fade-up">
       <PageHeader
-        title={`Welcome back, ${authUser?.name || hotelProfile.name}!`}
+        title={`Welcome back, ${displayName}!`}
         subtitle="Here's your waste management overview"
         icon={<Leaf size={20}/>}
         badge={unreadMsgs > 0 ? `${unreadMsgs} new messages` : undefined}

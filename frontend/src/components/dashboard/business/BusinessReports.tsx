@@ -6,6 +6,7 @@ import {
   type WasteListing, type Transaction, type Collection, type HotelProfile
 } from '../../../services/api';
 import { downloadPDF } from '../../../utils/dataStore';
+import { getDashboardDisplayName } from '../../../utils/userDisplayName';
 import { Download, Package, DollarSign } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
@@ -35,7 +36,7 @@ export default function BusinessReports() {
         transactionsAPI.mine({ limit: 200 } as Parameters<typeof transactionsAPI.mine>[0]).catch(() => []) as Promise<Transaction[]>,
         collectionsAPI.list({ limit: 200 } as Parameters<typeof collectionsAPI.list>[0]).catch(() => []) as Promise<Collection[]>,
       ]);
-      const hotelName = hotel?.hotel_name || authUser?.name || 'Hotel';
+      const hotelName = hotel?.hotel_name || getDashboardDisplayName(authUser, 'Hotel');
 
       if (type === 'Waste Report') {
         const rows = listings.map(l => `<tr><td>${l.id}</td><td>${l.waste_type}</td><td>${l.volume}</td><td>${l.unit}</td><td>${l.status}</td><td>${l.created_at ? new Date(l.created_at).toLocaleDateString() : ''}</td><td>${l.bid_count || 0}</td></tr>`).join('');

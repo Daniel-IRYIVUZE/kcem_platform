@@ -18,6 +18,7 @@ import BidTicker, { type TickerItem } from '../../ui/BidTicker';
 import ActivityFeed, { type ActivityItem } from '../../ui/ActivityFeed';
 import { companyProfile, computeGreenScore } from './_shared';
 import AutoAssignPanel from './AutoAssignPanel';
+import { getDashboardDisplayName } from '../../../utils/userDisplayName';
 
 export default function RecyclerOverview() {
   const navigate = useNavigate();
@@ -178,11 +179,12 @@ export default function RecyclerOverview() {
     () => revenueTrend.datasets[0]?.data.length ? revenueTrend.datasets[0].data : [0, 0, 0, 0, 0, 0],
     [revenueTrend],
   );
+  const displayName = getDashboardDisplayName(authUser, recyclerProfile?.company_name || companyProfile.name);
 
   return (
     <div className="space-y-6 animate-fade-up">
       <PageHeader
-        title={`Welcome, ${authUser?.name || recyclerProfile?.company_name || companyProfile.name}!`}
+        title={`Welcome, ${displayName}!`}
         subtitle={`${recyclerProfile?.city ?? recyclerProfile?.address ?? companyProfile.location} · Fleet of ${liveFleetSize} vehicles`}
         icon={<Leaf size={20}/>}
         badge={liveBids.length > 0 ? `${liveBids.length} active bids` : undefined}

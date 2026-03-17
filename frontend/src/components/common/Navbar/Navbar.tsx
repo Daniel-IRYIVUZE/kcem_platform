@@ -42,8 +42,14 @@ const Navbar = () => {
       try {
         const u = JSON.parse(storedUser);
         setIsAuthenticated(true);
-        setUserRole(u.role || '');
-        setUserName(u.name || '');
+        const role = u.role || '';
+        setUserRole(role);
+        const resolvedName = role === 'business'
+          ? (u.businessName || u.name || '')
+          : role === 'recycler'
+            ? (u.companyName || u.name || '')
+            : (u.name || '');
+        setUserName(resolvedName);
         return;
       } catch {/* fall through */}
     }

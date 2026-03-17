@@ -6,6 +6,7 @@ import type { User } from '../../context/AuthContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { getDashboardDisplayName } from '../../utils/userDisplayName';
 
 interface TopNavProps { user: User; }
 
@@ -55,6 +56,7 @@ const TopNav = ({ user }: TopNavProps) => {
     admin: '/dashboard/admin', business: '/dashboard/business',
     recycler: '/dashboard/recycler', driver: '/dashboard/driver', individual: '/dashboard/individual',
   };
+  const displayName = getDashboardDisplayName(user);
 
   return (
     <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-800 px-3 sm:px-6 py-3 sm:py-4 transition-colors duration-300 relative z-30">
@@ -128,18 +130,18 @@ const TopNav = ({ user }: TopNavProps) => {
             <button onClick={() => { setShowProfile(v => !v); setShowNotif(false); }}
               className="flex items-center gap-2 p-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <div className="hidden lg:block text-right">
-                <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">{user.name}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">{displayName}</p>
                 <p className="text-xs text-gray-400 dark:text-gray-500 capitalize mt-0.5">{user.role}</p>
               </div>
               <div className="w-9 h-9 rounded-full bg-cyan-600 overflow-hidden ring-2 ring-cyan-200 dark:ring-cyan-800 shrink-0 flex items-center justify-center">
-                <img src={user.avatar || '/images/default-avatar.svg'} alt={user.name} className="w-full h-full object-cover"
+                <img src={user.avatar || '/images/default-avatar.svg'} alt={displayName} className="w-full h-full object-cover"
                   onError={e => { (e.currentTarget as HTMLImageElement).src = '/images/default-avatar.svg'; }} />
               </div>
             </button>
             {showProfile && (
               <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-                  <p className="font-semibold text-sm text-gray-900 dark:text-white">{user.name}</p>
+                  <p className="font-semibold text-sm text-gray-900 dark:text-white">{displayName}</p>
                   <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{user.email}</p>
                 </div>
                 <div className="py-1">

@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { messagesAPI, type Message } from '../../../services/api';
 import { MessageSquare, Send } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { getDashboardDisplayName } from '../../../utils/userDisplayName';
 
 export default function RecyclerMessages() {
   const { user: authUser } = useAuth();
+  const displayName = getDashboardDisplayName(authUser, authUser?.name || '');
   const [msgs, setMsgs] = useState<Message[]>([]);
   const [selectedMsg, setSelectedMsg] = useState<Message | null>(null);
   const [reply, setReply] = useState('');
@@ -78,8 +80,8 @@ export default function RecyclerMessages() {
               </div>
               <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-4"><p className="text-gray-700 dark:text-gray-300">{selectedMsg.body}</p></div>
               {(selectedMsg.replies || []).map((r, i) => (
-                <div key={i} className={`flex ${r.from_name === authUser?.name ? 'justify-end' : 'justify-start'} mb-2`}>
-                  <div className={`max-w-xs rounded-lg p-3 text-sm ${r.from_name === authUser?.name ? 'bg-cyan-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
+                <div key={i} className={`flex ${r.from_name === authUser?.name || r.from_name === displayName ? 'justify-end' : 'justify-start'} mb-2`}>
+                  <div className={`max-w-xs rounded-lg p-3 text-sm ${r.from_name === authUser?.name || r.from_name === displayName ? 'bg-cyan-100' : 'bg-gray-100 dark:bg-gray-700'}`}>
                     <p className="font-medium text-xs mb-1">{r.from_name}</p><p>{r.body}</p>
                   </div>
                 </div>

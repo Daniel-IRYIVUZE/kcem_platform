@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { getDashboardDisplayName } from '../../utils/userDisplayName';
 
 interface SidebarProps {
   userRole: 'admin' | 'business' | 'recycler' | 'driver' | 'individual';
@@ -131,6 +132,7 @@ const Sidebar = ({ userRole }: SidebarProps) => {
   }, []);
 
   const config = roleConfigs[userRole] ?? roleConfigs.individual;
+  const displayName = getDashboardDisplayName(user, userRole);
 
   const handleLogout = () => {
     logout();
@@ -375,7 +377,7 @@ const Sidebar = ({ userRole }: SidebarProps) => {
                 text-sm font-semibold capitalize mt-1 truncate
                 ${isDark ? 'text-white' : 'text-gray-900'}
               `}>
-                {user?.name || userRole}
+                {displayName}
               </p>
               {user?.email && (
                 <p className={`
