@@ -191,7 +191,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to create listing: $e'),
+            content: Text('Failed to create listing.'),
             backgroundColor: AppColors.error,
           ),
         );

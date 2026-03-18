@@ -2,7 +2,6 @@
 // Comprehensive API service for EcoTrade Rwanda backend
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,14 +21,17 @@ class ApiService {
     const envBase = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     if (envBase.isNotEmpty) return envBase;
 
-    if (kDebugMode) {
-      if (Platform.isAndroid) {
-        return 'http://10.0.2.2:8000/api';
-      }
-      return 'http://127.0.0.1:8000/api';
+    // Always use local backend for all platforms during development
+    if (kIsWeb) {
+      return 'http://localhost:8000/api';
     }
-
-    return 'https://api.ecotrade-rwanda.com/api';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000/api';
+    }
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      return 'http://localhost:8000/api';
+    }
+    return 'http://127.0.0.1:8000/api';
   }
   
   static String? _accessToken;
@@ -105,13 +107,10 @@ class ApiService {
       }
     } on TimeoutException {
       throw ApiException('Request timed out. Please try again.');
-    } on SocketException {
-      throw ApiException('Network error: Please check your internet connection.');
     } on http.ClientException {
       throw ApiException('Unable to connect to server. Check API URL and connection.');
     } catch (e) {
-      if (e is ApiException) rethrow;
-      throw ApiException('Unexpected error occurred. Please try again.');
+      throw ApiException('Network error: Please check your internet connection.');
     }
     
     if (response.statusCode >= 200 && response.statusCode < 300) {

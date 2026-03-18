@@ -96,10 +96,12 @@ function toListingViewModel(listing: WasteListing): ListingViewModel {
 
   const currentBid = Math.round(listing.highest_bid || listing.min_bid || 0);
   const minBid = Math.round(listing.min_bid || 0);
-  // Convert relative image path to absolute URL
-  const imageUrl = listing.image_url 
-    ? getAbsoluteImageUrl(listing.image_url)
-    : (IMAGE_MAP[category] || IMAGE_MAP.Mixed);
+  const galleryImages = [
+    ...(Array.isArray(listing.images) ? listing.images.map((image) => getAbsoluteImageUrl(image.url)) : []),
+    ...(listing.image_url ? [getAbsoluteImageUrl(listing.image_url)] : []),
+  ].filter((imageUrl, index, array): imageUrl is string => Boolean(imageUrl) && array.indexOf(imageUrl) === index);
+
+  const imageUrl = galleryImages[0] || IMAGE_MAP[category] || IMAGE_MAP.Mixed;
 
 
   return {
@@ -122,7 +124,7 @@ function toListingViewModel(listing: WasteListing): ListingViewModel {
     estimatedValue: Math.round((currentBid || minBid) * 1.2),
     quality: 'Grade A',
     description: listing.notes || listing.description || `${listing.waste_type} — ${Math.round(listing.volume)} ${listing.unit || 'kg'}`,
-    photos: [imageUrl],
+    photos: galleryImages.length > 0 ? galleryImages : [imageUrl],
     bids: [],
   };
 }
@@ -275,8 +277,25 @@ const MarketplacePage = () => {
 
 
 
-  const handleListingClick = (listing: any) => {
-    setSelectedListing(listing as ListingViewModel);
+  const handleListingClick = async (listing: any) => {
+    const selected = listing as ListingViewModel;
+    setSelectedListing(selected);
+
+    try {
+      const details = await listingsAPI.get(selected.id);
+      const mappedDetails = toListingViewModel(details);
+      setSelectedListing((prev) => {
+        if (!prev || prev.id !== selected.id) return prev;
+        return {
+          ...prev,
+          image: mappedDetails.image,
+          photos: mappedDetails.photos,
+          description: mappedDetails.description || prev.description,
+        };
+      });
+    } catch {
+      // keep initial listing data in modal
+    }
   };
 
   const handleBidClick = (listing: ListingViewModel) => {

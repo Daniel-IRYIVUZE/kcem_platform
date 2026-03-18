@@ -120,7 +120,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = 'Failed to start live tracking';
+        _error = 'Failed to start live tracking.';
         _loading = false;
       });
     }

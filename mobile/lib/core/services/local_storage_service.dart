@@ -31,6 +31,7 @@ class LocalStorageService {
 
   // ── Auth ─────────────────────────────────────────────────────────────────
 
+  // Only persist user session locally, never from database
   Future<void> saveUser(AppUser user) async {
     await _p.setString(_kUserData, jsonEncode(user.toMap()));
   }

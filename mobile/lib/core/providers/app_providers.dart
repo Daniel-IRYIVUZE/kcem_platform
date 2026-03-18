@@ -60,7 +60,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       // Try real backend API first
       final response = await ApiService.login(email, password);
-      final userMap = response['user'] as Map<String, dynamic>;
+      Map<String, dynamic> userMap;
+      if (response['user'] is Map<String, dynamic>) {
+        userMap = response['user'] as Map<String, dynamic>;
+      } else {
+        final me = await ApiService.getCurrentUser();
+        userMap = me;
+      }
       var user = AppUser(
         id: (userMap['id'] as int).toString(),
         name: userMap['full_name'] as String? ?? email,
@@ -88,6 +94,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // Profile fetch failed, continue with basic user data
       }
       
+      // Only persist user session locally, never from database
       await LocalStorageService.instance.saveUser(user);
       state = AuthState(user: user);
       return true;
@@ -152,10 +159,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   UserRole _mapRole(String role) {
     switch (role) {
+      case 'admin':
+        return UserRole.admin;
+      case 'business':
+      case 'hotel':
+        return UserRole.business;
       case 'recycler':
         return UserRole.recycler;
       case 'driver':
         return UserRole.driver;
+      case 'individual':
+        return UserRole.individual;
       default:
         return UserRole.business;
     }
