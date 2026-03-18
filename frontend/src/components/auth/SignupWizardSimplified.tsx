@@ -1,5 +1,5 @@
 // components/auth/SignupWizardSimplified.tsx
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Building2, Factory, ArrowRight, ArrowLeft, Check,
   MapPin, Eye, EyeOff, Search,
@@ -89,6 +89,12 @@ const Field = ({
 
 // ─── Wizard ───────────────────────────────────────────────────────────────────
 const TOTAL_STEPS = 5;
+type AvailabilityStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
+
+type FieldAvailability = {
+  status: AvailabilityStatus;
+  message: string;
+};
 
 const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
   const [step, setStep] = useState(1);
@@ -101,6 +107,15 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
   const [showPwd, setShowPwd] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [pwdStrength, setPwdStrength] = useState(0);
+  const [availability, setAvailability] = useState<{
+    fullName: FieldAvailability;
+    email: FieldAvailability;
+    phone: FieldAvailability;
+  }>({
+    fullName: { status: 'idle', message: '' },
+    email: { status: 'idle', message: '' },
+    phone: { status: 'idle', message: '' },
+  });
 
   // Step 3 — role details
   const [roleDetails, setRoleDetails] = useState({
@@ -207,7 +222,103 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
     !!personal.fullName.trim() &&
     !!personal.email.trim() && personal.email.includes('@') &&
     personal.password.length >= 8 &&
-    personal.password === personal.confirmPassword;
+    personal.password === personal.confirmPassword &&
+    availability.fullName.status === 'available' &&
+    availability.email.status === 'available' &&
+    (personal.phone.trim() === '' || availability.phone.status === 'available');
+
+  useEffect(() => {
+    const name = personal.fullName.trim();
+    if (!name) {
+      setAvailability(prev => ({ ...prev, fullName: { status: 'idle', message: '' } }));
+      return;
+    }
+    if (name.length < 3) {
+      setAvailability(prev => ({ ...prev, fullName: { status: 'invalid', message: 'Name must be at least 3 characters.' } }));
+      return;
+    }
+
+    setAvailability(prev => ({ ...prev, fullName: { status: 'checking', message: 'Checking name...' } }));
+    const timer = setTimeout(async () => {
+      try {
+        const result = await authAPI.checkAvailability({ full_name: name });
+        const field = result.full_name;
+        if (field?.available) {
+          setAvailability(prev => ({ ...prev, fullName: { status: 'available', message: 'Name available.' } }));
+        } else {
+          setAvailability(prev => ({ ...prev, fullName: { status: 'taken', message: field?.message || 'Name already exists.' } }));
+        }
+      } catch {
+        setAvailability(prev => ({ ...prev, fullName: { status: 'invalid', message: 'Unable to verify name right now.' } }));
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [personal.fullName]);
+
+  useEffect(() => {
+    const email = personal.email.trim().toLowerCase();
+    if (!email) {
+      setAvailability(prev => ({ ...prev, email: { status: 'idle', message: '' } }));
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAvailability(prev => ({ ...prev, email: { status: 'invalid', message: 'Enter a valid email address.' } }));
+      return;
+    }
+
+    setAvailability(prev => ({ ...prev, email: { status: 'checking', message: 'Checking email...' } }));
+    const timer = setTimeout(async () => {
+      try {
+        const result = await authAPI.checkAvailability({ email });
+        const field = result.email;
+        if (field?.available) {
+          setAvailability(prev => ({ ...prev, email: { status: 'available', message: 'Email available.' } }));
+        } else {
+          setAvailability(prev => ({ ...prev, email: { status: 'taken', message: field?.message || 'Email already exists.' } }));
+        }
+      } catch {
+        setAvailability(prev => ({ ...prev, email: { status: 'invalid', message: 'Unable to verify email right now.' } }));
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [personal.email]);
+
+  useEffect(() => {
+    const phone = personal.phone.trim();
+    if (!phone) {
+      setAvailability(prev => ({ ...prev, phone: { status: 'idle', message: '' } }));
+      return;
+    }
+    if (!/^\+?[0-9\s\-]{7,20}$/.test(phone)) {
+      setAvailability(prev => ({ ...prev, phone: { status: 'invalid', message: 'Enter a valid phone number.' } }));
+      return;
+    }
+
+    setAvailability(prev => ({ ...prev, phone: { status: 'checking', message: 'Checking phone...' } }));
+    const timer = setTimeout(async () => {
+      try {
+        const result = await authAPI.checkAvailability({ phone });
+        const field = result.phone;
+        if (field?.available) {
+          setAvailability(prev => ({ ...prev, phone: { status: 'available', message: 'Phone available.' } }));
+        } else {
+          setAvailability(prev => ({ ...prev, phone: { status: 'taken', message: field?.message || 'Phone already exists.' } }));
+        }
+      } catch {
+        setAvailability(prev => ({ ...prev, phone: { status: 'invalid', message: 'Unable to verify phone right now.' } }));
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [personal.phone]);
+
+  const availabilityClass = (status: AvailabilityStatus) => {
+    if (status === 'available') return 'text-green-600 dark:text-green-400';
+    if (status === 'taken' || status === 'invalid') return 'text-red-600 dark:text-red-400';
+    return 'text-gray-500 dark:text-gray-400';
+  };
 
   const handleRegister = async () => {
     setSubmitting(true);
@@ -330,8 +441,11 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
               </div>
             )}
             <Field label="Full Name" name="fullName" value={personal.fullName} onChange={handlePersonalChange} placeholder="Enter your full name" required />
+            {availability.fullName.status !== 'idle' && <p className={`text-xs mt-1 ${availabilityClass(availability.fullName.status)}`}>{availability.fullName.message}</p>}
             <Field label="Phone Number" name="phone" value={personal.phone} onChange={handlePersonalChange} placeholder="+250 7XX XXX XXX" type="tel" />
+            {availability.phone.status !== 'idle' && <p className={`text-xs mt-1 ${availabilityClass(availability.phone.status)}`}>{availability.phone.message}</p>}
             <Field label="Email Address" name="email" value={personal.email} onChange={handlePersonalChange} placeholder="your@email.com" type="email" required />
+            {availability.email.status !== 'idle' && <p className={`text-xs mt-1 ${availabilityClass(availability.email.status)}`}>{availability.email.message}</p>}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Password <span className="text-red-400">*</span></label>
               <div className="relative">

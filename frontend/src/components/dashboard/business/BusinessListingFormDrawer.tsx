@@ -13,7 +13,7 @@ type ListingForm = {
   quantity: string;
   unit: string;
   description: string;
-  minPrice: string;
+  unitPrice: string;
   pickupDate: string;
   pickupTime: string;
   specialInstructions: string;
@@ -22,12 +22,14 @@ type ListingForm = {
 const MAX_FILES = 5;
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
+const getFileSignature = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
+
 const defaultForm: ListingForm = {
   wasteType: '',
   quantity: '',
   unit: 'kg',
   description: '',
-  minPrice: '',
+  unitPrice: '',
   pickupDate: '',
   pickupTime: '',
   specialInstructions: '',
@@ -87,8 +89,14 @@ export default function BusinessListingFormDrawer({ open, onClose, onCreated }: 
     }
 
     setFiles((prev) => {
-      const all = [...prev, ...validIncoming];
-      const deduped = all.filter((file, idx, arr) => arr.findIndex((f) => f.name === file.name && f.size === file.size) === idx);
+      const existing = new Set(prev.map(getFileSignature));
+      const uniqueIncoming = validIncoming.filter((file) => !existing.has(getFileSignature(file)));
+      const deduped = [...prev, ...uniqueIncoming];
+
+      if (uniqueIncoming.length < validIncoming.length) {
+        setError('Duplicate images were skipped.');
+      }
+
       if (deduped.length > MAX_FILES) {
         setError(`You can upload a maximum of ${MAX_FILES} images.`);
       }
@@ -100,12 +108,25 @@ export default function BusinessListingFormDrawer({ open, onClose, onCreated }: 
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const quantityValue = Number.parseFloat(form.quantity);
+  const unitPriceValue = Number.parseFloat(form.unitPrice);
+  const remainingSlots = Math.max(0, MAX_FILES - files.length);
+  const totalMinPrice =
+    Number.isFinite(quantityValue) && quantityValue > 0 && Number.isFinite(unitPriceValue) && unitPriceValue > 0
+      ? quantityValue * unitPriceValue
+      : 0;
+
   const canGoStep2 = Boolean(form.wasteType && form.quantity);
-  const canGoStep3 = Boolean(form.minPrice && form.pickupDate);
+  const canGoStep3 = Boolean(totalMinPrice > 0 && form.pickupDate);
 
   const handleSubmit = async () => {
     if (!canGoStep2 || !canGoStep3 || files.length === 0) {
       setError('Please complete required fields and add at least one image.');
+      return;
+    }
+
+    if (files.length > MAX_FILES) {
+      setError(`You can upload a maximum of ${MAX_FILES} images.`);
       return;
     }
 
@@ -114,7 +135,7 @@ export default function BusinessListingFormDrawer({ open, onClose, onCreated }: 
 
     try {
       const qty = Number.parseFloat(form.quantity);
-      const minBid = Number.parseFloat(form.minPrice);
+      const minBid = totalMinPrice;
       const startAt = form.pickupDate ? new Date(`${form.pickupDate}T${form.pickupTime || '09:00'}`) : null;
       const endAt = startAt ? new Date(startAt.getTime() + 2 * 60 * 60 * 1000) : null;
       const expiresAt = startAt ? new Date(startAt) : new Date();
@@ -218,7 +239,10 @@ export default function BusinessListingFormDrawer({ open, onClose, onCreated }: 
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Images * (max {MAX_FILES})</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Images * (max {MAX_FILES})</label>
+                  <span className="text-xs font-semibold text-cyan-700 dark:text-cyan-300">{files.length}/{MAX_FILES} images</span>
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -247,6 +271,7 @@ export default function BusinessListingFormDrawer({ open, onClose, onCreated }: 
                   <UploadCloud className="mx-auto mb-2 text-gray-400" size={28} />
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Drag and drop images here</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">or click to select files</p>
+                  <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-1">Remaining slots: {remainingSlots}</p>
                 </button>
 
                 {files.length > 0 && (
@@ -272,8 +297,9 @@ export default function BusinessListingFormDrawer({ open, onClose, onCreated }: 
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Pickup & Pricing</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Minimum Price (RWF) *</label>
-                  <input type="number" min="0" value={form.minPrice} onChange={(e) => update('minPrice', e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600" placeholder="e.g. 250000" />
+                  <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Price per {form.unit || 'unit'} (RWF) *</label>
+                  <input type="number" min="0" value={form.unitPrice} onChange={(e) => update('unitPrice', e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600" placeholder="e.g. 500" />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Minimum price = Quantity × Price per {form.unit || 'unit'}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Pickup Date *</label>
@@ -283,6 +309,10 @@ export default function BusinessListingFormDrawer({ open, onClose, onCreated }: 
                   <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Pickup Time</label>
                   <input type="time" value={form.pickupTime} onChange={(e) => update('pickupTime', e.target.value)} className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600" />
                 </div>
+              </div>
+              <div className="rounded-lg border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20 p-3">
+                <p className="text-xs text-cyan-700 dark:text-cyan-300">Total Minimum Price</p>
+                <p className="text-lg font-bold text-cyan-700 dark:text-cyan-300">RWF {totalMinPrice.toLocaleString()}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Special Instructions</label>
@@ -298,10 +328,11 @@ export default function BusinessListingFormDrawer({ open, onClose, onCreated }: 
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div><p className="text-gray-500">Waste Type</p><p className="font-semibold text-gray-900 dark:text-white">{form.wasteType || '—'}</p></div>
                   <div><p className="text-gray-500">Quantity</p><p className="font-semibold text-gray-900 dark:text-white">{form.quantity ? `${form.quantity} ${form.unit}` : '—'}</p></div>
-                  <div><p className="text-gray-500">Minimum Price</p><p className="font-semibold text-gray-900 dark:text-white">{form.minPrice ? `RWF ${Number.parseInt(form.minPrice, 10).toLocaleString()}` : '—'}</p></div>
+                  <div><p className="text-gray-500">Price per {form.unit || 'unit'}</p><p className="font-semibold text-gray-900 dark:text-white">{form.unitPrice ? `RWF ${Number.parseInt(form.unitPrice, 10).toLocaleString()}` : '—'}</p></div>
+                  <div><p className="text-gray-500">Minimum Price (Qty × Price)</p><p className="font-semibold text-gray-900 dark:text-white">RWF {totalMinPrice.toLocaleString()}</p></div>
                   <div><p className="text-gray-500">Pickup</p><p className="font-semibold text-gray-900 dark:text-white">{form.pickupDate || '—'} {form.pickupTime || ''}</p></div>
                 </div>
-                <div><p className="text-gray-500 text-sm">Images</p><p className="font-semibold text-gray-900 dark:text-white">{files.length} selected</p></div>
+                <div><p className="text-gray-500 text-sm">Images</p><p className="font-semibold text-gray-900 dark:text-white">{files.length}/{MAX_FILES} selected</p></div>
                 {form.description && <div><p className="text-gray-500 text-sm">Description</p><p className="text-sm text-gray-700 dark:text-gray-300">{form.description}</p></div>}
               </div>
 

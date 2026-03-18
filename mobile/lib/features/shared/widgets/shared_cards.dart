@@ -143,7 +143,7 @@ class GreenScoreCard extends StatelessWidget {
                 Text(
                   level,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -160,7 +160,7 @@ class GreenScoreCard extends StatelessWidget {
                 CircularProgressIndicator(
                   value: score / 100,
                   strokeWidth: 7,
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
                 Text(
@@ -330,7 +330,7 @@ class _SkeletonLoaderState extends State<SkeletonLoader>
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: AppColors.border.withOpacity(_animation.value + 0.2),
+            color: AppColors.border.withValues(alpha: _animation.value + 0.2),
             borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
         );

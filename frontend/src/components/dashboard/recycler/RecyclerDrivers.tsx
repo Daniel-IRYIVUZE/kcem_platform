@@ -1,5 +1,5 @@
 // components/dashboard/recycler/RecyclerDrivers.tsx
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Star, Truck, MapPin, Phone, CheckCircle, Clock, AlertCircle, X, UserCheck, RefreshCw, Zap, UserPlus, Wand2, Trash2, Car } from 'lucide-react';
 import StatCard from '../StatCard';
 import { driversAPI, collectionsAPI, vehiclesAPI, bidsAPI } from '../../../services/api';
@@ -395,6 +395,12 @@ function DriverCard({ driver, onAssign, onDelete, onAssignVehicle }: {
         )}
         <div className="flex gap-2">
           <button
+            onClick={onAssign}
+            className="flex-1 py-2 border border-green-300 dark:border-green-700 text-green-700 dark:text-green-400 rounded-xl text-xs font-medium hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center justify-center gap-1.5"
+          >
+            <UserCheck size={13} /> Assign Collection
+          </button>
+          <button
             onClick={onAssignVehicle}
             className="flex-1 py-2 border border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-400 rounded-xl text-xs font-medium hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-colors flex items-center justify-center gap-1.5"
           >
@@ -425,7 +431,6 @@ export default function BusinessDrivers() {
   const [assigning, setAssigning] = useState(false);
   const [autoAssigning, setAutoAssigning] = useState(false);
   const [assignVehicleDriver, setAssignVehicleDriver] = useState<DriverProfile | null>(null);
-  const [deletingDriver, setDeletingDriver] = useState<number | null>(null);
 
   const showFlash = (type: 'success' | 'error', msg: string) => {
     setFlash({ type, msg });
@@ -434,15 +439,12 @@ export default function BusinessDrivers() {
 
   const handleDeleteDriver = async (driver: DriverProfile) => {
     if (!confirm(`Remove ${driver.name || `Driver #${driver.id}`} from your organisation? This cannot be undone.`)) return;
-    setDeletingDriver(driver.id);
     try {
       await driversAPI.delete(driver.id);
       showFlash('success', `✅ Driver removed successfully.`);
       load();
     } catch (err: unknown) {
       showFlash('error', err instanceof Error ? err.message : 'Failed to remove driver.');
-    } finally {
-      setDeletingDriver(null);
     }
   };
 

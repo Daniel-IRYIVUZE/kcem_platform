@@ -1,25 +1,74 @@
 import { useState, useEffect } from 'react';
-import { usersAPI, type APIUser } from '../../../services/api';
-import { CheckCircle } from 'lucide-react';
-import { driverProfile } from './_shared';
+import { usersAPI, driversAPI } from '../../../services/api';
+import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function DriverSettings() {
   const [userId, setUserId] = useState<number | null>(null);
+  const [driverId, setDriverId] = useState<number | null>(null);
   const [saved, setSaved] = useState(false);
-  const [form, setForm] = useState({ name: driverProfile.name, phone: driverProfile.phone, location: 'Kigali, Rwanda', language: 'English' });
-  const [toggles, setToggles] = useState({ gps: true, pushNotifs: true, smsAlerts: false });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    accountPhone: '',
+    driverPhone: '',
+    licenseNumber: '',
+    status: 'available' as 'available' | 'on_route' | 'off_duty',
+  });
 
   useEffect(() => {
-    usersAPI.me().then((u: APIUser) => {
-      setUserId(u.id);
-      setForm(prev => ({ ...prev, name: u.full_name || prev.name, phone: u.phone || prev.phone }));
+    Promise.all([
+      usersAPI.me().catch(() => null),
+      driversAPI.me().catch(() => null),
+    ]).then(([u, d]) => {
+      if (u) {
+        setUserId(u.id);
+        setForm(prev => ({
+          ...prev,
+          name: u.full_name || '',
+          email: u.email || '',
+          accountPhone: u.phone || '',
+        }));
+      }
+      if (d) {
+        setDriverId(d.id);
+        setForm(prev => ({
+          ...prev,
+          driverPhone: d.phone || '',
+          licenseNumber: d.license_number || '',
+          status: d.status || 'available',
+        }));
+      }
     }).catch(() => {});
   }, []);
 
-  const handleSave = () => {
-    if (userId) usersAPI.update(userId, { full_name: form.name, phone: form.phone }).catch(() => {});
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = async () => {
+    if (!userId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await usersAPI.updateMe({
+        full_name: form.name.trim() || undefined,
+        email: form.email.trim() || undefined,
+        phone: form.accountPhone.trim() || undefined,
+      });
+
+      if (driverId) {
+        await driversAPI.updateProfile({
+          phone: form.driverPhone.trim() || undefined,
+          license_number: form.licenseNumber.trim() || undefined,
+          status: form.status,
+        });
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save settings.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -28,13 +77,20 @@ export default function DriverSettings() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
         {saved && <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium"><CheckCircle size={18} /> Saved!</div>}
       </div>
+      {error && (
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
+          <AlertCircle size={16} /> {error}
+        </div>
+      )}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-800">
         <h2 className="text-lg font-semibold mb-5 text-gray-900 dark:text-white">Profile Information</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {[
             { label: 'Full Name', key: 'name' as const, type: 'text' },
-            { label: 'Phone Number', key: 'phone' as const, type: 'tel' },
-            { label: 'Location', key: 'location' as const, type: 'text' },
+            { label: 'Email', key: 'email' as const, type: 'email' },
+            { label: 'Account Phone', key: 'accountPhone' as const, type: 'tel' },
+            { label: 'Driver Phone', key: 'driverPhone' as const, type: 'tel' },
+            { label: 'License Number', key: 'licenseNumber' as const, type: 'text' },
           ].map(({ label, key, type }) => (
             <div key={key}>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">{label}</label>
@@ -43,34 +99,21 @@ export default function DriverSettings() {
             </div>
           ))}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Language</label>
-            <select value={form.language} onChange={e => setForm(prev => ({ ...prev, language: e.target.value }))}
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Availability Status</label>
+            <select value={form.status} onChange={e => setForm(prev => ({ ...prev, status: e.target.value as 'available' | 'on_route' | 'off_duty' }))}
               className="w-full px-3.5 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 outline-none">
-              <option>English</option><option>Kinyarwanda</option><option>French</option>
+              <option value="available">Available</option>
+              <option value="on_route">On Route</option>
+              <option value="off_duty">Off Duty</option>
             </select>
           </div>
         </div>
       </div>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-800">
-        <h2 className="text-lg font-semibold mb-5 text-gray-900 dark:text-white">Notification Preferences</h2>
-        <div className="space-y-4">
-          {[
-            { key: 'gps' as const, label: 'Live GPS Tracking', desc: 'Allow the platform to track your location during active routes' },
-            { key: 'pushNotifs' as const, label: 'Push Notifications', desc: 'Receive alerts for new assignments and schedule changes' },
-            { key: 'smsAlerts' as const, label: 'SMS Alerts', desc: 'Get SMS messages for critical updates (may incur charges)' },
-          ].map(({ key, label, desc }) => (
-            <div key={key} className="flex items-start justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-              <div><p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p><p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{desc}</p></div>
-              <button onClick={() => setToggles(prev => ({ ...prev, [key]: !prev[key] }))}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${toggles[key] ? 'bg-cyan-500' : 'bg-gray-300'}`}>
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-gray-800 shadow transition-transform ${toggles[key] ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
       <div className="flex justify-end">
-        <button onClick={handleSave} className="px-6 py-2.5 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 transition-colors">Save Changes</button>
+        <button onClick={handleSave} disabled={saving} className="px-6 py-2.5 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-700 transition-colors disabled:opacity-50 inline-flex items-center gap-2">
+          {saving && <Loader2 size={15} className="animate-spin" />}
+          {saving ? 'Saving...' : 'Save Changes'}
+        </button>
       </div>
     </div>
   );

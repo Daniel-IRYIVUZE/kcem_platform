@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapPin, X, Search } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -17,6 +17,27 @@ const LocationSearch = ({ onLocationSelect, onClose, onExpand }: LocationSearchP
   const [isExpanded, setIsExpanded] = useState(false);
   const [suggestions, setSuggestions] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
   const mapContainerId = 'location-map-container';
+
+  const placeMarker = useCallback((lat: number, lng: number, name: string) => {
+    if (!mapRef.current) return;
+
+    // Remove existing marker
+    if (markerRef.current) {
+      mapRef.current.removeLayer(markerRef.current);
+    }
+
+    // Add new marker
+    markerRef.current = L.marker([lat, lng])
+      .bindPopup(name)
+      .addTo(mapRef.current)
+      .openPopup();
+
+    // Center map on marker
+    mapRef.current.setView([lat, lng], 15);
+
+    setSelectedLocation({ lat, lng, name });
+    onLocationSelect?.({ lat, lng, name });
+  }, [onLocationSelect]);
 
   // Initialize map
   useEffect(() => {
@@ -48,28 +69,7 @@ const LocationSearch = ({ onLocationSelect, onClose, onExpand }: LocationSearchP
         mapRef.current = null;
       }
     };
-  }, [isExpanded]);
-
-  const placeMarker = (lat: number, lng: number, name: string) => {
-    if (!mapRef.current) return;
-
-    // Remove existing marker
-    if (markerRef.current) {
-      mapRef.current.removeLayer(markerRef.current);
-    }
-
-    // Add new marker
-    markerRef.current = L.marker([lat, lng])
-      .bindPopup(name)
-      .addTo(mapRef.current)
-      .openPopup();
-
-    // Center map on marker
-    mapRef.current.setView([lat, lng], 15);
-
-    setSelectedLocation({ lat, lng, name });
-    onLocationSelect?.({ lat, lng, name });
-  };
+  }, [isExpanded, placeMarker]);
 
   const fetchLocationSuggestions = async (query: string) => {
     if (!query || query.length < 2) {

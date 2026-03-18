@@ -26,7 +26,7 @@ export function useListings(filters?: {
     } finally {
       setLoading(false);
     }
-  }, [filters?.wasteType, filters?.search, filters?.minVolume, filters?.status]);
+  }, [filters?.wasteType, filters?.status]);
 
   useEffect(() => {
     fetchListings();

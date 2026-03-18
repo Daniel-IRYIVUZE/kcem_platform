@@ -137,13 +137,13 @@ class _FleetScreenState extends State<FleetScreen> {
                             left: i * 70.0,
                             top: 0,
                             bottom: 0,
-                            child: Container(width: 1, color: Colors.white.withOpacity(0.5)),
+                            child: Container(width: 1, color: Colors.white.withValues(alpha: 0.5)),
                           )),
                           ...List.generate(4, (i) => Positioned(
                             top: i * 40.0,
                             left: 0,
                             right: 0,
-                            child: Container(height: 1, color: Colors.white.withOpacity(0.5)),
+                            child: Container(height: 1, color: Colors.white.withValues(alpha: 0.5)),
                           )),
                           // Driver markers
                           ...[
@@ -323,7 +323,7 @@ class _FleetStat extends StatelessWidget {
             fit: BoxFit.scaleDown,
             child: Text(value, style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.w800)),
           ),
-          Text(label, style: TextStyle(color: color.withOpacity(0.8), fontSize: 12)),
+          Text(label, style: TextStyle(color: color.withValues(alpha: 0.8), fontSize: 12)),
         ],
       ),
     );
@@ -333,7 +333,7 @@ class _FleetStat extends StatelessWidget {
 class _FleetDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 32, color: Colors.white.withOpacity(0.2));
+    return Container(width: 1, height: 32, color: Colors.white.withValues(alpha: 0.2));
   }
 }
 
@@ -369,7 +369,7 @@ class _DriverCard extends StatelessWidget {
                     width: 50,
                     height: 50,
                     decoration: BoxDecoration(
-                      color: _statusColor.withOpacity(0.12),
+                      color: _statusColor.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.person, color: _statusColor, size: 28),

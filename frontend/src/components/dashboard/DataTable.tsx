@@ -27,9 +27,9 @@ const DataTable = ({ columns, data, pageSize = 5 }: DataTableProps) => {
       <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead>
           <tr>
-            {columns.map((column) => (
+            {columns.map((column, columnIndex) => (
               <th
-                key={column.key}
+                key={`${column.key}-${columnIndex}`}
                 className="px-6 py-3 bg-gray-50 dark:bg-gray-900 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 {column.label}
@@ -40,8 +40,8 @@ const DataTable = ({ columns, data, pageSize = 5 }: DataTableProps) => {
         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
           {currentData.map((row, rowIndex) => (
               <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-              {columns.map((column) => (
-                <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+              {columns.map((column, columnIndex) => (
+                <td key={`${column.key}-${columnIndex}`} className="px-6 py-4 whitespace-nowrap">
                   {column.render ? column.render(row[column.key], row) : row[column.key]}
                 </td>
               ))}

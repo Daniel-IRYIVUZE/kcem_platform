@@ -118,7 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
           const cachedUser = JSON.parse(storedUser);
           setUser(cachedUser);
-        } catch (e) {
+        } catch (_e) {
           console.error('Failed to parse cached user');
         }
       }

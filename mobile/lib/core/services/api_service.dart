@@ -1,6 +1,9 @@
 // lib/core/services/api_service.dart
 // Comprehensive API service for EcoTrade Rwanda backend
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,7 +18,19 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  static const String baseUrl = 'http://localhost:9000/api';
+  static String get baseUrl {
+    const envBase = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (envBase.isNotEmpty) return envBase;
+
+    if (kDebugMode) {
+      if (Platform.isAndroid) {
+        return 'http://10.0.2.2:8000/api';
+      }
+      return 'http://127.0.0.1:8000/api';
+    }
+
+    return 'https://api.ecotrade-rwanda.com/api';
+  }
   
   static String? _accessToken;
   static String? _refreshToken;
@@ -46,7 +61,7 @@ class ApiService {
   
   // ── HTTP Helpers ────────────────────────────────────────────────────────────
   
-  static Future<Map<String, dynamic>> _request(
+  static Future<dynamic> _request(
     String method,
     String path, {
     Map<String, dynamic>? body,
@@ -71,45 +86,62 @@ class ApiService {
     try {
       switch (method.toUpperCase()) {
         case 'GET':
-          response = await http.get(uri, headers: headers);
+          response = await http.get(uri, headers: headers).timeout(const Duration(seconds: 20));
           break;
         case 'POST':
-          response = await http.post(uri, headers: headers, body: body != null ? jsonEncode(body) : null);
+          response = await http.post(uri, headers: headers, body: body != null ? jsonEncode(body) : null).timeout(const Duration(seconds: 20));
           break;
         case 'PUT':
-          response = await http.put(uri, headers: headers, body: body != null ? jsonEncode(body) : null);
+          response = await http.put(uri, headers: headers, body: body != null ? jsonEncode(body) : null).timeout(const Duration(seconds: 20));
           break;
         case 'PATCH':
-          response = await http.patch(uri, headers: headers, body: body != null ? jsonEncode(body) : null);
+          response = await http.patch(uri, headers: headers, body: body != null ? jsonEncode(body) : null).timeout(const Duration(seconds: 20));
           break;
         case 'DELETE':
-          response = await http.delete(uri, headers: headers);
+          response = await http.delete(uri, headers: headers).timeout(const Duration(seconds: 20));
           break;
         default:
           throw ApiException('Unsupported HTTP method: $method');
       }
+    } on TimeoutException {
+      throw ApiException('Request timed out. Please try again.');
+    } on SocketException {
+      throw ApiException('Network error: Please check your internet connection.');
+    } on http.ClientException {
+      throw ApiException('Unable to connect to server. Check API URL and connection.');
     } catch (e) {
       if (e is ApiException) rethrow;
-      if (e.toString().contains('SocketException') ||
-          e.toString().contains('Connection refused') ||
-          e.toString().contains('NetworkException')) {
-        throw ApiException('Network error: Please check your internet connection');
-      }
-      rethrow;
+      throw ApiException('Unexpected error occurred. Please try again.');
     }
     
     if (response.statusCode >= 200 && response.statusCode < 300) {
       if (response.body.isEmpty) return {};
-      return jsonDecode(response.body) as Map<String, dynamic>;
+      return jsonDecode(response.body);
     }
     
     // Handle errors
     String errorMessage = 'Request failed';
     try {
       final errorBody = jsonDecode(response.body);
-      errorMessage = errorBody['detail'] ?? errorMessage;
+      final detail = errorBody['detail'];
+      if (detail is String) {
+        errorMessage = detail;
+      } else if (detail is List) {
+        final first = detail.isNotEmpty ? detail.first : null;
+        if (first is Map && first['msg'] is String) {
+          errorMessage = first['msg'] as String;
+        }
+      }
     } catch (_) {
       errorMessage = response.body.isNotEmpty ? response.body : 'HTTP ${response.statusCode}';
+    }
+
+    if (response.statusCode == 401 && errorMessage == 'Request failed') {
+      errorMessage = 'Invalid email or password.';
+    } else if (response.statusCode == 403 && errorMessage == 'Request failed') {
+      errorMessage = 'Your account does not have permission to continue.';
+    } else if (response.statusCode >= 500 && errorMessage == 'Request failed') {
+      errorMessage = 'Server error. Please try again later.';
     }
     
     throw ApiException(errorMessage, statusCode: response.statusCode);
@@ -200,7 +232,7 @@ class ApiService {
     int limit = 20,
   }) async {
     final queryParams = <String, String>{
-      'page': page.toString(),
+      'skip': ((page - 1) * limit).toString(),
       'limit': limit.toString(),
     };
     if (wasteType != null) queryParams['waste_type'] = wasteType;
@@ -208,12 +240,19 @@ class ApiService {
     if (minVolume != null) queryParams['min_volume'] = minVolume.toString();
     if (status != null) queryParams['status'] = status;
     
-    return await _request('GET', '/listings/', queryParams: queryParams, requiresAuth: false);
+    final res = await _request('GET', '/listings', queryParams: queryParams, requiresAuth: false);
+    if (res is List) return {'items': res};
+    if (res is Map<String, dynamic>) return res;
+    return {'items': <dynamic>[]};
   }
   
   static Future<List<dynamic>> getMyListings() async {
     final response = await _request('GET', '/listings/mine');
-    return response['items'] ?? [];
+    if (response is List) return response;
+    if (response is Map<String, dynamic>) {
+      return (response['items'] as List<dynamic>?) ?? <dynamic>[];
+    }
+    return <dynamic>[];
   }
   
   static Future<Map<String, dynamic>> getListing(int id) async {
@@ -235,11 +274,21 @@ class ApiService {
   // ── Bids ────────────────────────────────────────────────────────────────────
   
   static Future<List<dynamic>> getMyBids() async {
-    return await _request('GET', '/bids/mine') as List<dynamic>;
+    final response = await _request('GET', '/bids/mine');
+    if (response is List) return response;
+    if (response is Map<String, dynamic>) {
+      return (response['items'] as List<dynamic>?) ?? <dynamic>[];
+    }
+    return <dynamic>[];
   }
   
   static Future<List<dynamic>> getListingBids(int listingId) async {
-    return await _request('GET', '/bids/listing/$listingId') as List<dynamic>;
+    final response = await _request('GET', '/bids/listing/$listingId');
+    if (response is List) return response;
+    if (response is Map<String, dynamic>) {
+      return (response['items'] as List<dynamic>?) ?? <dynamic>[];
+    }
+    return <dynamic>[];
   }
   
   static Future<Map<String, dynamic>> placeBid({
@@ -269,7 +318,12 @@ class ApiService {
   // ── Collections ─────────────────────────────────────────────────────────────
   
   static Future<List<dynamic>> getMyCollections() async {
-    return await _request('GET', '/collections/mine') as List<dynamic>;
+    final response = await _request('GET', '/collections/mine');
+    if (response is List) return response;
+    if (response is Map<String, dynamic>) {
+      return (response['items'] as List<dynamic>?) ?? <dynamic>[];
+    }
+    return <dynamic>[];
   }
   
   static Future<Map<String, dynamic>> getCollection(int id) async {
@@ -293,8 +347,8 @@ class ApiService {
 
   static Future<Map<String, dynamic>> updateDriverLocation(double lat, double lng) async {
     return await _request('PATCH', '/drivers/me/location', body: {
-      'latitude': lat,
-      'longitude': lng,
+      'lat': lat,
+      'lng': lng,
     });
   }
   
@@ -321,7 +375,12 @@ class ApiService {
   // ── Transactions ────────────────────────────────────────────────────────────
   
   static Future<List<dynamic>> getMyTransactions() async {
-    return await _request('GET', '/transactions/mine') as List<dynamic>;
+    final response = await _request('GET', '/transactions/mine');
+    if (response is List) return response;
+    if (response is Map<String, dynamic>) {
+      return (response['items'] as List<dynamic>?) ?? <dynamic>[];
+    }
+    return <dynamic>[];
   }
   
   static Future<Map<String, dynamic>> getTransaction(int id) async {
@@ -344,7 +403,12 @@ class ApiService {
   // ── Notifications ───────────────────────────────────────────────────────────
   
   static Future<List<dynamic>> getNotifications() async {
-    return await _request('GET', '/notifications/') as List<dynamic>;
+    final response = await _request('GET', '/notifications');
+    if (response is List) return response;
+    if (response is Map<String, dynamic>) {
+      return (response['items'] as List<dynamic>?) ?? <dynamic>[];
+    }
+    return <dynamic>[];
   }
   
   static Future<Map<String, dynamic>> getUnreadNotificationCount() async {
@@ -356,7 +420,7 @@ class ApiService {
   }
   
   static Future<void> markAllNotificationsAsRead() async {
-    await _request('POST', '/notifications/mark-all-read');
+    await _request('POST', '/notifications/read-all');
   }
   
   // ── Messages ────────────────────────────────────────────────────────────────

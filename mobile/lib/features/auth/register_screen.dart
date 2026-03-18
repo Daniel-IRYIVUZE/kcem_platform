@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:go_router/go_router.dart';
@@ -78,6 +78,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _submitRegistration() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (name.isEmpty || email.isEmpty || phone.isEmpty || password.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please complete all required fields before submitting.')),
+      );
+      return;
+    }
+
     String businessName;
     switch (_selectedRole) {
       case 'recycler':
@@ -96,18 +109,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             : 'My Business';
     }
     await ref.read(authProvider.notifier).register(
-          name: _nameController.text.trim().isNotEmpty
-              ? _nameController.text.trim()
-              : 'New User',
-          email: _emailController.text.trim().isNotEmpty
-              ? _emailController.text.trim()
-              : 'danieliryivuze4@gmail.com',
-          phone: _phoneController.text.trim().isNotEmpty
-              ? _phoneController.text.trim()
-              : '+250780162164',
-          password: _passwordController.text.trim().isNotEmpty
-              ? _passwordController.text.trim()
-              : 'password123',
+        name: name,
+        email: email,
+        phone: phone,
+        password: password,
           role: (_selectedRole.isNotEmpty ? _selectedRole : 'hotel') == 'hotel'
               ? 'business'
               : _selectedRole,
@@ -230,7 +235,7 @@ class _StepHeader extends StatelessWidget {
           width: 52,
           height: 52,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(icon, color: color, size: 28),
@@ -336,7 +341,7 @@ class _StepChooseRole extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 14),
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: isSel ? color.withOpacity(0.07) : context.cSurf,
+                  color: isSel ? color.withValues(alpha: 0.07) : context.cSurf,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
                       color: isSel ? color : context.cBorder,
@@ -349,7 +354,7 @@ class _StepChooseRole extends StatelessWidget {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: color.withOpacity(isSel ? 0.15 : 0.08),
+                          color: color.withValues(alpha: isSel ? 0.15 : 0.08),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(role['icon'] as IconData,
@@ -615,9 +620,9 @@ class _StepRoleDetails extends StatelessWidget {
             hint: 'REMA-XXXX-YYYY',
             prefixIcon: Icons.verified_outlined),
         const SizedBox(height: 14),
-        _ChipPicker(
+        const _ChipPicker(
             label: 'Waste Types Handled',
-            options: const [
+            options: [
               'Organic',
               'Plastic',
               'Metal',
@@ -629,9 +634,9 @@ class _StepRoleDetails extends StatelessWidget {
       ]);
     } else if (role == 'driver') {
       return Column(children: [
-        _ChipPicker(
+        const _ChipPicker(
             label: 'Vehicle Type',
-            options: const [
+            options: [
               'Pickup Truck',
               'Box Truck',
               'Mini-Truck',
@@ -652,7 +657,7 @@ class _StepRoleDetails extends StatelessWidget {
             hint: 'Full license number',
             prefixIcon: Icons.credit_card_outlined),
         const SizedBox(height: 14),
-        AppTextField(
+        const AppTextField(
             label: 'Years of Experience',
             hint: 'e.g. 3',
             prefixIcon: Icons.work_history_outlined,
@@ -672,14 +677,14 @@ class _StepRoleDetails extends StatelessWidget {
             hint: 'e.g. KN 5 Rd, Kigali',
             prefixIcon: Icons.location_on_outlined),
         const SizedBox(height: 14),
-        AppTextField(
+        const AppTextField(
             label: 'Operating Hours',
             hint: 'e.g. Mon-Fri 06:00-22:00',
             prefixIcon: Icons.schedule_outlined),
         const SizedBox(height: 14),
-        _ChipPicker(
+        const _ChipPicker(
             label: 'Waste Types Produced',
-            options: const [
+            options: [
               'Food Waste',
               'Cardboard',
               'Plastic',
@@ -734,7 +739,7 @@ class _ChipPickerState extends State<_ChipPicker> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: s ? widget.color.withOpacity(0.12) : context.cSurfAlt,
+                  color: s ? widget.color.withValues(alpha: 0.12) : context.cSurfAlt,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                       color: s ? widget.color : context.cBorder,
@@ -844,7 +849,7 @@ class _StepLocationState extends State<_StepLocation> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(4)),
                     child: const Text('© OpenStreetMap contributors',
                         style: TextStyle(fontSize: 9, color: Colors.black54)),

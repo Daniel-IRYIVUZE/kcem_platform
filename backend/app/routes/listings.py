@@ -1,5 +1,6 @@
 """routes/listings.py — Waste listing (marketplace) endpoints."""
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Response
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.crud import crud_listing, crud_hotel
@@ -11,6 +12,7 @@ from app.utils.file_upload import save_upload
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
 require_business = require_role(UserRole.business, UserRole.admin)
+MAX_LISTING_IMAGES = 5
 
 
 @router.post("/", response_model=ListingRead, status_code=201,
@@ -94,9 +96,62 @@ def add_image(listing_id: int, file: UploadFile = File(...),
               db: Session = Depends(get_db),
               current_user: User = Depends(get_current_active_user)):
     listing = _get_listing_owned(db, listing_id, current_user)
+    if len(listing.images) >= MAX_LISTING_IMAGES:
+        raise HTTPException(400, f"Each listing can have at most {MAX_LISTING_IMAGES} images.")
     url = save_upload(file, subfolder="listings")
     img = crud_listing.add_image(db, listing_id=listing.id, url=url)
+    if not listing.image_url:
+        listing.image_url = url
+        db.commit()
     return img
+
+
+@router.get("/{listing_id}/images/{image_id}")
+def get_image(listing_id: int, image_id: int, db: Session = Depends(get_db)):
+    listing = crud_listing.get(db, listing_id)
+    if not listing:
+        raise HTTPException(404, "Listing not found.")
+
+    image = crud_listing.get_image(db, listing_id=listing.id, image_id=image_id)
+    if not image or not image.url:
+        raise HTTPException(404, "Image not found.")
+
+    current_path = f"/api/listings/{listing_id}/images/{image_id}"
+    if image.url == current_path:
+        raise HTTPException(404, "Image source not available.")
+
+    return RedirectResponse(url=image.url, status_code=302)
+
+
+@router.patch("/{listing_id}/images/{image_id}/primary", status_code=200,
+              dependencies=[Depends(require_business)])
+def set_primary_image(listing_id: int, image_id: int,
+                      db: Session = Depends(get_db),
+                      current_user: User = Depends(get_current_active_user)):
+    listing = _get_listing_owned(db, listing_id, current_user)
+    image = crud_listing.set_primary_image(db, listing=listing, image_id=image_id)
+    if not image:
+        raise HTTPException(404, "Image not found.")
+    return image
+
+
+@router.delete("/{listing_id}/images/{image_id}", status_code=204,
+               dependencies=[Depends(require_business)])
+def delete_image(listing_id: int, image_id: int,
+                 db: Session = Depends(get_db),
+                 current_user: User = Depends(get_current_active_user)):
+    listing = crud_listing.get(db, listing_id)
+    if not listing:
+        return Response(status_code=204)
+
+    hotel = crud_hotel.get_by_user(db, current_user.id)
+    if not hotel or listing.hotel_id != hotel.id:
+        raise HTTPException(403, "Not your listing.")
+
+    removed = crud_listing.remove_image(db, listing=listing, image_id=image_id)
+    if not removed:
+        return Response(status_code=204)
+    return Response(status_code=204)
 
 
 def _get_listing_owned(db, listing_id, current_user):

@@ -1,10 +1,11 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/api_service.dart';
 
 import '../shared/widgets/app_text_field.dart';
 import '../shared/widgets/eco_button.dart';
@@ -24,6 +25,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
 
+  bool get _isLocalBackend {
+    final uri = Uri.tryParse(ApiService.baseUrl);
+    final host = uri?.host ?? '';
+    return host == '127.0.0.1' || host == 'localhost' || host == '10.0.2.2';
+  }
+
+  String get _backendIndicatorText {
+    final uri = Uri.tryParse(ApiService.baseUrl);
+    final host = uri?.host ?? 'unknown';
+    final port = uri?.hasPort == true ? ':${uri!.port}' : '';
+    final modeLabel = _isLocalBackend ? 'Connected to local server' : 'Connected to production server';
+    return '$modeLabel ($host$port)';
+  }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -31,44 +46,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  void _showToast(BuildContext ctx, String message, IconData icon, Color color) {
-    ScaffoldMessenger.of(ctx).clearSnackBars();
-    ScaffoldMessenger.of(ctx).showSnackBar(
+  void _showMessage(BuildContext ctx, String message, {required bool isError}) {
+    final messenger = ScaffoldMessenger.of(ctx);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         duration: const Duration(seconds: 3),
-        content: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.35),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: Colors.white, size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+        backgroundColor: isError ? AppColors.error : const Color(0xFF059669),
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -84,11 +88,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = false);
     if (success) {
       final role = ref.read(authProvider).role!;
-      _showToast(context, 'Welcome back!', Icons.check_circle_rounded, const Color(0xFF059669));
+      _showMessage(context, 'Welcome back!', isError: false);
       context.go(AppRoutes.homeForRole(role));
     } else {
       final error = ref.read(authProvider).error ?? 'Invalid email or password';
-      _showToast(context, error, Icons.error_rounded, AppColors.error);
+      _showMessage(context, error, isError: true);
     }
   }
 
@@ -106,6 +110,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const SizedBox(height: 16),
                 const OfflineBanner(),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(
+                      '●',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: _isLocalBackend ? AppColors.success : AppColors.warning,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _backendIndicatorText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: _isLocalBackend ? AppColors.success : AppColors.warning,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
 
                 // Header
@@ -128,7 +154,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(
+                      const Text(
                         'Sign in to your Ecotrade account',
                         style: TextStyle(
                           fontSize: 15,
@@ -186,36 +212,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       AppTextField(
                         controller: _emailController,
-                        label: 'Email or Phone',
-                        hint: 'Enter your email or phone',
+                        label: 'Email',
+                        hint: 'Enter your email address',
                         prefixIcon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
-validator: (v) {
-          if (v == null || v.isEmpty) return 'Email is required';
-          if (!v.contains('@') && !RegExp(r'^[0-9+]').hasMatch(v)) return 'Enter a valid email or phone';
-          return null;
-        },
-      ),
-      const SizedBox(height: 16),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Email is required';
+                          if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v.trim())) {
+                            return 'Enter a valid email address';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
 
-      AppTextField(
-        controller: _passwordController,
-        label: 'Password',
-        hint: 'Enter your password',
-        prefixIcon: Icons.lock_outline,
-        obscureText: _obscurePassword,
-        suffixIcon: IconButton(
-          icon: Icon(
-            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-            color: AppColors.textTertiary,
-          ),
-          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-        ),
-        validator: (v) {
-          if (v == null || v.isEmpty) return 'Password is required';
-          if (v.length < 6) return 'Password must be at least 6 characters';
-          return null;
-        },
+                      AppTextField(
+                        controller: _passwordController,
+                        label: 'Password',
+                        hint: 'Enter your password',
+                        prefixIcon: Icons.lock_outline,
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            color: AppColors.textTertiary,
+                          ),
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Password is required';
+                          if (v.length < 6) return 'Password must be at least 6 characters';
+                          return null;
+                        },
                       ),
 
                       const SizedBox(height: 8),

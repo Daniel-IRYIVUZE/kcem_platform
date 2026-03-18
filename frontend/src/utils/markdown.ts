@@ -24,7 +24,7 @@ function applyInline(text: string): string {
 }
 
 function isListLine(line: string): boolean {
-  return /^[\-•]\s/.test(line.trim());
+  return /^[-•]\s/.test(line.trim());
 }
 
 function isBoldHeading(line: string): boolean {

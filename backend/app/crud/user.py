@@ -3,6 +3,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.crud.base import CRUDBase
 from app.models.user import User, UserRole, UserStatus, UserDocument, DocumentStatus
 from app.schemas.user import UserCreate, UserUpdate, UserAdminUpdate, DocumentUpload
@@ -16,6 +17,12 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     def get_by_phone(self, db: Session, phone: str) -> Optional[User]:
         return db.query(User).filter(User.phone == phone).first()
+
+    def get_by_full_name(self, db: Session, full_name: str) -> Optional[User]:
+        normalized = full_name.strip().lower()
+        if not normalized:
+            return None
+        return db.query(User).filter(func.lower(User.full_name) == normalized).first()
 
     def create_user(self, db: Session, *, obj_in: UserCreate) -> User:
         db_obj = User(

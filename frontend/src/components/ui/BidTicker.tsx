@@ -21,15 +21,15 @@ interface BidTickerProps {
 export default function BidTicker({ items, maxItems }: BidTickerProps) {
   const visibleItems = maxItems ? items.slice(0, maxItems) : items;
   const [highlighted, setHighlighted] = useState<string | null>(null);
+  const newestId = items.length > 0 ? items[0].id : null;
 
   // Flash the first item on mount and whenever items change
   useEffect(() => {
-    if (items.length === 0) return;
-    const newest = items[0];
-    setHighlighted(newest.id);
+    if (!newestId) return;
+    setHighlighted(newestId);
     const t = setTimeout(() => setHighlighted(null), 1500);
     return () => clearTimeout(t);
-  }, [items[0]?.id]);
+  }, [newestId]);
 
   if (!items.length) return null;
 

@@ -32,7 +32,7 @@ class EcoDialogs {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: color, size: 28),
@@ -112,7 +112,7 @@ class EcoDialogs {
                 width: 64,
                 height: 64,
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.12),
+                  color: AppColors.success.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.check_circle_outline,
@@ -187,7 +187,7 @@ class EcoDialogs {
                     height: 36,
                     margin: const EdgeInsets.only(right: 12),
                     decoration: BoxDecoration(
-                      color: (iconColor ?? AppColors.primary).withOpacity(0.1),
+                      color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(icon,
@@ -298,7 +298,7 @@ class EcoDialogs {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                        color: opt.color.withOpacity(0.1),
+                        color: opt.color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(9)),
                     child: Icon(opt.icon, color: opt.color, size: 20),
                   ),
@@ -391,8 +391,8 @@ class EcoDialogs {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => WillPopScope(
-        onWillPop: () async => false,
+      builder: (_) => PopScope(
+        canPop: false,
         child: Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,

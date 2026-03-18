@@ -128,8 +128,8 @@ class _DriverHomeTab extends ConsumerWidget {
                       color: AppColors.primaryLight,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Row(
-                      children: const [
+                    child: const Row(
+                      children: [
                         Icon(Icons.circle, color: AppColors.primary, size: 10),
                         SizedBox(width: 6),
                         Text(
@@ -333,7 +333,7 @@ class _RouteSummaryCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Est. ${stops * 30}min • RWF ${stops * 3000} potential',
-            style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
           ),
           const SizedBox(height: 16),
           Column(
@@ -341,14 +341,14 @@ class _RouteSummaryCard extends StatelessWidget {
             children: [
               Text(
                 '$doneCount of $stops completed',
-                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 12),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
               ),
               const SizedBox(height: 6),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: progress.toDouble(),
-                  backgroundColor: Colors.white.withOpacity(0.2),
+                  backgroundColor: Colors.white.withValues(alpha: 0.2),
                   valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
                   minHeight: 8,
                 ),
@@ -372,7 +372,7 @@ class _NextStopCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.4), width: 1.5),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.4), width: 1.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,7 +501,7 @@ class _RouteStop extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: _color.withOpacity(0.15),
+                color: _color.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
                 border: Border.all(color: _color, width: status == 'next' ? 2 : 1),
               ),

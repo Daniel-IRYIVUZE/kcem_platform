@@ -112,7 +112,7 @@ export default function UserMyImpact() {
             { name: 'Green Starter', desc: 'Recycled 10 kg of waste', earned: unlocked(10), icon: '' },
             { name: 'Eco Warrior', desc: 'Recycled 50 kg of waste', earned: unlocked(50), icon: '🛡️' },
             { name: 'Planet Protector', desc: 'Recycled 100 kg of waste', earned: unlocked(100), icon: '🌍' },
-            { name: 'Carbon Hero', desc: 'Saved 100 kg of CO₂', earned: parseFloat(co2Saved) >= 100 || userProfile.co2Saved >= 100, icon: '💨' },
+            { name: 'Carbon Hero', desc: 'Saved 100 kg of CO₂', earned: parseFloat(co2Saved) >= 100, icon: '💨' },
             { name: 'Perfect Sorter', desc: 'Sorted all 5 waste types', earned: new Set(events.map(e => e.waste_type)).size >= 5, icon: '✅' },
             { name: 'Community Leader', desc: 'Referred 5 friends', earned: false, icon: '👥' },
             { name: 'Monthly Streak', desc: '6 consecutive months', earned: events.length >= 6, icon: '🔥' },

@@ -64,7 +64,7 @@ class _EmptyNotifications extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.08),
+              color: AppColors.primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.notifications_none_outlined,
@@ -107,7 +107,7 @@ class _NotificationList extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
         if (todayNotifs.isNotEmpty) ...[
-          _SectionLabel(label: 'Today'),
+          const _SectionLabel(label: 'Today'),
           ...todayNotifs.asMap().entries.map((e) => _NotifTile(
                 notification: e.value,
                 delay: e.key * 40,
@@ -117,7 +117,7 @@ class _NotificationList extends StatelessWidget {
               )),
         ],
         if (olderNotifs.isNotEmpty) ...[
-          _SectionLabel(label: 'Earlier'),
+          const _SectionLabel(label: 'Earlier'),
           ...olderNotifs.asMap().entries.map((e) => _NotifTile(
                 notification: e.value,
                 delay: todayNotifs.length * 40 + e.key * 40,
@@ -169,12 +169,12 @@ class _NotifTile extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isUnread
-              ? AppColors.primary.withOpacity(0.05)
+              ? AppColors.primary.withValues(alpha: 0.05)
               : context.cSurf,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
               color: isUnread
-                  ? AppColors.primary.withOpacity(0.2)
+                  ? AppColors.primary.withValues(alpha: 0.2)
                   : context.cBorder),
         ),
         child: Row(
@@ -248,7 +248,7 @@ class _NotifIcon extends StatelessWidget {
       width: 40,
       height: 40,
       decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(10)),
       child: Icon(icon, color: color, size: 20),
     );

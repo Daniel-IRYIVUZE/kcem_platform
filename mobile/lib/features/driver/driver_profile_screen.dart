@@ -45,7 +45,7 @@ class DriverProfileScreen extends ConsumerWidget {
                             width: 88,
                             height: 88,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               shape: BoxShape.circle,
                               border: Border.all(color: Colors.white, width: 3),
                             ),
@@ -97,24 +97,24 @@ class DriverProfileScreen extends ConsumerWidget {
                           ),
                         ],
                       ),
-                      SizedBox(height: 12),
-                      Text(name, style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 12),
+                      Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18)),
+                      const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.white24,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
                               children: [
-                                Icon(Icons.star, color: Colors.amber, size: 14),
-                                SizedBox(width: 4),
+                                const Icon(Icons.star, color: Colors.amber, size: 14),
+                                const SizedBox(width: 4),
                                 Text(rating.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
-                                Text('  ·  Driver', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                const Text('  ·  Driver', style: TextStyle(color: Colors.white70, fontSize: 12)),
                               ],
                             ),
                           ),
@@ -161,7 +161,7 @@ class DriverProfileScreen extends ConsumerWidget {
                       _InfoRow(label: 'Full Name', value: name, icon: Icons.person_outline),
                       _InfoRow(label: 'Phone', value: phone, icon: Icons.phone_outlined),
                       _InfoRow(label: 'Email', value: email, icon: Icons.email_outlined),
-                      _InfoRow(label: 'National ID', value: '119900012345678 ****', icon: Icons.credit_card_outlined),
+                      const _InfoRow(label: 'National ID', value: '119900012345678 ****', icon: Icons.credit_card_outlined),
                     ],
                   ).animate().fadeIn(delay: 150.ms),
 
@@ -174,14 +174,14 @@ class DriverProfileScreen extends ConsumerWidget {
                       _InfoRow(label: 'Type', value: vehicle, icon: Icons.local_shipping_outlined),
                       _InfoRow(label: 'Plate Number', value: plate, icon: Icons.pin),
                       _InfoRow(label: 'Make & Model', value: '$vehicle 2020', icon: Icons.directions_car_outlined),
-                      _InfoRow(label: 'Capacity', value: '1.5 tonnes', icon: Icons.inventory_2_outlined),
+                      const _InfoRow(label: 'Capacity', value: '1.5 tonnes', icon: Icons.inventory_2_outlined),
                     ],
                   ).animate().fadeIn(delay: 200.ms),
 
                   const SizedBox(height: 14),
 
                   // Documents
-                  _Section(
+                  const _Section(
                     title: 'Documents',
                     children: [
                       _DocumentRow(label: "Driver's License", status: 'verified', expiry: 'Expires: Feb 2027'),
@@ -197,9 +197,9 @@ class DriverProfileScreen extends ConsumerWidget {
                   _Section(
                     title: 'Settings',
                     children: [
-                      _SettingsToggle(label: 'Push Notifications', icon: Icons.notifications_outlined, enabled: true),
-                      _SettingsToggle(label: 'Job Nearby Alerts', icon: Icons.pin_drop_outlined, enabled: true),
-                      _SettingsToggle(label: 'Earnings Updates', icon: Icons.payments_outlined, enabled: false),
+                      const _SettingsToggle(label: 'Push Notifications', icon: Icons.notifications_outlined, enabled: true),
+                      const _SettingsToggle(label: 'Job Nearby Alerts', icon: Icons.pin_drop_outlined, enabled: true),
+                      const _SettingsToggle(label: 'Earnings Updates', icon: Icons.payments_outlined, enabled: false),
                       Consumer(
                         builder: (context, ref, _) {
                           final isDark = ref.watch(themeProvider) == ThemeMode.dark;
@@ -213,13 +213,13 @@ class DriverProfileScreen extends ConsumerWidget {
                                 style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
                             value: isDark,
                             onChanged: (v) => ref.read(themeProvider.notifier).setDark(v),
-                            activeColor: AppColors.primary,
+                            activeThumbColor: AppColors.primary,
                             dense: true,
                           );
                         },
                       ),
-                      _SettingsItem(label: 'Language', value: 'English', icon: Icons.language),
-                      _SettingsItem(label: 'App Version', value: '1.0.0', icon: Icons.info_outline),
+                      const _SettingsItem(label: 'Language', value: 'English', icon: Icons.language),
+                      const _SettingsItem(label: 'App Version', value: '1.0.0', icon: Icons.info_outline),
                     ],
                   ).animate().fadeIn(delay: 300.ms),
 
@@ -397,7 +397,7 @@ class _DriverQrSection extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.qr_code_2, size: 20, color: AppColors.primary),
@@ -448,7 +448,7 @@ class _DriverQrSection extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text('Driver',
@@ -636,7 +636,7 @@ class _DocumentRow extends StatelessWidget {
     final isExpiring = status == 'expiring';
 
     Color statusColor = isVerified ? AppColors.primary : isExpiring ? AppColors.warning : AppColors.error;
-    Color bgColor = isVerified ? AppColors.primaryLight : isExpiring ? AppColors.warning.withOpacity(0.1) : AppColors.error.withOpacity(0.1);
+    Color bgColor = isVerified ? AppColors.primaryLight : isExpiring ? AppColors.warning.withValues(alpha: 0.1) : AppColors.error.withValues(alpha: 0.1);
     String statusText = isVerified ? 'Verified' : isExpiring ? 'Expiring Soon' : 'Expired';
 
     return ListTile(
@@ -684,7 +684,7 @@ class _SettingsToggleState extends State<_SettingsToggle> {
       title: Text(widget.label, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14)),
       value: _enabled,
       onChanged: (v) => setState(() => _enabled = v),
-      activeColor: AppColors.primary,
+      activeThumbColor: AppColors.primary,
       dense: true,
     );
   }

@@ -6,6 +6,7 @@ import StatCard from '../StatCard';
 import { StatusBadge } from './_shared';
 import { haversineKm, formatDist } from '../../../utils/geo';
 const VEHICLE_TYPES = ['Truck', 'Van', 'Pickup Truck', 'Lorry', 'Compact Van', 'Motorcycle'];
+const ACTIVE_COLLECTION_STATUSES = new Set(['scheduled', 'assigned', 'accepted', 'en_route', 'on_route', 'in_progress']);
 
 interface VehicleForm {
   plate_number: string;
@@ -70,8 +71,6 @@ export default function RecyclerFleet() {
   const [sendingReminder, setSendingReminder] = useState<number | null>(null);
   const [reminderMsg, setReminderMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [clearingAssignments, setClearingAssignments] = useState(false);
-
-  const ACTIVE_COLLECTION_STATUSES = new Set(['scheduled', 'assigned', 'accepted', 'en_route', 'on_route', 'in_progress']);
 
   const getDestinationCoords = (collection: Collection): { lat: number; lng: number } | null => {
     const hasListingCoords = typeof collection.listing_lat === 'number' && typeof collection.listing_lng === 'number';

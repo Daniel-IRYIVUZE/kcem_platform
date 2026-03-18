@@ -59,6 +59,7 @@ class UserCreate(BaseModel):
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     phone:     Optional[str] = None
+    email:     Optional[EmailStr] = None
     avatar_url: Optional[str] = None
 
 

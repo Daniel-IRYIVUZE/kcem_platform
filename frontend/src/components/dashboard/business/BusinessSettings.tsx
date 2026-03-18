@@ -12,9 +12,6 @@ export default function BusinessSettings() {
   const [address, setAddress] = useState('');
   const [contactPerson, setContactPerson] = useState('');
   const [hasHotelProfile, setHasHotelProfile] = useState(false);
-  const [autoAcceptBids, setAutoAcceptBids] = useState(false);
-  const [emailNotifs, setEmailNotifs] = useState(true);
-  const [smsNotifs, setSmsNotifs] = useState(true);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +67,11 @@ export default function BusinessSettings() {
       }
       
       // Save contact person and phone to user profile
-      await usersAPI.updateMe({ full_name: contact, phone: phoneValue || undefined });
+      await usersAPI.updateMe({
+        full_name: contact,
+        phone: phoneValue || undefined,
+        email: email.trim() || undefined,
+      });
       
       const hotelPayload = { hotel_name: hotel, address: hotelAddress, phone: phoneValue || undefined };
 
@@ -108,26 +109,9 @@ export default function BusinessSettings() {
           <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Person</label><input value={contactPerson} onChange={e => setContactPerson(e.target.value)} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" /></div>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-          <h2 className="text-lg font-semibold border-b pb-2">Preferences</h2>
-          {[
-            { label: 'Auto-Accept Top Bid', desc: 'Automatically accept the highest bid when listing expires', value: autoAcceptBids, setter: setAutoAcceptBids },
-            { label: 'Email Notifications', desc: 'Receive email for new bids and collection updates', value: emailNotifs, setter: setEmailNotifs },
-            { label: 'SMS Notifications', desc: 'Receive SMS alerts for important events', value: smsNotifs, setter: setSmsNotifs },
-          ].map(item => (
-            <div key={item.label} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
-              <div><p className="text-sm font-medium">{item.label}</p><p className="text-xs text-gray-500 dark:text-gray-400">{item.desc}</p></div>
-              <button onClick={() => item.setter(!item.value)} className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full transition-colors ${item.value ? 'bg-cyan-600' : 'bg-gray-300'}`}>
-                <span className={`inline-block h-5 w-5 transform rounded-full bg-white dark:bg-gray-800 shadow ring-0 transition mt-0.5 ${item.value ? 'translate-x-5.5 ml-0.5' : 'translate-x-0.5'}`} />
-              </button>
-            </div>
-          ))}
-          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
-            <h3 className="text-sm font-medium mb-2">Waste Collection Preferences</h3>
-            <div className="space-y-2">
-              {['UCO', 'Glass', 'Paper/Cardboard', 'Organic Waste'].map(type => (
-                <label key={type} className="flex items-center gap-2 text-sm"><input type="checkbox" defaultChecked className="rounded text-cyan-600 focus:ring-cyan-500" />{type}</label>
-              ))}
-            </div>
+          <h2 className="text-lg font-semibold border-b pb-2">Sync Status</h2>
+          <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg text-sm text-gray-600 dark:text-gray-300">
+            Changes saved here update your account and hotel profile in the database and are reflected anywhere this profile data is used.
           </div>
         </div>
       </div>

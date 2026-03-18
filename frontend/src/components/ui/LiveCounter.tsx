@@ -13,10 +13,15 @@ interface LiveCounterProps {
 export function LiveCounter({ value, prefix = '', suffix = '', decimals = 0, duration = 1200, className = '' }: LiveCounterProps) {
   const [display, setDisplay] = useState(0);
   const raf = useRef<number | null>(null);
+  const displayRef = useRef(0);
+
+  useEffect(() => {
+    displayRef.current = display;
+  }, [display]);
 
   useEffect(() => {
     const start = Date.now();
-    const from = display;
+    const from = displayRef.current;
     const tick = () => {
       const elapsed = Date.now() - start;
       const progress = Math.min(elapsed / duration, 1);

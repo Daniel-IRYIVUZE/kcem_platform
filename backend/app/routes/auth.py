@@ -17,6 +17,66 @@ from app.models.user import User
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
+@router.get("/check-availability")
+def check_availability(
+    email: str | None = None,
+    phone: str | None = None,
+    full_name: str | None = None,
+    db: Session = Depends(get_db),
+):
+    response: dict[str, dict] = {}
+
+    if email is not None:
+        normalized_email = email.strip().lower()
+        if not normalized_email:
+            response["email"] = {
+                "value": normalized_email,
+                "available": False,
+                "message": "Email is required.",
+            }
+        else:
+            exists = crud_user.get_by_email(db, normalized_email) is not None
+            response["email"] = {
+                "value": normalized_email,
+                "available": not exists,
+                "message": "Email already registered." if exists else "Email available.",
+            }
+
+    if phone is not None:
+        normalized_phone = phone.strip()
+        if normalized_phone == "":
+            response["phone"] = {
+                "value": normalized_phone,
+                "available": True,
+                "message": "Phone is optional.",
+            }
+        else:
+            exists = crud_user.get_by_phone(db, normalized_phone) is not None
+            response["phone"] = {
+                "value": normalized_phone,
+                "available": not exists,
+                "message": "Phone already registered." if exists else "Phone available.",
+            }
+
+    if full_name is not None:
+        normalized_name = full_name.strip()
+        if not normalized_name:
+            response["full_name"] = {
+                "value": normalized_name,
+                "available": False,
+                "message": "Name is required.",
+            }
+        else:
+            exists = crud_user.get_by_full_name(db, normalized_name) is not None
+            response["full_name"] = {
+                "value": normalized_name,
+                "available": not exists,
+                "message": "Name already exists." if exists else "Name available.",
+            }
+
+    return response
+
+
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def register(payload: UserCreate, db: Session = Depends(get_db)):
     if crud_user.get_by_email(db, payload.email):

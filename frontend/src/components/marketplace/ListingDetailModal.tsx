@@ -135,7 +135,7 @@ const ListingDetailModal = ({ listing, onClose, onBid }: ListingDetailModalProps
               </div>
 
               {/* Key Details */}
-              <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div className="bg-gray-50 dark:bg-gray-900 p-3 rounded-xl">
                   <p className="text-xs text-gray-500 dark:text-gray-400">Volume</p>
                   <p className="font-bold text-gray-900 dark:text-white">{Math.round(listing.volume).toLocaleString()} {listing.unit}</p>
@@ -179,7 +179,7 @@ const ListingDetailModal = ({ listing, onClose, onBid }: ListingDetailModalProps
               )}
 
               {/* Action ButKilograms */}
-              <div className="flex space-x-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={onBid}
                   className="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold hover:bg-cyan-700 transition-colors"

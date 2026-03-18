@@ -199,7 +199,7 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: const Color(0xFF1E293B),
-        indicatorColor: AppColors.primary.withOpacity(0.2),
+        indicatorColor: AppColors.primary.withValues(alpha: 0.2),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.primary);
@@ -215,7 +215,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: const Color(0xFF334155),
-        selectedColor: AppColors.primary.withOpacity(0.2),
+        selectedColor: AppColors.primary.withValues(alpha: 0.2),
         labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -231,7 +231,7 @@ class AppTheme {
         thumbColor: WidgetStateProperty.resolveWith((states) =>
             states.contains(WidgetState.selected) ? AppColors.primary : const Color(0xFF64748B)),
         trackColor: WidgetStateProperty.resolveWith((states) =>
-            states.contains(WidgetState.selected) ? AppColors.primary.withOpacity(0.4) : const Color(0xFF334155)),
+            states.contains(WidgetState.selected) ? AppColors.primary.withValues(alpha: 0.4) : const Color(0xFF334155)),
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) =>
@@ -569,6 +569,6 @@ extension AppColorsContext on BuildContext {
 
   // Overlays / tints
   Color get cPrimaryLight => isDark
-      ? AppColors.primary.withOpacity(0.15)
+      ? AppColors.primary.withValues(alpha: 0.15)
       : AppColors.primaryLight;
 }

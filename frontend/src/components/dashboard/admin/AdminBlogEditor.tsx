@@ -1,5 +1,5 @@
 // components/dashboard/admin/AdminBlogEditor.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Save, ArrowLeft, Eye } from 'lucide-react';
 import { blogAPI, type BlogPostCreate } from '../../../services/api';
@@ -24,18 +24,7 @@ export default function AdminBlogEditor() {
     author_display_name: '',
   });
 
-  useEffect(() => {
-    if (user?.role !== 'admin') {
-      navigate('/dashboard');
-      return;
-    }
-
-    if (id && id !== 'new') {
-      fetchPost(Number(id));
-    }
-  }, [id, user, navigate]);
-
-  const fetchPost = async (postId: number) => {
+  const fetchPost = useCallback(async (postId: number) => {
     try {
       setLoading(true);
       const post = await blogAPI.getById(postId);
@@ -58,7 +47,18 @@ export default function AdminBlogEditor() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    if (user?.role !== 'admin') {
+      navigate('/dashboard');
+      return;
+    }
+
+    if (id && id !== 'new') {
+      fetchPost(Number(id));
+    }
+  }, [id, user, navigate, fetchPost]);
 
   const generateSlug = (title: string) => {
     return title

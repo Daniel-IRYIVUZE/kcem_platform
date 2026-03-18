@@ -519,14 +519,14 @@ class _MapView extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 3))],
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 3))],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.recycling, color: AppColors.primary, size: 20),
+                            const Icon(Icons.recycling, color: AppColors.primary, size: 20),
                             const SizedBox(width: 8),
                             Expanded(child: Text(l.wasteType.label,
                                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
@@ -574,7 +574,7 @@ class _MapClusterMarker extends StatelessWidget {
             color: AppColors.primary,
             shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2.5),
-            boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 8, spreadRadius: 2)],
+            boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 2)],
           ),
           child: Icon(
             wasteType == WasteType.uco

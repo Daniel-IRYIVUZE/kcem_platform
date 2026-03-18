@@ -401,7 +401,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                         color: context.cSurfAlt,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppColors.primary.withOpacity(0.4),
+                          color: AppColors.primary.withValues(alpha: 0.4),
                           style: BorderStyle.solid,
                         ),
                       ),
@@ -518,7 +518,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                     value: _useCurrentLocation,
                     onChanged: (v) => setState(() => _useCurrentLocation = v),
                     title: const Text('Use current location', style: TextStyle(fontSize: 14)),
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     contentPadding: EdgeInsets.zero,
                   ),
                   if (!_useCurrentLocation)

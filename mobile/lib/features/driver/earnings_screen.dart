@@ -79,7 +79,7 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
           return _BarData('W${i + 1}', sum.toInt());
         });
       default:
-        return [_BarData('-', 0)];
+        return [const _BarData('-', 0)];
     }
   }
 
@@ -170,7 +170,7 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
                           decoration: BoxDecoration(
                             color: _selectedPeriod == i ? AppColors.primary : context.cSurf,
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8)],
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8)],
                           ),
                           child: Text(
                             _periods[i],
@@ -360,7 +360,7 @@ class _SummaryCard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
             child: Icon(icon, color: color, size: 18),
           ),
           const SizedBox(height: 10),

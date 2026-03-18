@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
@@ -104,7 +104,7 @@ class _BidListView extends ConsumerWidget {
             color: context.cSurf,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: type == BidStatus.won ? AppColors.primary.withOpacity(0.3) : context.cBorder,
+              color: type == BidStatus.won ? AppColors.primary.withValues(alpha: 0.3) : context.cBorder,
               width: type == BidStatus.won ? 1.5 : 1,
             ),
           ),
@@ -116,7 +116,7 @@ class _BidListView extends ConsumerWidget {
                   Container(
                     width: 44, height: 44,
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.12),
+                      color: statusColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(Icons.gavel, color: statusColor, size: 22),

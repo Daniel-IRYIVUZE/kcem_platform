@@ -95,7 +95,11 @@ export default function RecyclerSettings() {
       if (!company) throw new Error('Company name is required.');
       if (!companyAddress) throw new Error('Address is required.');
 
-      await usersAPI.updateMe({ full_name: name, phone: userPhone.trim() || undefined });
+      await usersAPI.updateMe({
+        full_name: name,
+        phone: userPhone.trim() || undefined,
+        email: email.trim() || undefined,
+      });
 
       const recyclerPayload = {
         company_name: company,

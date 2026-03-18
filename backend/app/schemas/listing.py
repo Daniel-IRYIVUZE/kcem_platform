@@ -25,6 +25,7 @@ class ListingCreate(BaseModel):
     address:                Optional[str] = None
     latitude:               Optional[float] = None
     longitude:              Optional[float] = None
+    image_url:              Optional[str] = None
     expires_at:             Optional[datetime] = None
     is_urgent:              Optional[bool] = False
     notes:                  Optional[str] = None
@@ -37,6 +38,7 @@ class ListingUpdate(BaseModel):
     volume:                 Optional[float] = None
     unit:                   Optional[str] = None
     min_bid:                Optional[float] = None
+    image_url:              Optional[str] = None
     collection_window_start: Optional[datetime] = None
     collection_window_end:   Optional[datetime] = None
     address:                Optional[str] = None

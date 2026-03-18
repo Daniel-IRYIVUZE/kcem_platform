@@ -332,9 +332,9 @@ class _ArriveStep extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withOpacity(0.1),
+                  color: AppColors.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
                 ),
                 child: const Row(
                   children: [
@@ -408,15 +408,15 @@ class _WeighPhotoStep extends StatelessWidget {
                       decoration: InputDecoration(
                         hintText: '0.0',
                         hintStyle: TextStyle(
-                            color: AppColors.textSecondary.withOpacity(0.4)),
+                            color: AppColors.textSecondary.withValues(alpha: 0.4)),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   SegmentedButton<String>(
-                    segments: [
-                      ButtonSegment(value: 'kg', label: const Text('kg')),
-                      ButtonSegment(value: 'tonnes', label: const Text('T')),
+                    segments: const [
+                      ButtonSegment(value: 'kg', label: Text('kg')),
+                      ButtonSegment(value: 'tonnes', label: Text('T')),
                     ],
                     selected: {unit},
                     onSelectionChanged: (s) => onUnitChange(s.first),
@@ -533,7 +533,7 @@ class _PinVerifyStep extends StatelessWidget {
         Container(
           width: 80,
           height: 80,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.primaryLight,
             shape: BoxShape.circle,
           ),
@@ -620,7 +620,7 @@ class _CompleteStep extends StatelessWidget {
           style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
         ),
         const SizedBox(height: 28),
-        _Card(
+        const _Card(
           child: Column(
             children: [
               _SummaryRow(label: 'Hotel', value: 'Kigali Grand Hotel'),
@@ -717,7 +717,7 @@ class _Card extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: color == null ? Border.all(color: context.cBorder) : null,
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8)
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8)
         ],
       ),
       child: child,

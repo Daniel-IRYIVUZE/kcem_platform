@@ -35,9 +35,9 @@ class HotelProfileScreen extends ConsumerWidget {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
                         ),
                         child: const Center(
                           child: Icon(Icons.business, size: 38, color: Colors.white),
@@ -46,7 +46,7 @@ class HotelProfileScreen extends ConsumerWidget {
                       const SizedBox(height: 10),
                       Text(
                         user?.displayName ?? 'Hotel',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
                           fontSize: 20,
@@ -58,7 +58,7 @@ class HotelProfileScreen extends ConsumerWidget {
                           Text(
                             'Kigali City',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 13,
                             ),
                           ),
@@ -99,8 +99,8 @@ class HotelProfileScreen extends ConsumerWidget {
                   title: 'Business Details',
                   children: [
                     _ProfileRow(icon: Icons.business_outlined, label: 'Business Name', value: user?.displayName ?? 'N/A'),
-                    _ProfileRow(icon: Icons.numbers_outlined, label: 'TIN Number', value: '119874652'),
-                    _ProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: 'KN 5 Rd, Kigali'),
+                    const _ProfileRow(icon: Icons.numbers_outlined, label: 'TIN Number', value: '119874652'),
+                    const _ProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: 'KN 5 Rd, Kigali'),
                     _ProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
                     _ProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
                   ],
@@ -124,7 +124,7 @@ class HotelProfileScreen extends ConsumerWidget {
                     onPressed: () => _showAddPaymentSheet(context),
                     child: const Text('Add'),
                   ),
-                  children: [
+                  children: const [
                     _PaymentMethodCard(
                       icon: Icons.phone_android_rounded,
                       name: 'MTN Mobile Money',
@@ -167,7 +167,7 @@ class HotelProfileScreen extends ConsumerWidget {
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                           value: isDark,
                           onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
-                          activeColor: AppColors.primary,
+                          activeThumbColor: AppColors.primary,
                           dense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                         );
@@ -631,18 +631,18 @@ class _QrCodeSection extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('My QR Code',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text('My QR Code',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 4),
               Text(displayName,
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
+                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
                 ),
                 child: QrImageView(
                   data: qrData,
@@ -705,7 +705,7 @@ class _QrCodeSection extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.qr_code_2, size: 20, color: AppColors.primary),
@@ -756,7 +756,7 @@ class _QrCodeSection extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(role,

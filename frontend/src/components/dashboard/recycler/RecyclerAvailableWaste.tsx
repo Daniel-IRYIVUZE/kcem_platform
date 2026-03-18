@@ -4,10 +4,12 @@ import { Search, X } from 'lucide-react';
 import DataTable from '../DataTable';
 
 export default function RecyclerAvailableWaste() {
+  const PAGE_SIZE = 100;
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showBidModal, setShowBidModal] = useState(false);
-  const [bidAmount, setBidAmount] = useState('');
+  const [bidUnitPrice, setBidUnitPrice] = useState('');
+  const [bidQuantity, setBidQuantity] = useState('');
   const [bidFormMessage, setBidFormMessage] = useState<string | null>(null);
   const [bidFormMessageType, setBidFormMessageType] = useState<'success' | 'error'>('error');
   const [listings, setListings] = useState<WasteListing[]>([]);
@@ -20,9 +22,33 @@ export default function RecyclerAvailableWaste() {
 
   const load = useCallback(async () => {
     try {
+      const fetchAllOpenListings = async () => {
+        const allListings: WasteListing[] = [];
+        let skip = 0;
+        while (true) {
+          const batch = await listingsAPI.list({ status: 'open', skip, limit: PAGE_SIZE });
+          allListings.push(...batch);
+          if (batch.length < PAGE_SIZE) break;
+          skip += PAGE_SIZE;
+        }
+        return allListings;
+      };
+
+      const fetchAllMyBids = async () => {
+        const allBids = [] as Awaited<ReturnType<typeof bidsAPI.mine>>;
+        let skip = 0;
+        while (true) {
+          const batch = await bidsAPI.mine({ skip, limit: PAGE_SIZE });
+          allBids.push(...batch);
+          if (batch.length < PAGE_SIZE) break;
+          skip += PAGE_SIZE;
+        }
+        return allBids;
+      };
+
       const [openListings, myBids] = await Promise.all([
-        listingsAPI.list({ status: 'open', limit: 100 }),
-        bidsAPI.mine({ limit: 200 }),
+        fetchAllOpenListings(),
+        fetchAllMyBids(),
       ]);
       setListings(openListings);
       const activeBids = myBids.filter((b) => b.status === 'active');
@@ -31,8 +57,20 @@ export default function RecyclerAvailableWaste() {
     } catch {
       // Fallback: still show listings even if bid history fails to load.
       try {
-        setListings(await listingsAPI.list({ status: 'open', limit: 100 }));
-      } catch {}
+        const allListings: WasteListing[] = [];
+        let skip = 0;
+        while (true) {
+          const batch = await listingsAPI.list({ status: 'open', skip, limit: PAGE_SIZE });
+          allListings.push(...batch);
+          if (batch.length < PAGE_SIZE) break;
+          skip += PAGE_SIZE;
+        }
+        setListings(allListings);
+      } catch (fallbackError) {
+        const msg = fallbackError instanceof Error ? fallbackError.message : 'Failed to load listings.';
+        setPageMessageType('error');
+        setPageMessage(msg);
+      }
       setActiveBidListingIds(new Set());
       setActiveBidByListingId(new Map());
     }
@@ -46,14 +84,49 @@ export default function RecyclerAvailableWaste() {
   });
 
   const handleSubmitBid = async () => {
-    if (!selectedListing || !bidAmount) return;
-    const amount = parseInt(bidAmount);
-    if (isNaN(amount) || amount <= 0) return;
+    if (!selectedListing || !bidUnitPrice || !bidQuantity) return;
+
+    const unitPrice = Number(bidUnitPrice);
+    const quantity = Number(bidQuantity);
+    const availableVolume = Number(selectedListing.volume) || 0;
+    const minUnitBid = Number(selectedListing.min_bid ?? 0);
+
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+      setBidFormMessageType('error');
+      setBidFormMessage('Enter a valid price per unit.');
+      return;
+    }
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setBidFormMessageType('error');
+      setBidFormMessage('Enter a valid quantity/volume.');
+      return;
+    }
+
+    if (quantity > availableVolume) {
+      setBidFormMessageType('error');
+      setBidFormMessage(`Quantity cannot exceed available volume (${availableVolume.toLocaleString()} ${selectedListing.unit}).`);
+      return;
+    }
+
+    if (unitPrice < minUnitBid) {
+      setBidFormMessageType('error');
+      setBidFormMessage(`Price per unit must be at least RWF ${minUnitBid.toLocaleString()} / ${selectedListing.unit}.`);
+      return;
+    }
+
+    const amount = Math.round(unitPrice * quantity);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setBidFormMessageType('error');
+      setBidFormMessage('Unable to calculate total bid price. Check your inputs.');
+      return;
+    }
+
     setBidFormMessage(null);
     try {
       await listingsAPI.placeBid(selectedListing.id, { amount, note: '' });
       setBidFormMessageType('success');
-      setBidFormMessage(`Bid of RWF ${amount.toLocaleString()} submitted successfully.`);
+      setBidFormMessage(`Total bid price of RWF ${amount.toLocaleString()} submitted successfully.`);
       setTimeout(() => {
         setShowBidModal(false);
         setBidFormMessage(null);
@@ -136,7 +209,15 @@ export default function RecyclerAvailableWaste() {
                   >
                     {withdrawingListingId === r._raw.id ? 'Withdrawing…' : 'Withdraw Bid'}
                   </button>
-                : <button onClick={() => { setSelectedListing(r._raw); setBidAmount(''); setBidFormMessage(null); setShowBidModal(true); }} className="px-3 py-1.5 text-xs bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium">Place Bid</button>
+                : <button onClick={() => {
+                    const defaultQuantity = String(Math.max(1, Number(r._raw.volume) || 1));
+                    const defaultUnitPrice = String(Math.max(0, Number(r._raw.min_bid ?? 0)));
+                    setSelectedListing(r._raw);
+                    setBidQuantity(defaultQuantity);
+                    setBidUnitPrice(defaultUnitPrice);
+                    setBidFormMessage(null);
+                    setShowBidModal(true);
+                  }} className="px-3 py-1.5 text-xs bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium">Place Bid</button>
             )},
           ]}
           data={displayData}
@@ -154,10 +235,40 @@ export default function RecyclerAvailableWaste() {
                   <div><p className="text-xs text-gray-500 dark:text-gray-400">Hotel</p><p className="font-medium text-gray-900 dark:text-white">{selectedListing.hotel_name}</p></div>
                   <div><p className="text-xs text-gray-500 dark:text-gray-400">Type</p><p className="font-medium text-gray-900 dark:text-white">{selectedListing.waste_type}</p></div>
                   <div><p className="text-xs text-gray-500 dark:text-gray-400">Volume</p><p className="font-medium text-gray-900 dark:text-white">{selectedListing.volume} {selectedListing.unit}</p></div>
-                  <div><p className="text-xs text-gray-500 dark:text-gray-400">Min Bid</p><p className="font-semibold text-cyan-600">RWF {(selectedListing.min_bid ?? 0).toLocaleString()}</p></div>
+                  <div><p className="text-xs text-gray-500 dark:text-gray-400">Min Price/Unit</p><p className="font-semibold text-cyan-600">RWF {(selectedListing.min_bid ?? 0).toLocaleString()} / {selectedListing.unit}</p></div>
                 </div>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Bid Amount (RWF)</label><input type="number" value={bidAmount} onChange={e => setBidAmount(e.target.value)} min={selectedListing.min_bid ?? 0} placeholder={`Min: ${(selectedListing.min_bid ?? 0).toLocaleString()}`} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" /></div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price per Unit (RWF/{selectedListing.unit})</label>
+                <input
+                  type="number"
+                  value={bidUnitPrice}
+                  onChange={e => setBidUnitPrice(e.target.value)}
+                  min={selectedListing.min_bid ?? 0}
+                  step={10}
+                  placeholder={`Min: ${(selectedListing.min_bid ?? 0).toLocaleString()} / ${selectedListing.unit}`}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity / Volume ({selectedListing.unit})</label>
+                <input
+                  type="number"
+                  value={bidQuantity}
+                  onChange={e => setBidQuantity(e.target.value)}
+                  min={1}
+                  max={selectedListing.volume}
+                  step={1}
+                  placeholder={`Max: ${selectedListing.volume.toLocaleString()} ${selectedListing.unit}`}
+                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div className="rounded-lg border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20 px-3 py-2 text-sm">
+                <p className="text-cyan-700 dark:text-cyan-300 font-medium">Your Total Bid Price</p>
+                <p className="text-cyan-800 dark:text-cyan-200 font-semibold">
+                  RWF {Math.round((Number(bidUnitPrice) || 0) * (Number(bidQuantity) || 0)).toLocaleString()}
+                </p>
+              </div>
               {bidFormMessage && (
                 <div className={`text-sm px-3 py-2 rounded-lg border ${
                   bidFormMessageType === 'success'
@@ -170,7 +281,7 @@ export default function RecyclerAvailableWaste() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => setShowBidModal(false)} className="flex-1 px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900 text-gray-700 dark:text-gray-300">Cancel</button>
-              <button onClick={handleSubmitBid} disabled={!bidAmount} className="flex-1 px-4 py-2 text-sm bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50">Submit Bid</button>
+              <button onClick={handleSubmitBid} disabled={!bidUnitPrice || !bidQuantity} className="flex-1 px-4 py-2 text-sm bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50">Submit Bid</button>
             </div>
           </div>
         </div>

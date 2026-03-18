@@ -51,7 +51,7 @@ class SupportScreen extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text('Our team is available\nMon–Fri, 8am–6pm EAT',
                           style: TextStyle(
-                              color: Colors.white.withOpacity(0.85),
+                              color: Colors.white.withValues(alpha: 0.85),
                               fontSize: 13,
                               height: 1.5)),
                     ],
@@ -61,7 +61,7 @@ class SupportScreen extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.support_agent,
@@ -74,7 +74,7 @@ class SupportScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Contact channels
-          _SectionHeader(label: 'Contact Us'),
+          const _SectionHeader(label: 'Contact Us'),
           const SizedBox(height: 10),
           _ContactTile(
             icon: Icons.chat_bubble_outline,
@@ -110,7 +110,7 @@ class SupportScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Quick actions
-          _SectionHeader(label: 'Quick Actions'),
+          const _SectionHeader(label: 'Quick Actions'),
           const SizedBox(height: 10),
           Row(
             children: [
@@ -146,7 +146,7 @@ class SupportScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           // FAQ
-          _SectionHeader(label: 'Frequently Asked Questions'),
+          const _SectionHeader(label: 'Frequently Asked Questions'),
           const SizedBox(height: 10),
           ..._faqs.asMap().entries.map((e) => _FaqTile(
                 question: e.value['q']!,
@@ -157,7 +157,7 @@ class SupportScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           // Resources
-          _SectionHeader(label: 'Resources'),
+          const _SectionHeader(label: 'Resources'),
           const SizedBox(height: 10),
           _ResourceTile(
             icon: Icons.menu_book_outlined,
@@ -177,7 +177,7 @@ class SupportScreen extends StatelessWidget {
             icon: Icons.announcement_outlined,
             title: 'System Status',
             subtitle: 'Check platform uptime & incidents',
-            trailing: _StatusBadge(status: 'Operational'),
+            trailing: const _StatusBadge(status: 'Operational'),
             onTap: () =>
                 _launch(context, 'https://status.ecotrade.rw'),
           ).animate(delay: 650.ms).fadeIn(),
@@ -395,7 +395,7 @@ class _ContactTile extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10)),
               child: Icon(icon, color: color, size: 22),
             ),
@@ -417,7 +417,7 @@ class _ContactTile extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                              color: AppColors.success.withOpacity(0.12),
+                              color: AppColors.success.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8)),
                           child: Text(badge!,
                               style: const TextStyle(
@@ -471,7 +471,7 @@ class _QuickActionCard extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                  color: color.withOpacity(0.1), shape: BoxShape.circle),
+                  color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 22),
             ),
             const SizedBox(height: 8),
@@ -513,7 +513,7 @@ class _FaqTileState extends State<_FaqTile> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: _expanded
-                ? AppColors.primary.withOpacity(0.3)
+                ? AppColors.primary.withValues(alpha: 0.3)
                 : context.cBorder),
       ),
       child: Column(
@@ -630,7 +630,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-          color: AppColors.success.withOpacity(0.12),
+          color: AppColors.success.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(10)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -731,8 +731,8 @@ class _LiveChatSheetState extends State<_LiveChatSheet> {
                   Container(
                     width: 40,
                     height: 40,
-                    decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                    decoration: const BoxDecoration(
+                        gradient: LinearGradient(
                             colors: [AppColors.primary, Color(0xFF059669)]),
                         shape: BoxShape.circle),
                     child: const Icon(Icons.support_agent,
@@ -884,7 +884,7 @@ class _ChatBubble extends StatelessWidget {
                   fontSize: 10,
                   color: msg.isAgent
                       ? context.cTextTer
-                      : Colors.white.withOpacity(0.7)),
+                      : Colors.white.withValues(alpha: 0.7)),
             ),
           ],
         ),

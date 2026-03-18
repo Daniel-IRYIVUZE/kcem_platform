@@ -1,7 +1,35 @@
 // services/api.ts — EcoTrade Rwanda API client
 // Wraps every backend endpoint with typed helpers and JWT injection.
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const PROD_API_BASE = 'https://api.ecotrade-rwanda.com/api';
+
+function resolveApiBase(): string {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return envUrl;
+
+  const host = window.location.hostname;
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:8000/api';
+  }
+
+  return PROD_API_BASE;
+}
+
+const API_BASE = resolveApiBase();
+export const API_BASE_URL = API_BASE;
+
+export function resolveMediaUrl(url?: string): string | undefined {
+  if (!url) return undefined;
+  if (/^https?:\/\//i.test(url)) return url;
+
+  const normalized = url.startsWith('/') ? url : `/${url}`;
+  if (/^\/api\/listings\/\d+\/images\/\d+$/i.test(normalized)) {
+    const backendOrigin = API_BASE.replace(/\/api\/?$/, '');
+    return `${backendOrigin}${normalized}`;
+  }
+  const backendOrigin = API_BASE.replace(/\/api\/?$/, '');
+  return `${backendOrigin}${normalized}`;
+}
 
 let refreshInFlight: Promise<string | null> | null = null;
 
@@ -141,11 +169,24 @@ export interface LoginResponse {
 
 export type RegisterResponse = APIUser;
 
+export interface AvailabilityFieldResult {
+  value: string;
+  available: boolean;
+  message: string;
+}
+
+export interface AccountAvailabilityResponse {
+  email?: AvailabilityFieldResult;
+  phone?: AvailabilityFieldResult;
+  full_name?: AvailabilityFieldResult;
+}
+
 export interface WasteListing {
   id: number;
   hotel_id: number;
   hotel_name: string;
   image_url?: string;
+  images?: ListingImage[];
   title: string;
   description?: string;
   waste_type: string;
@@ -389,6 +430,22 @@ export interface AuditLog {
   created_at: string;
 }
 
+export interface AdminPlatformSettings {
+  platformName: string;
+  platformFeePercent: number;
+  minBidAmount: number;
+  listingExpiryDays: number;
+  maintenanceMode: boolean;
+  emailNotifications: boolean;
+  smsNotifications: boolean;
+  autoApproveListings: boolean;
+  requireIDVerification: boolean;
+  currency: string;
+  country: string;
+  supportEmail: string;
+  supportPhone: string;
+}
+
 export interface Notification {
   id: number;
   user_id: number;
@@ -467,6 +524,15 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  checkAvailability: (params: { email?: string; phone?: string; full_name?: string }) => {
+    const q = new URLSearchParams(
+      Object.fromEntries(
+        Object.entries(params).filter(([, v]) => v !== undefined && v !== ''),
+      ) as Record<string, string>,
+    ).toString();
+    return request<AccountAvailabilityResponse>(`/auth/check-availability${q ? `?${q}` : ''}`);
+  },
 
   changePassword: (newPassword: string) =>
     request<{ message: string }>('/auth/change-password', {
@@ -565,6 +631,12 @@ export const listingsAPI = {
       body: formData,
     }, true);
   },
+
+  setPrimaryImage: (listingId: number, imageId: number) =>
+    request<ListingImage>(`/listings/${listingId}/images/${imageId}/primary`, { method: 'PATCH' }),
+
+  deleteImage: (listingId: number, imageId: number) =>
+    request<void>(`/listings/${listingId}/images/${imageId}`, { method: 'DELETE' }),
 };
 
 export const bidsAPI = {
@@ -773,7 +845,7 @@ export const notificationsAPI = {
         Object.entries(params || {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
       )
     ).toString();
-    return request<Notification[]>(`/notifications${q ? `?${q}` : ''}`);
+    return request<Notification[]>(`/notifications/${q ? `?${q}` : ''}`);
   },
 
   unreadCount: () =>
@@ -833,6 +905,66 @@ export const blogAPI = {
 
   toggleFeatured: (id: number) =>
     request<BlogPost>(`/blog/${id}/toggle-featured`, { method: 'POST' }),
+};
+
+// ─── Admin ───────────────────────────────────────────────────────────────────
+
+export interface AdminListingsResponse {
+  items: WasteListing[];
+  usedFallback: boolean;
+}
+
+export const adminAPI = {
+  listListings: async (params?: { status?: string; skip?: number; limit?: number }): Promise<AdminListingsResponse> => {
+    const entries = Object.entries(params || {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)]);
+    const q = new URLSearchParams(Object.fromEntries(entries)).toString();
+
+    try {
+      const items = await request<WasteListing[]>(`/admin/listings${q ? `?${q}` : ''}`);
+      return { items, usedFallback: false };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!message.includes('404')) {
+        throw error;
+      }
+
+      const fallbackParams = new URLSearchParams(
+        Object.fromEntries(
+          entries.filter(([key]) => key !== 'status'),
+        ),
+      ).toString();
+
+      const items = await request<WasteListing[]>(`/listings${fallbackParams ? `?${fallbackParams}` : ''}`);
+      return { items, usedFallback: true };
+    }
+  },
+
+  updateListing: (id: number, data: Partial<WasteListing>) =>
+    request<WasteListing>(`/admin/listings/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+
+  deleteListing: (id: number) =>
+    request<void>(`/admin/listings/${id}`, { method: 'DELETE' }),
+
+  uploadListingImage: (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return request<ListingImage>(`/admin/listings/${id}/images`, {
+      method: 'POST',
+      body: formData,
+    }, true);
+  },
+
+  setPrimaryListingImage: (listingId: number, imageId: number) =>
+    request<ListingImage>(`/admin/listings/${listingId}/images/${imageId}/primary`, { method: 'PATCH' }),
+
+  deleteListingImage: (listingId: number, imageId: number) =>
+    request<void>(`/admin/listings/${listingId}/images/${imageId}`, { method: 'DELETE' }),
+
+  getSettings: () =>
+    request<AdminPlatformSettings>('/admin/settings'),
+
+  saveSettings: (data: Partial<AdminPlatformSettings>) =>
+    request<AdminPlatformSettings>('/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
 };
 
 // ─── Hotels ───────────────────────────────────────────────────────────────────
@@ -1002,6 +1134,11 @@ export const driversAPI = {
   get: (id: number) => request<DriverProfile>(`/drivers/details/${id}`),
   me: () => request<DriverProfile>('/drivers/me'),
   myRecycler: () => request<DriverProfile[]>('/drivers/my-recycler'),
+  updateProfile: (data: { phone?: string; license_number?: string; status?: 'available' | 'on_route' | 'off_duty' }) =>
+    request<DriverProfile>('/drivers/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
   setAvailability: (available: boolean) =>
     request<DriverProfile>('/drivers/me/availability', {
       method: 'PATCH',

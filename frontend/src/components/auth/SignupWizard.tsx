@@ -49,37 +49,14 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
     setSubmitting(true);
     setSubmitError('');
     try {
-      const fd = new FormData();
-      fd.append('role', userType);
-      fd.append('full_name', formData.fullName || (userType === 'hotel' ? formData.contactPerson : formData.fullName) || 'User');
-      fd.append('email', formData.email);
-      fd.append('phone', formData.phone);
-      fd.append('password', formData.password);
-      fd.append('confirm_password', formData.confirmPassword);
-      if (formData.latitude) fd.append('latitude', formData.latitude);
-      if (formData.longitude) fd.append('longitude', formData.longitude);
-      if (formData.serviceRadius) fd.append('service_radius', formData.serviceRadius);
-      if (formData.operatingHours) fd.append('operating_hours', formData.operatingHours);
-      if (userType === 'hotel') {
-        fd.append('business_name', formData.businessName);
-        fd.append('registration_number', formData.registrationNumber);
-        fd.append('tax_id', formData.taxId);
-        fd.append('contact_person', formData.contactPerson);
-        fd.append('position', formData.position);
-      } else if (userType === 'recycler') {
-        fd.append('company_name', formData.companyName);
-        fd.append('license_number', formData.licenseNumber);
-        fd.append('waste_types', JSON.stringify(formData.wasteTypes));
-        fd.append('facility_address', formData.facilityAddress);
-        if (formData.processingCapacity) fd.append('processing_capacity', formData.processingCapacity);
-      } else if (userType === 'driver') {
-        fd.append('national_id', formData.nationalId);
-        fd.append('vehicle_type', formData.vehicleType);
-        fd.append('vehicle_plate', formData.vehiclePlate);
-        if (formData.licenseImage) fd.append('license_image', formData.licenseImage);
-        if (formData.insuranceImage) fd.append('insurance_image', formData.insuranceImage);
-      }
-      await authAPI.register(fd);
+      const role = userType === 'hotel' ? 'business' : userType;
+      await authAPI.register({
+        email: formData.email,
+        full_name: formData.fullName || (userType === 'hotel' ? formData.contactPerson : '') || 'User',
+        password: formData.password,
+        phone: formData.phone || undefined,
+        role,
+      });
       setStep(5);
     } catch (err) {
       setSubmitError((err as Error).message || 'Registration failed. Please try again.');

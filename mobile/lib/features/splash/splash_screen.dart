@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
                   height: 250,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withValues(alpha: 0.06),
                   ),
                 ),
               ),
@@ -76,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
                   height: 180,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withValues(alpha: 0.06),
                   ),
                 ),
               ),
@@ -106,7 +106,7 @@ class _SplashScreenState extends State<SplashScreen>
                         .then(delay: 50.ms)
                         .shimmer(
                           duration: 700.ms,
-                          color: Colors.white.withOpacity(0.5),
+                          color: Colors.white.withValues(alpha: 0.5),
                           angle: 0.4,
                         )
                         .then(delay: 100.ms)
@@ -142,7 +142,7 @@ class _SplashScreenState extends State<SplashScreen>
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w400,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         letterSpacing: 0.3,
                       ),
                     )
@@ -166,7 +166,7 @@ class _SplashScreenState extends State<SplashScreen>
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.8),
+                            color: Colors.white.withValues(alpha: 0.8),
                             width: 2.5,
                           ),
                         ),
@@ -192,7 +192,7 @@ class _SplashScreenState extends State<SplashScreen>
                       'Version 1.0.0',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.white.withOpacity(0.5),
+                        color: Colors.white.withValues(alpha: 0.5),
                       ),
                     ).animate().fadeIn(duration: 400.ms, delay: 800.ms),
 

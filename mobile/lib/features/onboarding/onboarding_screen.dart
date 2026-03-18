@@ -18,44 +18,44 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
 
   final List<OnboardingData> _pages = [
-    OnboardingData(
+    const OnboardingData(
       icon: Icons.eco_rounded,
-      bgColor: const Color(0xFFECFDF5),
+      bgColor: Color(0xFFECFDF5),
       accentColor: AppColors.primary,
       headline: 'Turn Waste\ninto Value',
       subheadline: "Join Kigali's circular economy\nand make a real impact",
       isHero: true,
     ),
-    OnboardingData(
+    const OnboardingData(
       icon: Icons.business_outlined,
-      bgColor: const Color(0xFFF5F3FF),
+      bgColor: Color(0xFFF5F3FF),
       accentColor: AppColors.hotelColor,
       headline: 'For Hotels\n& Businesses',
       subheadline: 'List your waste and earn revenue\ndirectly from certified recyclers',
       isHero: false,
       features: ['Earn from waste', 'Easy pickup scheduling', 'Track revenue'],
     ),
-    OnboardingData(
+    const OnboardingData(
       icon: Icons.recycling_rounded,
-      bgColor: const Color(0xFFECFDF5),
+      bgColor: Color(0xFFECFDF5),
       accentColor: AppColors.recyclerColor,
       headline: 'For Recyclers\n& Processors',
       subheadline: 'Source quality recyclable materials\ndirectly from verified businesses',
       isHero: false,
       features: ['Direct sourcing', 'Quality assured', 'Bulk deals'],
     ),
-    OnboardingData(
+    const OnboardingData(
       icon: Icons.local_shipping_rounded,
-      bgColor: const Color(0xFFEFF6FF),
+      bgColor: Color(0xFFEFF6FF),
       accentColor: AppColors.driverColor,
       headline: 'For Drivers\n& Collectors',
       subheadline: 'Earn money by collecting\nrecyclable waste on your schedule',
       isHero: false,
       features: ['Flexible hours', 'Route optimization', 'Instant pay'],
     ),
-    OnboardingData(
+    const OnboardingData(
       icon: Icons.rocket_launch_rounded,
-      bgColor: const Color(0xFFFFFBEB),
+      bgColor: Color(0xFFFFFBEB),
       accentColor: AppColors.accent,
       headline: 'Everything\nYou Need',
       subheadline: 'Powerful features built for\nreal-world logistics',
@@ -111,7 +111,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       LocalStorageService.instance.markOnboardingSeen();
                       context.go(AppRoutes.login);
                     },
-                    child: Text(
+                    child: const Text(
                       'Skip',
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
@@ -143,7 +143,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   SmoothPageIndicator(
                     controller: _pageController,
                     count: _pages.length,
-                    effect: ExpandingDotsEffect(
+                    effect: const ExpandingDotsEffect(
                       activeDotColor: AppColors.primary,
                       dotColor: AppColors.border,
                       dotHeight: 8,
@@ -307,7 +307,7 @@ class _HeroIllustration extends StatelessWidget {
             height: 80.0 + (i * 70),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: data.accentColor.withOpacity(0.08 - (i * 0.02)),
+              color: data.accentColor.withValues(alpha: 0.08 - (i * 0.02)),
             ),
           ),
         Icon(data.icon, size: 80, color: data.accentColor),
@@ -329,7 +329,7 @@ class _RoleIllustration extends StatelessWidget {
           width: 120,
           height: 120,
           decoration: BoxDecoration(
-            color: data.accentColor.withOpacity(0.15),
+            color: data.accentColor.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -373,7 +373,7 @@ class _FeatureGrid extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -416,9 +416,9 @@ class _FeatureChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
         label,

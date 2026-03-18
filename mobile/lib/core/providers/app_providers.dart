@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
-import '../services/data_service.dart';
 import '../services/notification_service.dart';
 import '../services/local_storage_service.dart';
 
@@ -44,11 +43,11 @@ class AuthState {
   bool get isLoggedIn => user != null;
   UserRole? get role => user?.role;
 
-  AuthState copyWith({AppUser? user, bool? isLoading, String? error}) =>
+  AuthState copyWith({AppUser? user, bool? isLoading, String? error, bool clearError = false}) =>
       AuthState(
         user: user ?? this.user,
         isLoading: isLoading ?? this.isLoading,
-        error: error ?? this.error,
+        error: clearError ? null : (error ?? this.error),
       );
 }
 
@@ -57,7 +56,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       : super(AuthState(user: LocalStorageService.instance.loadUser()));
 
   Future<bool> login(String email, String password) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       // Try real backend API first
       final response = await ApiService.login(email, password);
@@ -93,25 +92,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(user: user);
       return true;
     } on ApiException catch (e) {
-      // Fall back to demo users on API error (e.g., unauthorized / not found)
-      final localUser = DataService.instance.login(email, password) ??
-          LocalStorageService.instance.loginRegisteredUser(email, password);
-      if (localUser != null) {
-        await LocalStorageService.instance.saveUser(localUser);
-        state = AuthState(user: localUser);
-        return true;
-      }
-      state = AuthState(error: e.message);
+      final message = e.message.trim();
+      state = AuthState(error: message.isEmpty ? 'Login failed. Please try again.' : message);
       return false;
     } catch (_) {
-      // Network / unexpected error — fall back to local demo users
-      final localUser = DataService.instance.login(email, password) ??
-          LocalStorageService.instance.loginRegisteredUser(email, password);
-      if (localUser != null) {
-        await LocalStorageService.instance.saveUser(localUser);
-        state = AuthState(user: localUser);
-        return true;
-      }
       state = const AuthState(error: 'Login failed. Check your credentials and connection.');
       return false;
     }
@@ -125,7 +109,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String role,
     String? businessName,
   }) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       // Try real API registration
       await ApiService.register({
@@ -152,26 +136,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await LocalStorageService.instance.markOnboardingSeen();
       state = AuthState(user: user);
       return true;
+    } on ApiException catch (e) {
+      state = AuthState(error: e.message);
+      return false;
     } catch (_) {
-      // Fall back to local registration
-      final userRole = _mapRole(role);
-      final user = AppUser(
-        id: 'user-reg-${DateTime.now().millisecondsSinceEpoch}',
-        name: name,
-        email: email,
-        phone: phone,
-        role: userRole,
-        businessName: businessName,
-        verified: true,
-        greenScore: 10,
-      );
-      final userData = user.toMap();
-      userData['password'] = password;
-      await LocalStorageService.instance.saveRegisteredUser(userData);
-      await LocalStorageService.instance.saveUser(user);
-      await LocalStorageService.instance.markOnboardingSeen();
-      state = AuthState(user: user);
-      return true;
+      state = const AuthState(error: 'Registration failed. Please check your connection and try again.');
+      return false;
     }
   }
 
@@ -319,6 +289,83 @@ Transaction _transactionFromApi(Map<String, dynamic> j) {
   );
 }
 
+BidStatus _mapBidStatus(String s) {
+  switch (s.toLowerCase()) {
+    case 'accepted':
+      return BidStatus.won;
+    case 'rejected':
+    case 'outbid':
+      return BidStatus.lost;
+    case 'withdrawn':
+      return BidStatus.withdrawn;
+    default:
+      return BidStatus.active;
+  }
+}
+
+Bid _bidFromApi(Map<String, dynamic> j, {required String recyclerName}) {
+  return Bid(
+    id: (j['id'] as int? ?? 0).toString(),
+    listingId: (j['listing_id'] as int? ?? 0).toString(),
+    recyclerId: (j['recycler_id'] as int? ?? 0).toString(),
+    recyclerName: recyclerName,
+    amount: (j['amount'] as num? ?? 0).toDouble(),
+    note: j['notes'] as String?,
+    collectionPreference: (j['hotel_name'] as String?) ?? 'flexible',
+    status: _mapBidStatus(j['status'] as String? ?? 'active'),
+    createdAt: j['created_at'] != null
+        ? DateTime.tryParse(j['created_at'] as String) ?? DateTime.now()
+        : DateTime.now(),
+  );
+}
+
+NotificationType _mapNotificationType(String s) {
+  switch (s.toLowerCase()) {
+    case 'new_bid':
+    case 'bid_accepted':
+    case 'bid_rejected':
+      return NotificationType.bid;
+    case 'collection_scheduled':
+    case 'driver_en_route':
+    case 'collection_completed':
+      return NotificationType.collection;
+    case 'payment_received':
+    case 'payment_sent':
+      return NotificationType.payment;
+    case 'new_message':
+      return NotificationType.message;
+    default:
+      return NotificationType.system;
+  }
+}
+
+AppNotification _notificationFromApi(Map<String, dynamic> j) {
+  return AppNotification(
+    id: (j['id'] as int? ?? 0).toString(),
+    type: _mapNotificationType(j['type'] as String? ?? 'system'),
+    title: j['title'] as String? ?? 'Notification',
+    message: j['body'] as String? ?? '',
+    time: j['created_at'] != null
+        ? DateTime.tryParse(j['created_at'] as String) ?? DateTime.now()
+        : DateTime.now(),
+    read: j['is_read'] as bool? ?? false,
+    link: j['link'] as String?,
+  );
+}
+
+String _wasteTypeToApi(WasteType type) {
+  switch (type) {
+    case WasteType.uco:
+      return 'uco';
+    case WasteType.glass:
+      return 'glass';
+    case WasteType.paperCardboard:
+      return 'paper_cardboard';
+    case WasteType.mixed:
+      return 'mixed';
+  }
+}
+
 // ── Private API FutureProviders ───────────────────────────────────────────
 
 final _apiOpenListingsProvider = FutureProvider<List<WasteListing>>((ref) async {
@@ -327,7 +374,7 @@ final _apiOpenListingsProvider = FutureProvider<List<WasteListing>>((ref) async 
     final items = resp['items'] as List<dynamic>? ?? [];
     return items.map((j) => _listingFromApi(j as Map<String, dynamic>)).toList();
   } catch (_) {
-    return DataService.instance.getOpenListings();
+    return <WasteListing>[];
   }
 });
 
@@ -336,8 +383,62 @@ final _apiMyListingsProvider = FutureProvider<List<WasteListing>>((ref) async {
     final items = await ApiService.getMyListings();
     return items.map((j) => _listingFromApi(j as Map<String, dynamic>)).toList();
   } catch (_) {
-    final user = ref.read(authProvider).user;
-    return DataService.instance.getListingsForBusiness(user?.id ?? '');
+    return <WasteListing>[];
+  }
+});
+
+final _apiMyListingsWithBidsProvider = FutureProvider<List<WasteListing>>((ref) async {
+  final listings = await ref.watch(_apiMyListingsProvider.future);
+  final withBids = await Future.wait(listings.map((listing) async {
+    final listingId = int.tryParse(listing.id);
+    if (listingId == null) return listing;
+    try {
+      final bidsJson = await ApiService.getListingBids(listingId);
+      final bids = bidsJson
+          .map((j) => _bidFromApi(
+                j as Map<String, dynamic>,
+                recyclerName: (j['recycler_name'] as String?) ?? 'Recycler',
+              ))
+          .toList();
+      return WasteListing(
+        id: listing.id,
+        businessId: listing.businessId,
+        businessName: listing.businessName,
+        wasteType: listing.wasteType,
+        volume: listing.volume,
+        unit: listing.unit,
+        quality: listing.quality,
+        photos: listing.photos,
+        minBid: listing.minBid,
+        reservePrice: listing.reservePrice,
+        auctionDuration: listing.auctionDuration,
+        autoAcceptAbove: listing.autoAcceptAbove,
+        status: listing.status,
+        bids: bids,
+        assignedRecycler: listing.assignedRecycler,
+        assignedDriver: listing.assignedDriver,
+        collectionDate: listing.collectionDate,
+        location: listing.location,
+        latitude: listing.latitude,
+        longitude: listing.longitude,
+        createdAt: listing.createdAt,
+      );
+    } catch (_) {
+      return listing;
+    }
+  }));
+  return withBids;
+});
+
+final _apiMyBidsProvider = FutureProvider<List<Bid>>((ref) async {
+  try {
+    final recyclerName = ref.read(authProvider).user?.displayName ?? 'Recycler';
+    final items = await ApiService.getMyBids();
+    return items
+        .map((j) => _bidFromApi(j as Map<String, dynamic>, recyclerName: recyclerName))
+        .toList();
+  } catch (_) {
+    return <Bid>[];
   }
 });
 
@@ -346,7 +447,7 @@ final _apiMyCollectionsProvider = FutureProvider<List<Collection>>((ref) async {
     final items = await ApiService.getMyCollections();
     return items.map((j) => _collectionFromApi(j as Map<String, dynamic>)).toList();
   } catch (_) {
-    return DataService.instance.getCollections();
+    return <Collection>[];
   }
 });
 
@@ -355,7 +456,18 @@ final _apiMyTransactionsProvider = FutureProvider<List<Transaction>>((ref) async
     final items = await ApiService.getMyTransactions();
     return items.map((j) => _transactionFromApi(j as Map<String, dynamic>)).toList();
   } catch (_) {
-    return DataService.instance.getTransactions();
+    return <Transaction>[];
+  }
+});
+
+final _apiNotificationsProvider = FutureProvider<List<AppNotification>>((ref) async {
+  try {
+    final items = await ApiService.getNotifications();
+    return items
+        .map((j) => _notificationFromApi(j as Map<String, dynamic>))
+        .toList();
+  } catch (_) {
+    return <AppNotification>[];
   }
 });
 
@@ -365,7 +477,7 @@ final allListingsProvider = Provider<List<WasteListing>>(
   (ref) {
     ref.watch(listingsNotifierProvider);
     return ref.watch(_apiOpenListingsProvider).whenOrNull(data: (d) => d)
-        ?? DataService.instance.getListings();
+        ?? <WasteListing>[];
   },
 );
 
@@ -373,86 +485,186 @@ final openListingsProvider = Provider<List<WasteListing>>(
   (ref) {
     ref.watch(listingsNotifierProvider);
     return ref.watch(_apiOpenListingsProvider).whenOrNull(data: (d) => d)
-        ?? DataService.instance.getOpenListings();
+        ?? <WasteListing>[];
   },
 );
 
 final businessListingsProvider = Provider<List<WasteListing>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return [];
-  // Prefer live API data; fall back to local CRUD notifier
-  return ref.watch(_apiMyListingsProvider).whenOrNull(data: (d) => d)
-      ?? ref.watch(listingsNotifierProvider);
+  ref.watch(listingsNotifierProvider);
+  return ref.watch(_apiMyListingsWithBidsProvider).whenOrNull(data: (d) => d) ?? [];
 });
 
 final recyclerBidListingsProvider = Provider<List<WasteListing>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return [];
-  return DataService.instance.getListingsWithBidsByRecycler(user.id);
+  final bids = ref.watch(_apiMyBidsProvider).whenOrNull(data: (d) => d) ?? [];
+  final byListing = <String, List<Bid>>{};
+  for (final bid in bids) {
+    byListing.putIfAbsent(bid.listingId, () => []).add(bid);
+  }
+  return byListing.entries.map((entry) {
+    final first = entry.value.first;
+    return WasteListing(
+      id: entry.key,
+      businessId: '',
+      businessName: first.collectionPreference,
+      wasteType: WasteType.mixed,
+      volume: 0,
+      unit: 'kg',
+      quality: WasteQuality.a,
+      minBid: first.amount,
+      status: ListingStatus.open,
+      bids: entry.value,
+      location: '',
+      createdAt: first.createdAt,
+    );
+  }).toList();
 });
 
 // ── Collections Providers ─────────────────────────────────────────────────
 
 final allCollectionsProvider = Provider<List<Collection>>(
   (ref) => ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d)
-      ?? DataService.instance.getCollections(),
+  ?? <Collection>[],
 );
 
 final businessCollectionsProvider = Provider<List<Collection>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return [];
-  // API already returns only this user's collections
-  return ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d)
-      ?? DataService.instance.getCollectionsForBusiness(user.id);
+  return ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d) ?? [];
 });
 
 final driverCollectionsProvider = Provider<List<Collection>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return [];
-  return ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d)
-      ?? DataService.instance.getCollectionsForDriver(user.id);
+  return ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d) ?? [];
 });
 
 final recyclerCollectionsProvider = Provider<List<Collection>>((ref) {
   final user = ref.watch(authProvider).user;
   if (user == null) return [];
-  return ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d)
-      ?? DataService.instance.getCollectionsForRecycler(user.displayName);
+  return ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d) ?? [];
 });
 
 // ── Driver Route Provider ─────────────────────────────────────────────────
 
 final driverRouteProvider = Provider<DriverRoute>(
-  (ref) => DataService.instance.getTodayRoute(),
+  (ref) {
+    final userId = ref.watch(authProvider).user?.id ?? '';
+    final collections = ref.watch(driverCollectionsProvider);
+    RouteStopStatus toStopStatus(CollectionStatus status) {
+      switch (status) {
+        case CollectionStatus.scheduled:
+          return RouteStopStatus.pending;
+        case CollectionStatus.enRoute:
+          return RouteStopStatus.arrived;
+        case CollectionStatus.collected:
+          return RouteStopStatus.collecting;
+        case CollectionStatus.completed:
+          return RouteStopStatus.completed;
+        case CollectionStatus.verified:
+          return RouteStopStatus.completed;
+        case CollectionStatus.missed:
+          return RouteStopStatus.skipped;
+      }
+    }
+
+    final stops = collections
+        .map(
+          (collection) => RouteStop(
+            id: collection.id,
+            businessName: collection.businessName,
+            location: collection.location,
+            wasteType: collection.wasteType,
+            volume: collection.volume,
+            eta: collection.scheduledTime,
+            status: toStopStatus(collection.status),
+            contactPerson: collection.businessName,
+            contactPhone: '',
+          ),
+        )
+        .toList();
+
+    final completed = stops.where((s) => s.status == RouteStopStatus.completed).length;
+    return DriverRoute(
+      id: 'route-${DateTime.now().toIso8601String().split('T').first}',
+      driverId: userId,
+      date: DateTime.now(),
+      stops: stops,
+      status: completed == stops.length && stops.isNotEmpty
+          ? RouteStatus.completed
+          : stops.any((s) => s.status != RouteStopStatus.pending)
+              ? RouteStatus.inProgress
+              : RouteStatus.pending,
+      totalDistance: 0,
+      estimatedEarnings: collections.fold<double>(0, (sum, item) => sum + item.earnings),
+    );
+  },
 );
 
 // ── Transactions Provider ─────────────────────────────────────────────────
 
 final transactionsProvider = Provider<List<Transaction>>(
   (ref) => ref.watch(_apiMyTransactionsProvider).whenOrNull(data: (d) => d)
-      ?? DataService.instance.getTransactions(),
+  ?? <Transaction>[],
 );
 
 // ── Notifications Provider ────────────────────────────────────────────────
 
 class NotificationsNotifier extends StateNotifier<List<AppNotification>> {
-  NotificationsNotifier() : super(DataService.instance.getNotifications());
+  NotificationsNotifier(this.ref) : super(const []) {
+    _refresh();
+  }
+
+  final Ref ref;
+
+  Future<void> _refresh() async {
+    final notifications = await ref.read(_apiNotificationsProvider.future);
+    state = notifications;
+  }
 
   int get unreadCount => state.where((n) => !n.read).length;
 
-  void markRead(String id) {
-    DataService.instance.markNotificationRead(id);
-    state = DataService.instance.getNotifications();
+  Future<void> markRead(String id) async {
+    final numericId = int.tryParse(id);
+    if (numericId == null) return;
+    await ApiService.markNotificationAsRead(numericId);
+    state = state
+        .map((n) => n.id == id
+            ? AppNotification(
+                id: n.id,
+                type: n.type,
+                title: n.title,
+                message: n.message,
+                time: n.time,
+                read: true,
+                link: n.link,
+                meta: n.meta,
+              )
+            : n)
+        .toList();
   }
 
-  void markAllRead() {
-    DataService.instance.markAllNotificationsRead();
-    state = DataService.instance.getNotifications();
+  Future<void> markAllRead() async {
+    await ApiService.markAllNotificationsAsRead();
+    state = state
+        .map((n) => AppNotification(
+              id: n.id,
+              type: n.type,
+              title: n.title,
+              message: n.message,
+              time: n.time,
+              read: true,
+              link: n.link,
+              meta: n.meta,
+            ))
+        .toList();
   }
 
   void add(AppNotification n) {
-    DataService.instance.addNotification(n);
-    state = DataService.instance.getNotifications();
+    state = [n, ...state];
     NotificationService.instance.showNotification(
       id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       title: n.title,
@@ -464,7 +676,7 @@ class NotificationsNotifier extends StateNotifier<List<AppNotification>> {
 
 final notificationsProvider =
     StateNotifierProvider<NotificationsNotifier, List<AppNotification>>(
-  (ref) => NotificationsNotifier(),
+  (ref) => NotificationsNotifier(ref),
 );
 
 final unreadCountProvider = Provider<int>((ref) {
@@ -493,7 +705,14 @@ final businessStatsProvider = Provider<Map<String, dynamic>>((ref) {
       'pendingBids': apiListings.fold<int>(0, (s, l) => s + l.activeBidCount),
     };
   }
-  return DataService.instance.getBusinessStats(user.id);
+  return {
+    'totalListings': 0,
+    'activeListings': 0,
+    'completedCollections': 0,
+    'totalVolume': 0.0,
+    'totalEarnings': 0.0,
+    'pendingBids': 0,
+  };
 });
 
 final recyclerStatsProvider = Provider<Map<String, dynamic>>((ref) {
@@ -513,7 +732,13 @@ final recyclerStatsProvider = Provider<Map<String, dynamic>>((ref) {
           .length,
     };
   }
-  return DataService.instance.getRecyclerStats(user.id);
+  return {
+    'totalBids': 0,
+    'activeBids': 0,
+    'wonBids': 0,
+    'totalEarnings': 0.0,
+    'pendingCollections': 0,
+  };
 });
 
 final driverStatsProvider = Provider<Map<String, dynamic>>((ref) {
@@ -532,22 +757,23 @@ final driverStatsProvider = Provider<Map<String, dynamic>>((ref) {
       'rating': user.rating,
     };
   }
-  return DataService.instance.getDriverStats(user.id);
+  return {
+    'todayStops': 0,
+    'completedStops': 0,
+    'totalCollections': 0,
+    'completedCollections': 0,
+    'totalEarnings': 0.0,
+    'todayEarnings': 0.0,
+    'rating': user.rating,
+  };
 });
 
 // ── Listings CRUD Notifier ────────────────────────────────────────────────
 
 class ListingsNotifier extends StateNotifier<List<WasteListing>> {
-  ListingsNotifier(String userId)
-      : super(_initListings(userId));
+  ListingsNotifier(this.ref) : super(const []);
 
-  static List<WasteListing> _initListings(String userId) {
-    final persisted = LocalStorageService.instance.loadListings();
-    final service = DataService.instance.getListingsForBusiness(userId);
-    final serviceIds = service.map((l) => l.id).toSet();
-    final extra = persisted.where((l) => !serviceIds.contains(l.id)).toList();
-    return [...service, ...extra];
-  }
+  final Ref ref;
 
   Future<WasteListing> create({
     required String businessId,
@@ -561,140 +787,88 @@ class ListingsNotifier extends StateNotifier<List<WasteListing>> {
     double? reservePrice,
     int auctionDuration = 24,
   }) async {
-    final listing = WasteListing(
-      id: 'listing-${DateTime.now().millisecondsSinceEpoch}',
-      businessId: businessId,
-      businessName: businessName,
-      wasteType: wasteType,
-      volume: volume,
-      unit: unit,
-      quality: quality,
-      minBid: minBid,
-      reservePrice: reservePrice,
-      auctionDuration: auctionDuration,
-      status: ListingStatus.open,
-      location: location,
-      createdAt: DateTime.now(),
-    );
-    DataService.instance.addListing(listing);
-    state = [listing, ...state];
-    final persisted = LocalStorageService.instance.loadListings();
-    await LocalStorageService.instance.saveListings([listing, ...persisted]);
+    final response = await ApiService.createListing({
+      'title': '${wasteType.label} ${volume.toStringAsFixed(0)}$unit from $businessName',
+      'waste_type': _wasteTypeToApi(wasteType),
+      'volume': volume,
+      'unit': unit,
+      'min_bid': minBid,
+      'address': location,
+      'description': '${quality.label} quality listing by $businessName ($businessId)',
+      if (reservePrice != null) 'notes': 'reserve_price=$reservePrice',
+      'is_urgent': auctionDuration <= 12,
+    });
+    final listing = _listingFromApi(response);
+    ref.invalidate(_apiMyListingsProvider);
+    ref.invalidate(_apiMyListingsWithBidsProvider);
+    ref.invalidate(_apiOpenListingsProvider);
     return listing;
   }
 
   Future<void> update(WasteListing updated) async {
-    DataService.instance.updateListing(updated);
-    state = state.map((l) => l.id == updated.id ? updated : l).toList();
-    await LocalStorageService.instance.saveListings(
-      LocalStorageService.instance.loadListings()
-          .map((l) => l.id == updated.id ? updated : l)
-          .toList(),
-    );
+    final listingId = int.tryParse(updated.id);
+    if (listingId == null) {
+      throw Exception('Invalid listing id');
+    }
+    await ApiService.updateListing(listingId, {
+      'waste_type': _wasteTypeToApi(updated.wasteType),
+      'volume': updated.volume,
+      'unit': updated.unit,
+      'min_bid': updated.minBid,
+      'address': updated.location,
+      'status': updated.status.name,
+      'title': '${updated.wasteType.label} ${updated.volume.toStringAsFixed(0)}${updated.unit}',
+    });
+    ref.invalidate(_apiMyListingsProvider);
+    ref.invalidate(_apiMyListingsWithBidsProvider);
+    ref.invalidate(_apiOpenListingsProvider);
   }
 
   Future<void> delete(String id) async {
-    DataService.instance.deleteListing(id);
-    state = state.where((l) => l.id != id).toList();
-    final persisted = LocalStorageService.instance.loadListings()
-        .where((l) => l.id != id)
-        .toList();
-    await LocalStorageService.instance.saveListings(persisted);
+    final listingId = int.tryParse(id);
+    if (listingId == null) {
+      throw Exception('Invalid listing id');
+    }
+    await ApiService.deleteListing(listingId);
+    ref.invalidate(_apiMyListingsProvider);
+    ref.invalidate(_apiMyListingsWithBidsProvider);
+    ref.invalidate(_apiOpenListingsProvider);
   }
 
   Future<void> addBidToListing(Bid bid) async {
-    DataService.instance.addBid(bid);
-    state = state.map((l) {
-      if (l.id != bid.listingId) return l;
-      return WasteListing(
-        id: l.id,
-        businessId: l.businessId,
-        businessName: l.businessName,
-        wasteType: l.wasteType,
-        volume: l.volume,
-        unit: l.unit,
-        quality: l.quality,
-        photos: l.photos,
-        minBid: l.minBid,
-        reservePrice: l.reservePrice,
-        auctionDuration: l.auctionDuration,
-        autoAcceptAbove: l.autoAcceptAbove,
-        status: l.status,
-        bids: [...l.bids, bid],
-        assignedRecycler: l.assignedRecycler,
-        assignedDriver: l.assignedDriver,
-        collectionDate: l.collectionDate,
-        location: l.location,
-        createdAt: l.createdAt,
-      );
-    }).toList();
-    final bids = LocalStorageService.instance.loadBids();
-    await LocalStorageService.instance.saveBids([...bids, bid]);
+    if (bid.id.isEmpty) return;
+    ref.invalidate(_apiMyListingsWithBidsProvider);
+    ref.invalidate(_apiOpenListingsProvider);
+    ref.invalidate(_apiMyBidsProvider);
   }
 
   Future<void> acceptBid(String listingId, String bidId) async {
-    state = state.map((l) {
-      if (l.id != listingId) return l;
-      final updatedBids = l.bids.map((b) => Bid(
-        id: b.id,
-        listingId: b.listingId,
-        recyclerId: b.recyclerId,
-        recyclerName: b.recyclerName,
-        amount: b.amount,
-        note: b.note,
-        collectionPreference: b.collectionPreference,
-        status: b.id == bidId ? BidStatus.won : BidStatus.lost,
-        createdAt: b.createdAt,
-      )).toList();
-      return WasteListing(
-        id: l.id,
-        businessId: l.businessId,
-        businessName: l.businessName,
-        wasteType: l.wasteType,
-        volume: l.volume,
-        unit: l.unit,
-        quality: l.quality,
-        photos: l.photos,
-        minBid: l.minBid,
-        reservePrice: l.reservePrice,
-        auctionDuration: l.auctionDuration,
-        autoAcceptAbove: l.autoAcceptAbove,
-        status: ListingStatus.assigned,
-        bids: updatedBids,
-        assignedRecycler: updatedBids.firstWhere((b) => b.id == bidId).recyclerName,
-        assignedDriver: l.assignedDriver,
-        collectionDate: l.collectionDate,
-        location: l.location,
-        createdAt: l.createdAt,
-      );
-    }).toList();
+    if (listingId.isEmpty) {
+      throw Exception('Invalid listing id');
+    }
+    final bidNumericId = int.tryParse(bidId);
+    if (bidNumericId == null) {
+      throw Exception('Invalid bid id');
+    }
+    await ApiService.acceptBid(bidNumericId);
+    ref.invalidate(_apiMyListingsProvider);
+    ref.invalidate(_apiMyListingsWithBidsProvider);
+    ref.invalidate(_apiOpenListingsProvider);
+    ref.invalidate(_apiMyBidsProvider);
   }
 }
 
 final listingsNotifierProvider =
     StateNotifierProvider<ListingsNotifier, List<WasteListing>>((ref) {
-  final userId = ref.watch(authProvider).user?.id ?? '';
-  return ListingsNotifier(userId);
+  return ListingsNotifier(ref);
 });
 
 // ── Bids Notifier ─────────────────────────────────────────────────────────
 
 class BidsNotifier extends StateNotifier<List<Bid>> {
-  BidsNotifier(String recyclerId)
-      : super(_initBids(recyclerId));
+  BidsNotifier(this.ref) : super(const []);
 
-  static List<Bid> _initBids(String recyclerId) {
-    final fromService = DataService.instance
-        .getListings()
-        .expand((l) => l.bids)
-        .where((b) => b.recyclerId == recyclerId)
-        .toList();
-    final persisted = LocalStorageService.instance.loadBids()
-        .where((b) => b.recyclerId == recyclerId)
-        .toList();
-    final ids = fromService.map((b) => b.id).toSet();
-    return [...fromService, ...persisted.where((b) => !ids.contains(b.id))];
-  }
+  final Ref ref;
 
   Future<Bid> placeBid({
     required String listingId,
@@ -704,75 +878,64 @@ class BidsNotifier extends StateNotifier<List<Bid>> {
     String? note,
     String collectionPreference = 'flexible',
   }) async {
-    // Try real API if listingId is numeric (came from backend)
     final numericId = int.tryParse(listingId);
-    if (numericId != null) {
-      try {
-        final resp = await ApiService.placeBid(
-          listingId: numericId,
-          amount: amount,
-          notes: note,
-        );
-        final bid = Bid(
-          id: (resp['id'] as int? ?? DateTime.now().millisecondsSinceEpoch).toString(),
-          listingId: listingId,
-          recyclerId: recyclerId,
-          recyclerName: recyclerName,
-          amount: amount,
-          note: note,
-          collectionPreference: collectionPreference,
-          createdAt: DateTime.now(),
-        );
-        state = [...state, bid];
-        return bid;
-      } catch (_) {
-        // API failed — fall through to local
-      }
+    if (numericId == null) {
+      throw Exception('Invalid listing id');
     }
-    // Fallback: local/demo storage
+
+    final resp = await ApiService.placeBid(
+      listingId: numericId,
+      amount: amount,
+      notes: note,
+    );
     final bid = Bid(
-      id: 'bid-${DateTime.now().millisecondsSinceEpoch}',
+      id: (resp['id'] as int? ?? DateTime.now().millisecondsSinceEpoch).toString(),
       listingId: listingId,
       recyclerId: recyclerId,
       recyclerName: recyclerName,
       amount: amount,
       note: note,
       collectionPreference: collectionPreference,
-      createdAt: DateTime.now(),
+      status: _mapBidStatus(resp['status'] as String? ?? 'active'),
+      createdAt: resp['created_at'] != null
+          ? DateTime.tryParse(resp['created_at'] as String) ?? DateTime.now()
+          : DateTime.now(),
     );
-    DataService.instance.addBid(bid);
     state = [...state, bid];
-    final allBids = [...LocalStorageService.instance.loadBids(), bid];
-    await LocalStorageService.instance.saveBids(allBids);
+    ref.invalidate(_apiMyBidsProvider);
+    ref.invalidate(_apiOpenListingsProvider);
+    ref.invalidate(_apiMyListingsWithBidsProvider);
     return bid;
   }
 
   Future<void> withdrawBid(String bidId) async {
-    final idx = state.indexWhere((b) => b.id == bidId);
-    if (idx < 0) return;
-    final b = state[idx];
-    final withdrawn = Bid(
-      id: b.id,
-      listingId: b.listingId,
-      recyclerId: b.recyclerId,
-      recyclerName: b.recyclerName,
-      amount: b.amount,
-      note: b.note,
-      collectionPreference: b.collectionPreference,
-      status: BidStatus.withdrawn,
-      createdAt: b.createdAt,
-    );
-    DataService.instance.updateBid(withdrawn);
-    state = state.map((x) => x.id == bidId ? withdrawn : x).toList();
-    final allBids = LocalStorageService.instance.loadBids()
-        .map((x) => x.id == bidId ? withdrawn : x)
+    final bidNumericId = int.tryParse(bidId);
+    if (bidNumericId == null) {
+      throw Exception('Invalid bid id');
+    }
+    await ApiService.withdrawBid(bidNumericId);
+    state = state
+        .map((x) => x.id == bidId
+            ? Bid(
+                id: x.id,
+                listingId: x.listingId,
+                recyclerId: x.recyclerId,
+                recyclerName: x.recyclerName,
+                amount: x.amount,
+                note: x.note,
+                collectionPreference: x.collectionPreference,
+                status: BidStatus.withdrawn,
+                createdAt: x.createdAt,
+              )
+            : x)
         .toList();
-    await LocalStorageService.instance.saveBids(allBids);
+    ref.invalidate(_apiMyBidsProvider);
+    ref.invalidate(_apiOpenListingsProvider);
+    ref.invalidate(_apiMyListingsWithBidsProvider);
   }
 }
 
 final bidsNotifierProvider =
     StateNotifierProvider<BidsNotifier, List<Bid>>((ref) {
-  final userId = ref.watch(authProvider).user?.id ?? '';
-  return BidsNotifier(userId);
+  return BidsNotifier(ref);
 });

@@ -23,7 +23,6 @@ const TermsPrivacyPage = () => {
 
   const handleAccept = () => {
     setLoading(true);
-    // Simulate API call
     setTimeout(() => {
       localStorage.setItem('termsAccepted', 'true');
       localStorage.setItem('termsAcceptedDate', new Date().toISOString());

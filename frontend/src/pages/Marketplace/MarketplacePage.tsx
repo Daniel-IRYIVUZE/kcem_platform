@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, CheckCircle } from 'lucide-react';
 import Navbar from '../../components/common/Navbar/Navbar';
 import Footer from '../../components/common/Footer/Footer';
 import MarketplaceHero from '../../components/marketplace/MarketplaceHero';
 import MarketplaceGrid from '../../components/marketplace/MarketplaceGrid';
 import MarketplaceMap from '../../components/marketplace/MarketplaceMap';
-// import LiveBidActivity from '../../components/marketplace/LiveBidActivity';
 import MarketplaceStats from '../../components/marketplace/MarketplaceStats';
 import QuickBidModal from '../../components/marketplace/QuickBidModal';
 import ListingDetailModal from '../../components/marketplace/ListingDetailModal';
@@ -14,6 +13,7 @@ import MarketplaceSidebar from '../../components/marketplace/MarketplaceSidebar'
 import { listingsAPI, type WasteListing } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { syncFromAPI } from '../../utils/apiSync';
+import { getAbsoluteImageUrl } from '../../utils/imageUrl';
 
 interface Toast {
   id: number;
@@ -96,6 +96,11 @@ function toListingViewModel(listing: WasteListing): ListingViewModel {
 
   const currentBid = Math.round(listing.highest_bid || listing.min_bid || 0);
   const minBid = Math.round(listing.min_bid || 0);
+  // Convert relative image path to absolute URL
+  const imageUrl = listing.image_url 
+    ? getAbsoluteImageUrl(listing.image_url)
+    : (IMAGE_MAP[category] || IMAGE_MAP.Mixed);
+
 
   return {
     id: listing.id,
@@ -111,13 +116,13 @@ function toListingViewModel(listing: WasteListing): ListingViewModel {
     distance: 0,
     timeLeft,
     timeLeftMinutes,
-    image: listing.image_url || IMAGE_MAP[category] || IMAGE_MAP.Mixed,
+    image: imageUrl,
     bidCount: listing.bid_count || 0,
     currentBid,
     estimatedValue: Math.round((currentBid || minBid) * 1.2),
     quality: 'Grade A',
     description: listing.notes || listing.description || `${listing.waste_type} — ${Math.round(listing.volume)} ${listing.unit || 'kg'}`,
-    photos: [listing.image_url || IMAGE_MAP[category] || IMAGE_MAP.Mixed],
+    photos: [imageUrl],
     bids: [],
   };
 }
@@ -145,13 +150,13 @@ const MarketplacePage = () => {
   const [filteredListings, setFilteredListings] = useState<ListingViewModel[]>([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
-  };
+  }, []);
 
-  const loadListings = async () => {
+  const loadListings = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await listingsAPI.list({ limit: 200 });
@@ -189,11 +194,11 @@ const MarketplacePage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     loadListings();
-  }, []);
+  }, [loadListings]);
 
   useEffect(() => {
     let filtered = [...listings];
@@ -268,21 +273,7 @@ const MarketplacePage = () => {
     setFilteredListings(filtered);
   }, [filters, listings, searchQuery]);
 
-  // const tickerItems = useMemo(
-  //   () =>
-  //     listings
-  //       .flatMap((l) =>
-  //         l.bids.map((bid, idx) => ({
-  //           id: `${l.id}-${idx}`,
-  //           recycler: bid.recycler,
-  //           wasteType: l.type,
-  //           amount: bid.amount,
-  //           time: bid.time,
-  //         }))
-  //       )
-  //       .slice(0, 10),
-  //   [listings]
-  // );
+
 
   const handleListingClick = (listing: any) => {
     setSelectedListing(listing as ListingViewModel);
@@ -302,7 +293,7 @@ const MarketplacePage = () => {
 
     try {
       await listingsAPI.placeBid(selectedListingForBid.id, { amount });
-      showToast(`Bid of RWF ${amount.toLocaleString()} placed successfully.`);
+      showToast(`Total bid price of RWF ${amount.toLocaleString()} placed successfully.`);
       
       // Reload marketplace listings
       await loadListings();

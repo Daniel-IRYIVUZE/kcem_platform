@@ -13,6 +13,12 @@ import PageHeader from '../../ui/PageHeader';
 import StatusBadge from '../../ui/StatusBadge';
 import 'leaflet/dist/leaflet.css';
 
+const KIGALI_CENTER: [number, number] = [-1.9441, 30.0619];
+const KIGALI_OFFSETS: [number, number][] = [
+  [0, 0], [0.008, 0.005], [-0.006, 0.009], [0.010, -0.007],
+  [-0.009, -0.005], [0.005, 0.012], [-0.012, 0.003],
+];
+
 export default function DriverTodaysRoute() {
   const { user: authUser } = useAuth();
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -143,7 +149,6 @@ export default function DriverTodaysRoute() {
         setIsMapReady(false);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Invalidate map size when fullscreen state changes
@@ -178,7 +183,6 @@ export default function DriverTodaysRoute() {
     } as const;
     const cfg = LAYERS[mapLayer];
     tileLayerRef.current = L.tileLayer(cfg.url, { attribution: cfg.attribution, maxZoom: 19 }).addTo(map);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapLayer, isMapReady]);
 
   // Derived stop list — must be above the map useEffect so the closure is clean
@@ -192,13 +196,6 @@ export default function DriverTodaysRoute() {
     _lat: c.listing_lat ?? c.hotel_lat ?? null as number | null,
     _lng: c.listing_lng ?? c.hotel_lng ?? null as number | null,
   }));
-
-  // Kigali city center — fallback when no coordinates in DB
-  const KIGALI_CENTER: [number, number] = [-1.9441, 30.0619];
-  const KIGALI_OFFSETS: [number, number][] = [
-    [0, 0], [0.008, 0.005], [-0.006, 0.009], [0.010, -0.007],
-    [-0.009, -0.005], [0.005, 0.012], [-0.012, 0.003],
-  ];
 
   const getStopCoords = useCallback(() => {
     const stopCoords: Array<{ lat: number; lng: number; stop: typeof stops[0] }> = [];
@@ -321,7 +318,6 @@ export default function DriverTodaysRoute() {
       const items = hotelMarkersRef.current.filter(Boolean);
       if (items.length > 0) map.fitBounds(L.featureGroup(items).getBounds().pad(0.2));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMapReady, driverPos, trackingMap, getStopCoords, roadRoute]);
 
   const completedStops = stops.filter(s => s.status === 'completed' || s.status === 'collected' || s.status === 'verified').length;

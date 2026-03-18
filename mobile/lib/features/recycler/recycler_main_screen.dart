@@ -242,7 +242,7 @@ class _RecyclerHomeTab extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 2))],
+                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
                           ),
                           child: Row(
                             children: [
@@ -256,10 +256,10 @@ class _RecyclerHomeTab extends ConsumerWidget {
                               ),
                               TextButton(
                                 onPressed: onBrowseMarket,
-                                child: const Text('View All'),
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(horizontal: 8),
                                 ),
+                                child: const Text('View All'),
                               ),
                             ],
                           ),
@@ -327,8 +327,8 @@ class _QuickBidCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(Icons.bolt_rounded, color: Colors.white70, size: 16),
                     SizedBox(width: 4),
                     Text('Quick Bid', style: TextStyle(color: Colors.white70, fontSize: 13)),
@@ -443,7 +443,7 @@ class _ActivityCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -504,9 +504,9 @@ class _RecyclerProfileTab extends ConsumerWidget {
                         width: 80,
                         height: 80,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
                         ),
                         child: const Center(
                           child: Icon(Icons.recycling, size: 38, color: Colors.white),
@@ -525,7 +525,7 @@ class _RecyclerProfileTab extends ConsumerWidget {
                       Text(
                         'Recycler • Kigali',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 13,
                         ),
                       ),
@@ -546,8 +546,8 @@ class _RecyclerProfileTab extends ConsumerWidget {
                   title: 'Company Details',
                   children: [
                     _RecyclerProfileRow(icon: Icons.business_outlined, label: 'Company Name', value: user?.displayName ?? 'N/A'),
-                    _RecyclerProfileRow(icon: Icons.numbers_outlined, label: 'TIN Number', value: '119874300'),
-                    _RecyclerProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: 'Kicukiro, Kigali'),
+                    const _RecyclerProfileRow(icon: Icons.numbers_outlined, label: 'TIN Number', value: '119874300'),
+                    const _RecyclerProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: 'Kicukiro, Kigali'),
                     _RecyclerProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
                     _RecyclerProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
                   ],
@@ -587,7 +587,7 @@ class _RecyclerProfileTab extends ConsumerWidget {
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                           value: isDark,
                           onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
-                          activeColor: AppColors.primary,
+                          activeThumbColor: AppColors.primary,
                           dense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                         );

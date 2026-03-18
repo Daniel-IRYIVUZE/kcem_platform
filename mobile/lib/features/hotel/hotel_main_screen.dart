@@ -119,7 +119,7 @@ class _HotelHomeTab extends ConsumerWidget {
                         children: [
                           Text(
                             '$greeting,',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
                               fontWeight: FontWeight.w400,
@@ -348,11 +348,11 @@ class _EmptyListings extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.cBorder),
       ),
-      child: Column(
+      child: const Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.inventory_2_outlined, size: 36, color: AppColors.textTertiary),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text('No active listings yet', style: TextStyle(color: AppColors.textSecondary)),
         ],
       ),
@@ -696,7 +696,7 @@ class _ManageListingCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
+                  color: statusColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -755,7 +755,7 @@ class _ManageListingCard extends StatelessWidget {
                   label: const Text('Delete'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.error,
-                    side: BorderSide(color: AppColors.error),
+                    side: const BorderSide(color: AppColors.error),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(vertical: 10),

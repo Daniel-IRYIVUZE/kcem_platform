@@ -44,16 +44,16 @@ class _OfflineBannerState extends State<OfflineBanner> {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFFDE68A)),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const Icon(Icons.wifi_off, color: Color(0xFFD97706), size: 18),
-          const SizedBox(width: 8),
+          Icon(Icons.wifi_off, color: Color(0xFFD97706), size: 18),
+          SizedBox(width: 8),
           Expanded(
             child: Text(
               'You\'re offline — changes will sync when connected',
               style: TextStyle(
                 fontSize: 12,
-                color: const Color(0xFFD97706),
+                color: Color(0xFFD97706),
                 fontWeight: FontWeight.w500,
               ),
             ),

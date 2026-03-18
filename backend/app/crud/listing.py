@@ -60,6 +60,51 @@ class CRUDListing(CRUDBase[WasteListing, ListingCreate, ListingUpdate]):
         db.refresh(img)
         return img
 
+    def get_image(self, db: Session, *, listing_id: int, image_id: int) -> ListingImage | None:
+        return db.query(ListingImage).filter(
+            ListingImage.listing_id == listing_id,
+            ListingImage.id == image_id,
+        ).first()
+
+    def set_primary_image(self, db: Session, *, listing: WasteListing, image_id: int) -> ListingImage | None:
+        image = self.get_image(db, listing_id=listing.id, image_id=image_id)
+        if not image:
+            return None
+
+        for item in listing.images:
+            item.is_primary = item.id == image_id
+
+        listing.image_url = image.url
+        db.commit()
+        db.refresh(image)
+        return image
+
+    def remove_image(self, db: Session, *, listing: WasteListing, image_id: int) -> bool:
+        image = self.get_image(db, listing_id=listing.id, image_id=image_id)
+        if not image:
+            return False
+
+        removing_primary = bool(image.is_primary)
+        db.delete(image)
+        db.flush()
+
+        remaining_images = list(listing.images)
+        if not remaining_images:
+            listing.image_url = None
+        else:
+            has_primary = any(item.is_primary for item in remaining_images)
+            if removing_primary or not has_primary:
+                remaining_images[0].is_primary = True
+                for item in remaining_images[1:]:
+                    item.is_primary = False
+                listing.image_url = remaining_images[0].url
+            else:
+                primary = next((item for item in remaining_images if item.is_primary), None)
+                listing.image_url = primary.url if primary else remaining_images[0].url
+
+        db.commit()
+        return True
+
     def count_by_status(self, db: Session) -> dict:
         from sqlalchemy import func
         rows = db.query(WasteListing.status, func.count(WasteListing.id))\

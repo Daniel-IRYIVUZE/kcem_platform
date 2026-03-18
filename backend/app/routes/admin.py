@@ -1,15 +1,47 @@
 """routes/admin.py — Admin dashboard endpoints."""
-from fastapi import APIRouter, Depends
+import json
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.crud import crud_listing, crud_collection, crud_transaction, crud_audit_log
 from app.auth.dependencies import require_admin
 from app.models.user import User, UserRole
-from app.models.listing import ListingStatus
+from app.models.listing import ListingStatus, WasteListing
+from app.models.system_settings import SystemSettings
+from app.schemas.listing import ListingRead, ListingUpdate
 from app.services.green_score_service import leaderboard
+from app.utils.file_upload import save_upload
 
 router = APIRouter(prefix="/admin", tags=["Admin"],
                    dependencies=[Depends(require_admin)])
+
+DEFAULT_SETTINGS: dict[str, Any] = {
+    "platformName": "EcoTrade Rwanda",
+    "platformFeePercent": 10,
+    "minBidAmount": 5000,
+    "listingExpiryDays": 30,
+    "maintenanceMode": False,
+    "emailNotifications": True,
+    "smsNotifications": True,
+    "autoApproveListings": False,
+    "requireIDVerification": True,
+    "currency": "RWF",
+    "country": "Rwanda",
+    "supportEmail": "support@ecotrade.rw",
+    "supportPhone": "+250 780 162 164",
+}
+MAX_LISTING_IMAGES = 5
+
+
+def _deserialize_setting(value: str | None) -> Any:
+    if value is None:
+        return None
+    try:
+        return json.loads(value)
+    except Exception:
+        return value
 
 
 @router.get("/stats")
@@ -48,3 +80,100 @@ def audit_logs(limit: int = 100, db: Session = Depends(get_db)):
 @router.get("/green-leaderboard")
 def green_leaderboard(limit: int = 10, db: Session = Depends(get_db)):
     return leaderboard(db, limit=limit)
+
+
+@router.get("/settings")
+def get_platform_settings(db: Session = Depends(get_db)):
+    settings = DEFAULT_SETTINGS.copy()
+    rows = db.query(SystemSettings).all()
+    for row in rows:
+        if row.key in settings:
+            settings[row.key] = _deserialize_setting(row.value)
+    return settings
+
+
+@router.put("/settings")
+def save_platform_settings(payload: dict[str, Any], db: Session = Depends(get_db)):
+    for key, value in payload.items():
+        if key not in DEFAULT_SETTINGS:
+            continue
+        row = db.query(SystemSettings).filter(SystemSettings.key == key).first()
+        encoded = json.dumps(value)
+        if row:
+            row.value = encoded
+        else:
+            db.add(SystemSettings(key=key, value=encoded, is_public=False))
+    db.commit()
+    return get_platform_settings(db)
+
+
+@router.get("/listings", response_model=list[ListingRead])
+def admin_list_listings(status: str | None = None, skip: int = 0, limit: int = 500,
+                        db: Session = Depends(get_db)):
+    q = db.query(WasteListing)
+    if status and status != "all":
+        try:
+            parsed_status = ListingStatus(status)
+            q = q.filter(WasteListing.status == parsed_status)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail="Invalid listing status.") from exc
+    return q.order_by(WasteListing.created_at.desc()).offset(skip).limit(limit).all()
+
+
+@router.patch("/listings/{listing_id}", response_model=ListingRead)
+def admin_update_listing(listing_id: int, payload: ListingUpdate, db: Session = Depends(get_db)):
+    listing = crud_listing.get(db, listing_id)
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found.")
+    return crud_listing.update(db, db_obj=listing, obj_in=payload)
+
+
+@router.delete("/listings/{listing_id}", status_code=204)
+def admin_delete_listing(listing_id: int, db: Session = Depends(get_db)):
+    listing = crud_listing.get(db, listing_id)
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found.")
+    crud_listing.remove(db, id=listing.id)
+    return Response(status_code=204)
+
+
+@router.post("/listings/{listing_id}/images", status_code=201)
+def admin_upload_listing_image(listing_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    listing = crud_listing.get(db, listing_id)
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found.")
+    if len(listing.images) >= MAX_LISTING_IMAGES:
+        raise HTTPException(status_code=400, detail=f"Each listing can have at most {MAX_LISTING_IMAGES} images.")
+
+    url = save_upload(file, subfolder="listings")
+    img = crud_listing.add_image(db, listing_id=listing.id, url=url)
+
+    listing.image_url = url
+    db.add(listing)
+    db.commit()
+
+    return img
+
+
+@router.patch("/listings/{listing_id}/images/{image_id}/primary", status_code=200)
+def admin_set_primary_listing_image(listing_id: int, image_id: int, db: Session = Depends(get_db)):
+    listing = crud_listing.get(db, listing_id)
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found.")
+
+    image = crud_listing.set_primary_image(db, listing=listing, image_id=image_id)
+    if not image:
+        raise HTTPException(status_code=404, detail="Image not found.")
+    return image
+
+
+@router.delete("/listings/{listing_id}/images/{image_id}", status_code=204)
+def admin_delete_listing_image(listing_id: int, image_id: int, db: Session = Depends(get_db)):
+    listing = crud_listing.get(db, listing_id)
+    if not listing:
+        raise HTTPException(status_code=404, detail="Listing not found.")
+
+    removed = crud_listing.remove_image(db, listing=listing, image_id=image_id)
+    if not removed:
+        return Response(status_code=204)
+    return Response(status_code=204)

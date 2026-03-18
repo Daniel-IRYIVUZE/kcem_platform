@@ -1,26 +1,9 @@
 // pages/dashboard/admin/Settings.tsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Save, Settings, Bell, Shield, CreditCard, Globe } from 'lucide-react';
+import { adminAPI, type AdminPlatformSettings } from '../../../services/api';
 
-interface PlatformSettings {
-  platformName: string;
-  platformFeePercent: number;
-  minBidAmount: number;
-  listingExpiryDays: number;
-  maintenanceMode: boolean;
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  autoApproveListings: boolean;
-  requireIDVerification: boolean;
-  currency: string;
-  country: string;
-  supportEmail: string;
-  supportPhone: string;
-}
-
-const KEY = 'ecotrade_platform_settings';
-
-const defaults: PlatformSettings = {
+const defaults: AdminPlatformSettings = {
   platformName: 'EcoTrade Rwanda',
   platformFeePercent: 10,
   minBidAmount: 5000,
@@ -37,19 +20,46 @@ const defaults: PlatformSettings = {
 };
 
 export default function AdminSettings() {
-  const [settings, setSettings] = useState<PlatformSettings>(() => {
-    try { 
-      return { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || '{}') }; 
-    } catch { 
-      return defaults; 
-    }
-  });
+  const [settings, setSettings] = useState<AdminPlatformSettings>(defaults);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const save = () => {
-    localStorage.setItem(KEY, JSON.stringify(settings));
-    setSaved(true); 
-    setTimeout(() => setSaved(false), 2000);
+  useEffect(() => {
+    let mounted = true;
+    adminAPI.getSettings()
+      .then((data) => {
+        if (!mounted) return;
+        setSettings({ ...defaults, ...data });
+        setError(null);
+      })
+      .catch((err: Error) => {
+        if (!mounted) return;
+        setError(err.message || 'Failed to load settings.');
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const save = async () => {
+    setIsSaving(true);
+    setError(null);
+    try {
+      const persisted = await adminAPI.saveSettings(settings);
+      setSettings({ ...defaults, ...persisted });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError((err as Error).message || 'Failed to save settings.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const Field = ({ label, id, type = 'text', value, onChange }: { 
@@ -99,6 +109,14 @@ export default function AdminSettings() {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {loading && (
+        <div className="text-sm text-gray-500 dark:text-gray-400">Loading settings...</div>
+      )}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-2 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
           <Settings size={20} className="text-cyan-600" />
@@ -242,9 +260,10 @@ export default function AdminSettings() {
       {/* Save Button */}
       <button 
         onClick={save} 
-        className="flex items-center gap-2 bg-cyan-600 text-white px-6 py-3 rounded-xl hover:bg-cyan-700 font-medium transition-colors"
+        disabled={loading || isSaving}
+        className="flex items-center gap-2 bg-cyan-600 text-white px-6 py-3 rounded-xl hover:bg-cyan-700 font-medium transition-colors disabled:opacity-50"
       >
-        <Save size={16} /> Save Settings
+        <Save size={16} /> {isSaving ? 'Saving...' : 'Save Settings'}
       </button>
     </div>
   );

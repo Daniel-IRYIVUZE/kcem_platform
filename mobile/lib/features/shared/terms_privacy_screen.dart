@@ -77,7 +77,7 @@ class _TermsContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(20),
-      children: [
+      children: const [
         _LegalSection(
           icon: Icons.verified_outlined,
           title: 'Agreement to Terms',
@@ -147,12 +147,12 @@ class _TermsContent extends StatelessWidget {
               'these terms. Users may request account deletion by contacting '
               'danieliryivuze4@gmail.com. Data will be retained for 3 years per regulatory requirements.',
         ),
-        const SizedBox(height: 32),
+        SizedBox(height: 32),
         _ContactBanner(
           text: 'Questions about our Terms?',
           email: 'danieliryivuze4@gmail.com',
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
       ],
     ).animate().fadeIn(duration: 300.ms);
   }
@@ -167,7 +167,7 @@ class _PrivacyContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(20),
-      children: [
+      children: const [
         _LegalSection(
           icon: Icons.shield_outlined,
           title: 'Our Commitment',
@@ -241,12 +241,12 @@ class _PrivacyContent extends StatelessWidget {
               'anonymized analytics to improve the platform. No third-party advertising '
               'trackers are used.',
         ),
-        const SizedBox(height: 32),
+        SizedBox(height: 32),
         _ContactBanner(
           text: 'Privacy concerns or requests?',
           email: 'danieliryivuze4@gmail.com',
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20),
       ],
     ).animate().fadeIn(duration: 300.ms);
   }
@@ -281,7 +281,7 @@ class _LegalSection extends StatelessWidget {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 18, color: AppColors.primary),
@@ -318,12 +318,12 @@ class _ContactBanner extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppColors.primary.withOpacity(0.08),
-            AppColors.primary.withOpacity(0.04)
+            AppColors.primary.withValues(alpha: 0.08),
+            AppColors.primary.withValues(alpha: 0.04)
           ],
         ),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -331,7 +331,7 @@ class _ContactBanner extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child:
