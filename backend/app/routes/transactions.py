@@ -39,15 +39,40 @@ def add_payment(transaction_id: int, payload: PaymentCreate,
     tx = crud_transaction.get(db, transaction_id)
     if not tx:
         raise HTTPException(404, "Transaction not found.")
-    payment = crud_transaction.add_payment(db, transaction_id=transaction_id, obj_in=payload)
+    payment = crud_transaction.add_payment(db, obj_in=payload)
     # complete transaction after payment
-    tx = crud_transaction.complete(db, transaction_id=transaction_id)
+    tx = crud_transaction.complete(db, tx=tx)
     notify_payment_received(db, user_id=tx.recycler.user_id,
                             amount=tx.net_amount, transaction_id=tx.id)
     return payment
 
 
 # ── Admin ──────────────────────────────────────────────────────────────────
+
+@router.patch("/{transaction_id}/status", response_model=TransactionRead,
+              dependencies=[Depends(require_admin)])
+def admin_update_transaction_status(transaction_id: int,
+                                    payload: dict,
+                                    db: Session = Depends(get_db)):
+    """Admin: update a transaction's status (e.g. complete, dispute, refund)."""
+    from app.models.transaction import TransactionStatus
+    tx = crud_transaction.get(db, transaction_id)
+    if not tx:
+        raise HTTPException(404, "Transaction not found.")
+    new_status = payload.get("status")
+    if not new_status:
+        raise HTTPException(400, "status field is required.")
+    try:
+        tx.status = TransactionStatus(new_status)
+    except ValueError:
+        raise HTTPException(400, f"Invalid status '{new_status}'.")
+    if new_status == "completed" and not tx.completed_at:
+        from datetime import datetime, timezone
+        tx.completed_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(tx)
+    return tx
+
 
 @router.get("/", response_model=list[TransactionRead],
             dependencies=[Depends(require_admin)])

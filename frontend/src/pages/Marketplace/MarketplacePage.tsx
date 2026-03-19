@@ -190,8 +190,11 @@ const MarketplacePage = () => {
 
       setListings(withBids);
     } catch (error) {
-      console.error(error);
-      showToast('Failed to load marketplace listings from backend.', 'error');
+      console.error('Failed to load marketplace listings:', error);
+      showToast(
+        `Failed to load marketplace listings from backend. ${error instanceof Error ? error.message : ''}`,
+        'error'
+      );
       setListings([]);
     } finally {
       setIsLoading(false);

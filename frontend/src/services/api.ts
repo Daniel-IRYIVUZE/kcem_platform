@@ -115,7 +115,7 @@ async function request<T>(
     } catch {
       // ignore parse errors
     }
-    throw new Error(detail);
+    throw new Error(`API request failed (${options.method || 'GET'} ${path}): ${detail}`);
   }
 
   // 204 No Content
@@ -678,7 +678,7 @@ export const transactionsAPI = {
     request<Transaction>('/transactions', { method: 'POST', body: JSON.stringify(data) }),
 
   update: (id: number, data: { status?: string; receipt?: string }) =>
-    request<Transaction>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    request<Transaction>(`/transactions/${id}/status`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   mine: (params?: { status?: string; skip?: number; limit?: number }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
@@ -863,7 +863,7 @@ export const notificationsAPI = {
         Object.entries(params || {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
       )
     ).toString();
-    return request<Notification[]>(`/notifications/${q ? `?${q}` : ''}`);
+    return request<Notification[]>(`/notifications${q ? `?${q}` : ''}`);
   },
 
   unreadCount: () =>

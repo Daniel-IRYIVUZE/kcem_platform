@@ -58,6 +58,8 @@ def _run_migrations() -> None:
     migrations = [
         "ALTER TABLE blog_posts ADD COLUMN author_display_name VARCHAR(150)",
         "ALTER TABLE users ADD COLUMN must_change_password BOOLEAN DEFAULT 0",
+        "ALTER TABLE hotels ADD COLUMN tin_number VARCHAR(100)",
+        "ALTER TABLE recyclers ADD COLUMN tin_number VARCHAR(100)",
     ]
     with engine.connect() as conn:
         for stmt in migrations:

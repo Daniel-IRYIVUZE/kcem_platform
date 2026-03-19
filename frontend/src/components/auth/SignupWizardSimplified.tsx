@@ -131,9 +131,6 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
   const [locationSearchInput, setLocationSearchInput] = useState('');
   const [locationSuggestions, setLocationSuggestions] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
 
-  // Step 5 — terms
-  const [termsAccepted, setTermsAccepted] = useState(false);
-  const [privacyAccepted, setPrivacyAccepted] = useState(false);
 
   const { login } = useAuth();
 
@@ -619,49 +616,6 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
           </div>
         );
 
-      // STEP 5: Terms & Conditions
-      case 5:
-        return (
-          <div className="space-y-4">
-            <div className="mb-5">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Terms & Conditions</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Review and accept to create your account</p>
-            </div>
-            {submitError && (
-              <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-400">
-                {submitError}
-              </div>
-            )}
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 h-52 overflow-y-auto text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-              <p className="font-semibold text-gray-800 dark:text-gray-200 mb-3">Welcome to EcoTrade Platform.</p>
-              <p className="mb-3">By creating an account, you agree to participate in Kigali's circular economy initiative.</p>
-              <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">1. Service Terms</p>
-              <p className="mb-3">You agree to provide accurate waste listings and engage in fair trade practices.</p>
-              <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">2. Data Privacy</p>
-              <p className="mb-3">Your personal data is encrypted and protected per GDPR standards.</p>
-              <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">3. Platform Rules</p>
-              <ul className="list-disc list-inside mb-3 space-y-1">
-                <li>No fraudulent listings</li>
-                <li>Timely collection required</li>
-                <li>Transparent pricing expected</li>
-              </ul>
-              <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">4. Payments</p>
-              <p className="mb-3">All transactions processed securely. Disputes resolved within 5 business days.</p>
-              <p className="font-semibold text-gray-800 dark:text-gray-200 mb-1">5. Environmental Commitment</p>
-              <p>You commit to proper waste segregation and sustainable practices.</p>
-            </div>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)}
-                className="w-4 h-4 accent-cyan-600 rounded" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">I agree to the Terms and Conditions</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={privacyAccepted} onChange={e => setPrivacyAccepted(e.target.checked)}
-                className="w-4 h-4 accent-cyan-600 rounded" />
-              <span className="text-sm text-gray-700 dark:text-gray-300">I agree to the Privacy Policy</span>
-            </label>
-          </div>
-        );
 
       // STEP 6: Success
       case 6:
@@ -738,21 +692,11 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
           </button>
         )}
 
-        {/* Step 4 continue */}
+        {/* Step 4 create account */}
         {step === 4 && (
           <button
-            onClick={() => setStep(5)}
-            className="w-full sm:flex-1 px-5 py-3 bg-cyan-600 text-white rounded-xl font-semibold hover:bg-cyan-700 transition-all flex items-center justify-center gap-2"
-          >
-            Continue <ArrowRight className="w-4 h-4" />
-          </button>
-        )}
-
-        {/* Step 5 create account */}
-        {step === 5 && (
-          <button
             onClick={handleRegister}
-            disabled={!termsAccepted || !privacyAccepted || submitting}
+            disabled={submitting}
             className="w-full sm:flex-1 px-5 py-3 bg-cyan-600 text-white rounded-xl font-semibold hover:bg-cyan-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? 'Creating Account…' : <><Check className="w-4 h-4" /> Create Account</>}

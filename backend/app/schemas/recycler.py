@@ -30,6 +30,7 @@ class RecyclerUpdate(BaseModel):
     waste_types_handled: Optional[List[str]] = None
     storage_capacity: Optional[float] = None
     logo_url:        Optional[str] = None
+    tin_number:      Optional[str] = None
 
 
 class RecyclerRead(BaseModel):
@@ -45,6 +46,7 @@ class RecyclerRead(BaseModel):
     phone:           Optional[str]
     website:         Optional[str]
     license_number:  Optional[str]
+    tin_number:      Optional[str] = None  # New field
     is_verified:     bool
     logo_url:        Optional[str]
     green_score:     float

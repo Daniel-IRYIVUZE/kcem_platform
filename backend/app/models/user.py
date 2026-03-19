@@ -83,6 +83,7 @@ class DocumentType(str, enum.Enum):
     environmental_permit = "environmental_permit"
     driver_license    = "driver_license"
     vehicle_insurance = "vehicle_insurance"
+    rdb_certificate   = "rdb_certificate"  # New doc type
     other             = "other"
 
 

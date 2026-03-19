@@ -20,9 +20,14 @@ def _upload_dir(subfolder: str) -> Path:
 def save_upload(file: UploadFile, subfolder: str = "general") -> str:
     """Save an uploaded file and return its relative URL path."""
     if file.content_type not in ALLOWED_IMAGE_TYPES:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(
+            "File upload failed: unsupported file type '%s' for file '%s'", file.content_type, file.filename
+        )
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail=f"Unsupported file type: {file.content_type}",
+            detail=f"Unsupported file type: {file.content_type} for file: {file.filename}",
         )
 
     ext = Path(file.filename or "file").suffix or ".jpg"

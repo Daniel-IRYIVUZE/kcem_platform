@@ -30,6 +30,7 @@ class HotelUpdate(BaseModel):
     description: Optional[str] = None
     latitude:    Optional[float] = None
     longitude:   Optional[float] = None
+    tin_number:  Optional[str] = None  # New field
     logo_url:    Optional[str] = None
     banner_url:  Optional[str] = None
 
@@ -45,6 +46,7 @@ class HotelRead(BaseModel):
     latitude:          Optional[float]
     longitude:         Optional[float]
     phone:             Optional[str]
+    tin_number:  Optional[str] = None  # New field
     website:           Optional[str]
     stars:             int
     room_count:        Optional[int]

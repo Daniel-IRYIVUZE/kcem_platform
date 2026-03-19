@@ -34,8 +34,15 @@ export default function AdminTransactions() {
   const totalFees = filtered.filter(t => t.status === 'completed').reduce((s, t) => s + (t.platform_fee ?? 0), 0);
 
   const handleStatusChange = (t: Transaction, newStatus: Transaction['status']) => {
+    // Optimistic UI update
     setTransactions(prev => prev.map(x => x.id === t.id ? { ...x, status: newStatus } : x));
     setSelected(prev => prev?.id === t.id ? { ...prev, status: newStatus } : prev);
+    // Persist to backend
+    transactionsAPI.update(t.id, { status: newStatus }).catch(() => {
+      // Revert on failure
+      setTransactions(prev => prev.map(x => x.id === t.id ? { ...x, status: t.status } : x));
+      setSelected(prev => prev?.id === t.id ? { ...prev, status: t.status } : prev);
+    });
   };
 
   const handleExport = () => {

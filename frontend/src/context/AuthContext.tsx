@@ -214,11 +214,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       window.dispatchEvent(new Event('authChange'));
     } catch (error) {
       const msg = (error as Error).message;
-      throw new Error(msg.includes('Incorrect') || msg.includes('401') || msg.includes('suspended') 
-        ? msg 
-        : 'Login failed. Please check your credentials.');
-    } finally {
+      console.error('Login error:', error);
+      showToast(
+        msg.includes('Incorrect') || msg.includes('401') || msg.includes('suspended')
+          ? msg
+          : 'Login failed. Please check your credentials.',
+        'error'
+      );
       setLoading(false);
+      throw new Error(msg);
     }
   };
 

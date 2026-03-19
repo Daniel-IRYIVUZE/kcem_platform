@@ -37,6 +37,7 @@ class Recycler(Base):
     active_bids      = Column(Integer, default=0)
     created_at       = Column(DateTime(timezone=True), default=utc_now)
     updated_at       = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
+    tin_number       = Column(String(100), nullable=True)  # New field for TIN
 
     # Relationships
     user         = relationship("User", back_populates="recycler")

@@ -23,7 +23,7 @@ export default function AdminRouteMonitor() {
 
   const load = () => {
     Promise.all([
-      collectionsAPI.list({ limit: 200 }).catch(() => [] as Collection[]),
+      collectionsAPI.all({ limit: 200 }).catch(() => [] as Collection[]),
       usersAPI.list({ limit: 500 }).catch(() => [] as APIUser[]),
     ]).then(([cs, us]) => {
       setCollections(cs);

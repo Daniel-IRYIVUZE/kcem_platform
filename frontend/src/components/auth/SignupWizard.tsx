@@ -305,13 +305,6 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
                 {submitError}
               </div>
             )}
-            <label className="flex items-start gap-2">
-              <input type="checkbox" checked={agreedToTerms} onChange={e => setAgreedToTerms(e.target.checked)}
-                className="w-4 h-4 text-cyan-600 rounded border-gray-300 focus:ring-cyan-500 mt-0.5" />
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                I agree to the <a href="/terms-privacy" className="text-cyan-600 font-semibold hover:underline">Terms of Service</a> and <a href="/terms-privacy" className="text-cyan-600 font-semibold hover:underline">Privacy Policy</a>
-              </span>
-            </label>
           </div>
         );
 
@@ -358,7 +351,7 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
           </button>
         )}
         {step === 4 && (
-          <button onClick={handleRegister} disabled={submitting || !agreedToTerms}
+          <button onClick={handleRegister} disabled={submitting}
             className="w-full sm:w-auto sm:ml-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-cyan-600 text-white rounded-xl font-semibold text-sm sm:text-base hover:bg-cyan-700 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
             {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Submitting...</> : <>Submit Registration <ArrowRight className="w-4 h-4 ml-2" /></>}
           </button>
