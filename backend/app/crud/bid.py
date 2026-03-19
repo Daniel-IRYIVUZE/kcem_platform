@@ -34,12 +34,26 @@ class CRUDBid(CRUDBase[Bid, BidCreate, BidUpdate]):
         return bid
 
     def accept(self, db: Session, *, bid: Bid) -> Bid:
-        # Mark all other bids on same listing as rejected
-        db.query(Bid).filter(
-            Bid.listing_id == bid.listing_id,
-            Bid.id != bid.id,
-            Bid.status == BidStatus.active,
-        ).update({"status": BidStatus.rejected})
+        listing = bid.listing
+        is_partial = (
+            bid.quantity is not None
+            and listing is not None
+            and listing.volume is not None
+            and bid.quantity < listing.volume
+        )
+
+        if is_partial:
+            # Reduce the listing's remaining volume; keep it open for other recyclers
+            listing.volume = round(listing.volume - bid.quantity, 4)
+            db.add(listing)
+        else:
+            # Full bid: reject all competing active bids and close the listing
+            db.query(Bid).filter(
+                Bid.listing_id == bid.listing_id,
+                Bid.id != bid.id,
+                Bid.status == BidStatus.active,
+            ).update({"status": BidStatus.rejected})
+
         bid.status = BidStatus.accepted
         db.commit()
         db.refresh(bid)

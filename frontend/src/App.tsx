@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ScrollToTop from './components/common/ScrollToTop';
 import { authAPI } from './services/api';
+import { Lock } from 'lucide-react';
 
 // Import Layout Components
 import Sidebar from './components/layout/Sidebar';
@@ -105,7 +106,7 @@ const DashboardLayout = () => {
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-8">
             <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">🔐</span>
+              <Lock size={28} className="text-amber-600 dark:text-amber-400" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-1">Change Your Password</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">

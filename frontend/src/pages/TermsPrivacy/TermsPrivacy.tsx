@@ -371,7 +371,7 @@ const TermsPrivacyPage = () => {
                   ) : accepted ? (
                     <>
                       <Check size={20} />
-                      Accepted ✓
+                      Accepted
                     </>
                   ) : (
                     <>

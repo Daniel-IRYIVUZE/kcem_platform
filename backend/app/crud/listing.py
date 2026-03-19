@@ -46,9 +46,13 @@ class CRUDListing(CRUDBase[WasteListing, ListingCreate, ListingUpdate]):
         db.refresh(listing)
         return listing
 
-    def accept_bid(self, db: Session, *, listing: WasteListing, bid_id: int) -> WasteListing:
+    def accept_bid(self, db: Session, *, listing: WasteListing, bid_id: int,
+                   partial: bool = False) -> WasteListing:
         listing.accepted_bid_id = bid_id
-        listing.status = ListingStatus.accepting
+        if not partial:
+            # Full acceptance — close the listing to new bids
+            listing.status = ListingStatus.accepting
+        # For partial bids the listing stays 'open' so remaining volume can attract new bids
         db.commit()
         db.refresh(listing)
         return listing

@@ -1,6 +1,6 @@
 // components/auth/ForgotPasswordModal.tsx
 import { useState, useRef } from 'react';
-import { X, Mail, ArrowRight, Lock, Eye, EyeOff, CheckCircle, Sun, Moon, KeyRound } from 'lucide-react';
+import { X, Mail, ArrowRight, Lock, Eye, EyeOff, CheckCircle, Sun, Moon, KeyRound, Check } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 interface ForgotPasswordModalProps {
@@ -116,7 +116,7 @@ const ForgotPasswordModal = ({ onClose, onSubmit }: ForgotPasswordModalProps) =>
                         ? 'bg-cyan-600 text-white ring-2 ring-cyan-300 dark:ring-cyan-700'
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'
                   }`}>
-                    {step > s ? '✓' : s}
+                    {step > s ? <Check size={12}/> : s}
                   </div>
                   <span className={`text-[10px] font-medium hidden sm:block truncate ${
                     step >= s ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600'
@@ -246,7 +246,7 @@ const ForgotPasswordModal = ({ onClose, onSubmit }: ForgotPasswordModalProps) =>
               {/* Inline match indicator */}
               {confirmPass && (
                 <p className={`text-xs ${newPassword === confirmPass ? 'text-cyan-500' : 'text-red-500'}`}>
-                  {newPassword === confirmPass ? '✓ Passwords match' : '✗ Passwords do not match'}
+                  {newPassword === confirmPass ? 'Passwords match' : 'Passwords do not match'}
                 </p>
               )}
               <button type="submit" disabled={loading} className={btnCls}>

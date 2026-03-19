@@ -73,24 +73,24 @@ export default function AdminRouteMonitor() {
           attribution: '© OpenStreetMap', maxZoom: 18,
         }).addTo(map);
 
-        const makeIcon = (emoji: string, bg: string, pulse = false) => L.divIcon({
-          html: `<div style="background:${bg};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);border:2px solid white;font-size:14px${pulse ? ';animation:none' : ''}">${emoji}</div>`,
+        const makeIcon = (label: string, bg: string) => L.divIcon({
+          html: `<div style="background:${bg};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);border:2px solid white;font-size:11px;font-weight:bold;color:white">${label}</div>`,
           className: '', iconSize: [28, 28], iconAnchor: [14, 14],
         });
 
         // Hotel markers
         if (layerFilter === 'all' || layerFilter === 'hotels') {
-          HOTEL_PINS.forEach(h => L.marker(h.coord, { icon: makeIcon('🏨', '#16a34a') })
+          HOTEL_PINS.forEach(h => L.marker(h.coord, { icon: makeIcon('H', '#16a34a') })
             .addTo(map).bindPopup(`<b>${h.name}</b><br>Hotel`));
         }
         // Recycler markers
         if (layerFilter === 'all' || layerFilter === 'recyclers') {
-          RECYCLER_PINS.forEach(r => L.marker(r.coord, { icon: makeIcon('♻', '#2563eb') })
+          RECYCLER_PINS.forEach(r => L.marker(r.coord, { icon: makeIcon('R', '#2563eb') })
             .addTo(map).bindPopup(`<b>${r.name}</b><br>Recycler`));
         }
         // Driver markers
         if (layerFilter === 'all' || layerFilter === 'routes') {
-          DRIVER_PINS.forEach(d => L.marker(d.coord, { icon: makeIcon('🚛', d.active ? '#f59e0b' : '#6b7280') })
+          DRIVER_PINS.forEach(d => L.marker(d.coord, { icon: makeIcon('T', d.active ? '#f59e0b' : '#6b7280') })
             .addTo(map).bindPopup(`<b>${d.name}</b><br>${d.active ? 'En Route' : 'Off Duty'}`));
         }
         // Route lines
@@ -157,9 +157,9 @@ export default function AdminRouteMonitor() {
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Layers:</span>
             {([
               { key: 'all', label: 'All', color: 'bg-gray-600' },
-              { key: 'hotels', label: '🏨 Hotels', color: 'bg-green-500' },
-              { key: 'recyclers', label: '♻️ Recyclers', color: 'bg-blue-500' },
-              { key: 'routes', label: '🚛 Drivers', color: 'bg-yellow-400' },
+              { key: 'hotels', label: 'Hotels', color: 'bg-green-500' },
+              { key: 'recyclers', label: 'Recyclers', color: 'bg-blue-500' },
+              { key: 'routes', label: 'Drivers', color: 'bg-yellow-400' },
             ] as const).map(({ key, label, color }) => (
               <button
                 key={key}

@@ -1,15 +1,12 @@
 // pages/dashboard/admin/GreenScores.tsx
 import { useState, useEffect } from 'react';
-import { Leaf, TrendingUp, Edit2, X, Check, Medal, Star } from 'lucide-react';
+import { Leaf, Medal, Star, Info } from 'lucide-react';
 import { hotelsAPI, recyclersAPI } from '../../../services/api';
 
 type ScoreUser = { id: string; name: string; role: string; email: string; location: string; greenScore: number; };
 
 export default function AdminGreenScores() {
   const [users, setUsers] = useState<ScoreUser[]>([]);
-  const [editing, setEditing] = useState<ScoreUser | null>(null);
-  const [newScore, setNewScore] = useState(0);
-  const [flash, setFlash] = useState(false);
   const [filterRole, setFilterRole] = useState<string>('all');
 
   const load = () => {
@@ -24,18 +21,9 @@ export default function AdminGreenScores() {
 
   useEffect(() => { load(); }, []);
 
-  const filteredUsers = filterRole === 'all' 
-    ? users 
+  const filteredUsers = filterRole === 'all'
+    ? users
     : users.filter(u => u.role === filterRole);
-
-  const handleSave = () => {
-    if (!editing) return;
-    const clamped = Math.min(100, Math.max(0, newScore));
-    setUsers(prev => prev.map(u => u.id === editing.id ? { ...u, greenScore: clamped } : u));
-    setEditing(null);
-    setFlash(true);
-    setTimeout(() => setFlash(false), 2000);
-  };
 
   const getMedalIcon = (idx: number) => {
     if (idx === 0) return <Medal size={20} className="text-yellow-500" />;
@@ -64,13 +52,11 @@ export default function AdminGreenScores() {
         </div>
       </div>
 
-      {/* Success Flash */}
-      {flash && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 px-4 py-2 rounded-lg text-sm flex items-center gap-2">
-          <Check size={15} />
-          Score updated successfully
-        </div>
-      )}
+      {/* Info note */}
+      <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 px-4 py-3 rounded-xl text-sm">
+        <Info size={15} className="flex-shrink-0 mt-0.5" />
+        Green scores are automatically calculated by the platform when waste collections are completed. Each kg of waste recycled and each completed collection increases the score.
+      </div>
 
       {/* Filter */}
       <div className="flex gap-2 mb-2">
@@ -120,7 +106,7 @@ export default function AdminGreenScores() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                {['Rank', 'User', 'Role', 'Location', 'Green Score', 'Progress', ''].map(h => (
+                {['Rank', 'User', 'Role', 'Location', 'Green Score', 'Progress'].map(h => (
                   <th key={h} className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-400">
                     {h}
                   </th>
@@ -159,18 +145,6 @@ export default function AdminGreenScores() {
                       />
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <button 
-                      onClick={() => { 
-                        setEditing(u); 
-                        setNewScore(u.greenScore || 0); 
-                      }} 
-                      className="p-1.5 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition-colors"
-                      title="Edit Score"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                  </td>
                 </tr>
               ))}
             </tbody>
@@ -178,63 +152,6 @@ export default function AdminGreenScores() {
         </div>
       </div>
 
-      {/* Edit Modal */}
-      {editing && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-xl border border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
-                Edit Green Score
-              </h3>
-              <button 
-                onClick={() => setEditing(null)} 
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-              Updating score for <strong>{editing.name}</strong>
-            </p>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Green Score (0–100)
-                </label>
-                <input 
-                  type="number" 
-                  min="0" 
-                  max="100" 
-                  value={newScore} 
-                  onChange={e => setNewScore(Number(e.target.value))} 
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                />
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                <div 
-                  className={`h-3 rounded-full transition-all ${scoreColor(newScore)}`} 
-                  style={{ width: `${Math.min(100, Math.max(0, newScore))}%` }}
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-5">
-              <button 
-                onClick={() => setEditing(null)} 
-                className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleSave} 
-                className="flex-1 bg-green-600 text-white rounded-lg py-2 text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <TrendingUp size={14} />
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

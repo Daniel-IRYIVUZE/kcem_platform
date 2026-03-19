@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { usersAPI, recyclersAPI } from '../../../services/api';
 import type { RecyclerProfile } from '../../../services/api';
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Check } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
 const WASTE_TYPES = [
@@ -170,7 +170,7 @@ export default function RecyclerSettings() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
           <h2 className="text-base font-semibold border-b border-gray-100 dark:border-gray-700 pb-2 text-gray-900 dark:text-white">
-            Company Profile {profile?.is_verified && <span className="ml-2 text-xs text-green-600">✓ Verified</span>}
+            Company Profile {profile?.is_verified && <span className="ml-2 text-xs text-green-600 inline-flex items-center gap-0.5"><Check size={11}/> Verified</span>}
           </h2>
           {field('Company Name', companyName, setCompanyName)}
           {field('Address', address, setAddress)}

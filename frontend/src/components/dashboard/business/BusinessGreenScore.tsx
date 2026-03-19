@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { collectionsAPI, listingsAPI, hotelsAPI } from '../../../services/api';
 import type { Collection, WasteListing } from '../../../services/api';
-import { Trophy, TrendingUp, Download, Award } from 'lucide-react';
+import { Trophy, TrendingUp, Download, Award, PartyPopper } from 'lucide-react';
 import Widget from '../Widget';
 import ChartComponent from '../ChartComponent';
 import { useAuth } from '../../../context/AuthContext';
@@ -45,9 +45,9 @@ export default function BusinessGreenScore() {
   const handleDownloadCertificate = () => {
     const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
     const certText = [
-      'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•',
-      '         ECOTRADE RWANDA â€” GREEN EXCELLENCE CERTIFICATE',
-      'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•',
+      '======================================================',
+      '         ECOTRADE RWANDA \u2014 GREEN EXCELLENCE CERTIFICATE',
+      '======================================================',
       '',
       `This certifies that`,
       '',
@@ -60,7 +60,7 @@ export default function BusinessGreenScore() {
       `  Issued on: ${today}`,
       `  Platform : EcoTrade Rwanda`,
       '',
-      'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•',
+      '======================================================',
     ].join('\n');
 
     const blob = new Blob([certText], { type: 'text/plain' });
@@ -98,8 +98,8 @@ export default function BusinessGreenScore() {
           <div className="flex items-center gap-3">
             <Award size={32} className="flex-shrink-0" />
             <div>
-              <p className="font-bold text-lg">ðŸŽ‰ Perfect Green Score Achieved!</p>
-              <p className="text-green-100 text-sm">{displayName} has reached 100/100 â€” download your certification now.</p>
+              <p className="font-bold text-lg flex items-center gap-2"><PartyPopper size={18}/> Perfect Green Score Achieved!</p>
+              <p className="text-green-100 text-sm">{displayName} has reached 100/100 \u2014 download your certification now.</p>
             </div>
           </div>
           <button
@@ -123,7 +123,7 @@ export default function BusinessGreenScore() {
             </div>
           </div>
           <p className="text-lg font-semibold text-gray-900 dark:text-white">
-            {greenScore >= 100 ? 'ðŸ† Perfect!' : greenScore >= 80 ? 'Excellent' : greenScore >= 60 ? 'Good' : greenScore >= 40 ? 'Fair' : 'Needs Improvement'}
+            {greenScore >= 100 ? <span className="flex items-center justify-center gap-1"><Trophy size={16} className="text-yellow-500"/> Perfect!</span> : greenScore >= 80 ? 'Excellent' : greenScore >= 60 ? 'Good' : greenScore >= 40 ? 'Fair' : 'Needs Improvement'}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Based on {completedCollections.length} completed collections</p>
           {greenScore >= 100 && (

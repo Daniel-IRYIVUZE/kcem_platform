@@ -25,6 +25,7 @@ class Bid(Base):
     listing_id   = Column(Integer, ForeignKey("waste_listings.id", ondelete="CASCADE"), nullable=False)
     recycler_id  = Column(Integer, ForeignKey("recyclers.id", ondelete="CASCADE"), nullable=False)
     amount       = Column(Float, nullable=False)       # RWF
+    quantity     = Column(Float, nullable=True)        # kg/units bid for (None = full listing)
     previous_amount = Column(Float, nullable=True)     # for increase tracking
     status       = Column(SAEnum(BidStatus), default=BidStatus.active)
     notes        = Column(Text, nullable=True)

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { collectionsAPI, type Collection, type CollectionTracking } from '../../../services/api';
 import { formatDist } from '../../../utils/geo';
-import { Calendar, Clock, CheckCircle, Download, MapPin, X, Navigation, Locate } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, Download, MapPin, X, Navigation, Locate, Building2, Truck } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
 import { StatusBadge } from './_shared';
@@ -80,7 +80,7 @@ function TrackingModal({ collectionId, onClose }: { collectionId: number; onClos
       const pos: [number, number] = [data.hotel_lat, data.hotel_lng];
       points.push(pos);
       const icon = L.divIcon({
-        html: `<div style="background:#d97706;color:#fff;width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)">🏨</div>`,
+        html: `<div style="background:#d97706;color:#fff;width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);font-size:13px;font-weight:bold">H</div>`,
         className: '', iconSize: [38, 38], iconAnchor: [19, 38],
       });
       if (hotelMarkerRef.current) {
@@ -97,7 +97,7 @@ function TrackingModal({ collectionId, onClose }: { collectionId: number; onClos
       const pos: [number, number] = [data.driver_lat, data.driver_lng];
       points.push(pos);
       const icon = L.divIcon({
-        html: `<div style="background:#0891b2;color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)">🚛</div>`,
+        html: `<div style="background:#0891b2;color:#fff;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)"><svg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3'/><polygon points='16 3 21 8 21 17 16 17 16 3'/><circle cx='6.5' cy='17.5' r='2.5'/><circle cx='18.5' cy='17.5' r='2.5'/></svg></div>`,
         className: '', iconSize: [38, 38], iconAnchor: [19, 19],
       });
       if (driverMarkerRef.current) {
@@ -194,8 +194,8 @@ function TrackingModal({ collectionId, onClose }: { collectionId: number; onClos
         {/* Info footer */}
         <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-            <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 bg-amber-500 rounded text-center text-white" style={{fontSize:10}}>🏨</span> Pickup location</span>
-            <span className="flex items-center gap-1"><span className="inline-block w-4 h-4 bg-cyan-600 rounded-full text-center text-white" style={{fontSize:10}}>🚛</span> Driver (live)</span>
+            <span className="flex items-center gap-1"><span className="inline-flex w-4 h-4 bg-amber-500 rounded items-center justify-center"><Building2 size={10} className="text-white"/></span> Pickup location</span>
+            <span className="flex items-center gap-1"><span className="inline-flex w-4 h-4 bg-cyan-600 rounded-full items-center justify-center"><Truck size={10} className="text-white"/></span> Driver (live)</span>
           </div>
           <div className="flex items-center gap-1 text-xs text-gray-400">
             <Navigation size={11} /> Updates every 15s

@@ -1,6 +1,7 @@
 """schemas/user.py — User Pydantic schemas."""
 from datetime import datetime
 from typing import Optional
+import re
 from pydantic import BaseModel, EmailStr, field_validator
 from app.models.user import UserRole, UserStatus, DocumentType, DocumentStatus
 
@@ -45,7 +46,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     full_name: str
     password: str
-    phone: Optional[str] = None
+    phone: str                          # Required — exactly 10 digits
     role: UserRole = UserRole.individual
 
     @field_validator("password")
@@ -54,6 +55,14 @@ class UserCreate(BaseModel):
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters")
         return v
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        digits = v.strip()
+        if not re.match(r'^\d{10}$', digits):
+            raise ValueError("Phone number must be exactly 10 digits (e.g. 0788000000).")
+        return digits
 
 
 class UserUpdate(BaseModel):

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { collectionsAPI, type Collection } from '../../../services/api';
 import { Truck, Activity, Clock, CheckCircle, Download } from 'lucide-react';
 import StatCard from '../StatCard';
@@ -10,20 +10,33 @@ function exportCSV(name: string, cols: string[], rows: (string|number)[][]) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv])); a.download = `${name}.csv`; a.click();
 }
 
+function fmtDate(d: string | null | undefined) {
+  if (!d) return '—';
+  const parsed = new Date(d);
+  if (isNaN(parsed.getTime())) return d;
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
 export default function RecyclerActiveCollections() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading]         = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
 
-  useEffect(() => {
+  const load = useCallback(() => {
     collectionsAPI.list({ limit: 200 } as Parameters<typeof collectionsAPI.list>[0])
       .then(data => setCollections(Array.isArray(data) ? data : []))
       .catch(() => setCollections([]))
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 30_000);
+    return () => clearInterval(t);
+  }, [load]);
+
   const filtered    = statusFilter === 'all' ? collections : collections.filter(c => c.status === statusFilter);
-  const inProgress  = collections.filter(c => c.status === 'en-route' || c.status === 'collected').length;
+  const inProgress  = collections.filter(c => c.status === 'en_route' || c.status === 'collected').length;
 
   const handleExport = () => exportCSV('collections',
     ['ID','Hotel','Recycler','Driver','Type','Volume','Status','Date','Earnings'],
@@ -45,8 +58,8 @@ export default function RecyclerActiveCollections() {
         <StatCard title="Completed"   value={loading ? '…' : collections.filter(c => c.status === 'completed').length} icon={<CheckCircle size={22} />} color="orange" />
       </div>
       <div className="flex gap-2 flex-wrap">
-        {['all', 'scheduled', 'en-route', 'collected', 'verified', 'completed', 'missed'].map(s => (
-          <button key={s} onClick={() => setStatusFilter(s)} className={`px-3 py-1 text-sm rounded-full border ${statusFilter === s ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900'}`}>{s === 'all' ? 'All' : s}</button>
+        {['all', 'scheduled', 'en_route', 'collected', 'verified', 'completed', 'missed'].map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)} className={`px-3 py-1 text-sm rounded-full border ${statusFilter === s ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900'}`}>{s === 'all' ? 'All' : s.replace(/_/g, ' ')}</button>
         ))}
       </div>
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
@@ -61,7 +74,7 @@ export default function RecyclerActiveCollections() {
               { key: 'waste_type',     label: 'Type',     render: (v: string) => <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium">{v}</span> },
               { key: 'volume',         label: 'Volume',   render: (v: number, r: Collection) => <span>{v ?? 0} {r.waste_type === 'UCO' ? 'L' : 'kg'}</span> },
               { key: 'status',         label: 'Status',   render: (v: string) => <StatusBadge status={v} /> },
-              { key: 'scheduled_date', label: 'Date' },
+              { key: 'scheduled_date', label: 'Date', render: (v: string) => fmtDate(v) },
               { key: 'earnings',       label: 'Earnings', render: (v: number) => <span className="font-semibold text-green-600 dark:text-green-400">RWF {(v||0).toLocaleString()}</span> },
             ]}
             data={filtered}

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { listingsAPI, resolveMediaUrl, type WasteListing, type Bid, type ListingImage } from '../../../services/api';
 import { downloadCSV } from '../../../utils/dataStore';
-import { Package, CheckCircle, Clock, Eye, PlusCircle, Download, Search, Trash2, X, Edit2, Image as ImageIcon, Star } from 'lucide-react';
+import { Package, CheckCircle, Clock, Eye, PlusCircle, Download, Search, Trash2, X, Edit2, Image as ImageIcon, Star, Check } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
 import { StatusBadge } from './_shared';
@@ -487,14 +487,15 @@ export default function BusinessListings() {
                         <p className="font-medium text-gray-900 dark:text-white">{bid.recycler_name}</p>
                         <div className="flex gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
                           <span className={`font-medium ${bid.status === 'accepted' ? 'text-green-600 dark:text-green-400' : ''}`}>{bid.status}</span>
+                          {(bid as any).quantity && <span>{(bid as any).quantity} {selectedListing.unit}</span>}
                           <span>{new Date(bid.created_at).toLocaleDateString()}</span>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Total Bid Price</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{(bid as any).quantity ? `For ${(bid as any).quantity} ${selectedListing.unit}` : 'Total Bid Price'}</p>
                         <p className="text-lg font-bold text-cyan-600">RWF {(bid.amount ?? 0).toLocaleString()}</p>
                         {bid.status === 'active' && <button onClick={() => handleAcceptBid(selectedListing.id, bid.id)} className="mt-1 px-3 py-1 text-xs bg-cyan-600 text-white rounded hover:bg-cyan-700">Accept Bid</button>}
-                        {bid.status === 'accepted' && <span className="text-xs text-green-600 dark:text-green-400 font-semibold">✓ Accepted</span>}
+                        {bid.status === 'accepted' && <span className="text-xs text-green-600 dark:text-green-400 font-semibold flex items-center gap-0.5"><Check size={11}/> Accepted</span>}
                       </div>
                     </div>
                   </div>
@@ -510,7 +511,7 @@ export default function BusinessListings() {
           <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-xl w-full p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             {showSavedToast && (
               <div className="absolute top-4 right-4 px-2.5 py-1 rounded-md text-xs font-medium bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
-                Saved ✓
+                Saved
               </div>
             )}
             <div className="flex items-center justify-between mb-5">

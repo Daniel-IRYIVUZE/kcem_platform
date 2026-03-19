@@ -232,6 +232,7 @@ export interface Bid {
   recycler_id: number;
   recycler_name: string;
   amount: number;
+  quantity?: number;
   note?: string;
   collection_preference?: string;
   status: string;
@@ -615,12 +616,13 @@ export const listingsAPI = {
   // Bids on a listing
   getBids: (listingId: number) => request<Bid[]>(`/bids/listing/${listingId}`),
 
-  placeBid: (listingId: number, data: { amount: number; note?: string; collection_preference?: string }) =>
+  placeBid: (listingId: number, data: { amount: number; quantity?: number; note?: string; collection_preference?: string }) =>
     request<Bid>('/bids', {
       method: 'POST',
       body: JSON.stringify({
         listing_id: listingId,
         amount: data.amount,
+        quantity: data.quantity ?? null,
         notes: data.note,
       }),
     }),

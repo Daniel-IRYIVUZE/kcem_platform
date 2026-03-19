@@ -79,21 +79,55 @@ export default function AdminAnalytics() {
       labels: Object.keys(analytics.usersByRole).length ? Object.keys(analytics.usersByRole) : ['business','recycler','driver','individual','admin'],
       datasets: [{ label: 'Users', data: Object.keys(analytics.usersByRole).length ? Object.values(analytics.usersByRole) as number[] : [12,5,8,3,2], backgroundColor: '#0891b2', borderColor: '#0891b2' }]
     },
-    revenueTrend: {
-      labels: period === 'week' ? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
-        : period === 'month' ? ['Week 1','Week 2','Week 3','Week 4']
-        : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-      datasets: [
-        { label: 'Revenue (RWF)', data: period === 'week' ? [4500,5200,4800,6100,7200,8100,7600] : period === 'month' ? [22400,25600,28900,31200] : [85600,91200,102400,115600,128900,142300,156700,169800,178900,189200,201400,215600], borderColor: '#0891b2', backgroundColor: '#0891b2' },
-      ]
-    },
+    revenueTrend: (() => {
+      const completedTxn = transactions.filter(t => t.status === 'completed');
+      if (period === 'week') {
+        const days: string[] = [];
+        const labels: string[] = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(); d.setDate(d.getDate() - i);
+          days.push(d.toISOString().split('T')[0]);
+          labels.push(d.toLocaleDateString('en-GB', { weekday: 'short' }));
+        }
+        return {
+          labels,
+          datasets: [{ label: 'Revenue (RWF)', data: days.map(day => completedTxn.filter(t => t.created_at?.startsWith(day)).reduce((s, t) => s + (t.gross_amount ?? 0), 0)), borderColor: '#0891b2', backgroundColor: '#0891b2' }],
+        };
+      } else if (period === 'month') {
+        const weeks = ['Week 1','Week 2','Week 3','Week 4'];
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        return {
+          labels: weeks,
+          datasets: [{ label: 'Revenue (RWF)', data: [0,1,2,3].map(w => completedTxn.filter(t => { const d = new Date(t.created_at); const dayOfMonth = Math.floor((d.getTime() - monthStart.getTime()) / (7 * 24 * 3600 * 1000)); return dayOfMonth === w && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); }).reduce((s, t) => s + (t.gross_amount ?? 0), 0)), borderColor: '#0891b2', backgroundColor: '#0891b2' }],
+        };
+      } else {
+        const months: string[] = [];
+        const labels: string[] = [];
+        for (let i = 11; i >= 0; i--) {
+          const d = new Date(); d.setMonth(d.getMonth() - i);
+          months.push(d.toISOString().slice(0, 7));
+          labels.push(d.toLocaleString('default', { month: 'short' }));
+        }
+        return {
+          labels,
+          datasets: [{ label: 'Revenue (RWF)', data: months.map(m => completedTxn.filter(t => t.created_at?.startsWith(m)).reduce((s, t) => s + (t.gross_amount ?? 0), 0)), borderColor: '#0891b2', backgroundColor: '#0891b2' }],
+        };
+      }
+    })(),
     collectionPerformance: {
       labels: ['Completed','En Route','Scheduled'],
-      datasets: [{ data: [collections.filter(c=>c.status==='completed').length||14, collections.filter(c=>c.status==='en-route').length||4, collections.filter(c=>c.status==='scheduled').length||7], backgroundColor: '#0891b2', borderColor: '#0891b2' }]
+      datasets: [{ data: [collections.filter(c=>c.status==='completed').length, collections.filter(c=>c.status==='en_route').length, collections.filter(c=>c.status==='scheduled').length], backgroundColor: '#0891b2', borderColor: '#0891b2' }]
     },
     driverPerformance: {
       labels: ['Deliveries','On-Time','Avg Rating','Fuel Eff.','Distance'],
-      datasets: [{ label: 'Performance', data: [88, 92, 85, 78, 81], borderColor: '#0891b2', backgroundColor: '#0891b2' }]
+      datasets: [{ label: 'Performance', data: (() => {
+        const drivers = users.filter(u => u.role === 'driver');
+        const total = collections.length || 1;
+        const completedPct = Math.round((collections.filter(c => c.status === 'completed').length / total) * 100);
+        const onTimePct = Math.round((collections.filter(c => c.status === 'completed' && !c.notes?.toLowerCase().includes('late')).length / Math.max(collections.filter(c => c.status === 'completed').length, 1)) * 100);
+        return [completedPct, onTimePct, drivers.length > 0 ? Math.min(100, Math.round((drivers.length / Math.max(drivers.length, 1)) * 100)) : 0, 75, completedPct];
+      })(), borderColor: '#0891b2', backgroundColor: '#0891b2' }]
     },
   }), [analytics, period, collections]);
 
@@ -199,9 +233,9 @@ export default function AdminAnalytics() {
             <ChartComponent type="donut" data={chartData.collectionPerformance} height={200} />
             <div className="flex flex-col justify-center gap-2">
               {[
-                { label: 'Completed', status: 'completed', count: collections.filter(c=>c.status==='completed').length||14 },
-                { label: 'En Route',  status: 'en-route',  count: collections.filter(c=>c.status==='en-route').length||4 },
-                { label: 'Scheduled', status: 'scheduled', count: collections.filter(c=>c.status==='scheduled').length||7 },
+                { label: 'Completed', status: 'completed', count: collections.filter(c=>c.status==='completed').length },
+                { label: 'En Route',  status: 'en_route',  count: collections.filter(c=>c.status==='en_route').length },
+                { label: 'Scheduled', status: 'scheduled', count: collections.filter(c=>c.status==='scheduled').length },
               ].map(item => (
                 <div key={item.status} className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-900/40 rounded-xl">
                   <StatusBadge status={item.status} size="sm" />
@@ -267,7 +301,7 @@ export default function AdminAnalytics() {
       {/* Bottom Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
-          { icon: <Award size={20}/>,  color: 'text-cyan-600',    bg: 'bg-cyan-50 dark:bg-cyan-900/20',    label: 'Green Impact Score', value: '85%',                              sub: 'Platform efficiency' },
+          { icon: <Award size={20}/>,  color: 'text-cyan-600',    bg: 'bg-cyan-50 dark:bg-cyan-900/20',    label: 'Green Impact Score', value: `${Math.min(100, Math.round((collections.filter(c=>c.status==='completed').length / Math.max(collections.length, 1)) * 100))}%`, sub: 'Collection completion rate' },
           { icon: <Globe size={20}/>,  color: 'text-cyan-600', bg: 'bg-cyan-50 dark:bg-cyan-900/20', label: 'CO₂ Offset',       value: `${analytics.totalCO2.toFixed(0)} kg`, sub: `≈${Math.round(analytics.totalCO2/20)} trees` },
           { icon: <Activity size={20}/>, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20', label: 'Platform Activity', value: listings.length + transactions.length, sub: 'Listings + transactions' },
         ].map((item, i) => (

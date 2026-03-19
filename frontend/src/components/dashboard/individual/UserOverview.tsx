@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { listingsAPI, recyclingAPI, transactionsAPI, type WasteListing, type RecyclingEvent, type Transaction } from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import { ShoppingCart, Package, TrendingUp, BarChart3, Recycle, Leaf, Trophy } from 'lucide-react';
+import { ShoppingCart, Package, TrendingUp, BarChart3, Recycle, Leaf, Trophy, Layers } from 'lucide-react';
 import StatCard from '../StatCard';
 import Widget from '../Widget';
 import ChartComponent from '../ChartComponent';
@@ -109,12 +109,12 @@ export default function UserOverview() {
       <Widget title="Eco Tips" icon={<Leaf size={20} className="text-green-600 dark:text-green-400" />}>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { title: 'Reduce Single-Use Plastics', desc: 'Switch to reusable bags and water bottles.', icon: '♻️' },
-            { title: 'Compost Organic Waste', desc: 'Start a compost bin for food scraps.', icon: '🌱' },
-            { title: 'Sort Your Waste', desc: 'Separate recyclables from general waste.', icon: '🗂️' },
+            { title: 'Reduce Single-Use Plastics', desc: 'Switch to reusable bags and water bottles.', icon: <Recycle size={24} className="text-green-600 dark:text-green-400"/> },
+            { title: 'Compost Organic Waste', desc: 'Start a compost bin for food scraps.', icon: <Leaf size={24} className="text-green-600 dark:text-green-400"/> },
+            { title: 'Sort Your Waste', desc: 'Separate recyclables from general waste.', icon: <Layers size={24} className="text-green-600 dark:text-green-400"/> },
           ].map(tip => (
             <div key={tip.title} className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
-              <span className="text-2xl">{tip.icon}</span>
+              <span>{tip.icon}</span>
               <h4 className="text-sm font-semibold mt-2 text-green-800 dark:text-green-300">{tip.title}</h4>
               <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{tip.desc}</p>
             </div>

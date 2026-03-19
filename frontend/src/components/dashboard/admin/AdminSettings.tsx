@@ -1,6 +1,6 @@
 // pages/dashboard/admin/Settings.tsx
 import { useEffect, useState } from 'react';
-import { Save, Settings, Bell, Shield, CreditCard, Globe, Mail, CheckCircle, XCircle, Loader } from 'lucide-react';
+import { Save, Settings, Bell, Shield, CreditCard, Globe, Mail, CheckCircle, XCircle, Loader, Check } from 'lucide-react';
 import { adminAPI, type AdminPlatformSettings } from '../../../services/api';
 
 interface SmtpStatus {
@@ -147,7 +147,7 @@ export default function AdminSettings() {
         </h2>
         {saved && (
           <span className="text-green-600 dark:text-green-400 text-sm font-medium">
-            ✓ Settings saved!
+            <Check size={14} className="inline mr-1"/> Settings saved!
           </span>
         )}
       </div>

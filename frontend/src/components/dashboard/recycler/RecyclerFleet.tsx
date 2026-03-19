@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { driversAPI, collectionsAPI, vehiclesAPI, recyclersAPI } from '../../../services/api';
 import type { Collection, DriverProfile, VehicleItem, RecyclerProfile } from '../../../services/api';
-import { Truck, Search, Plus, Eye, Trash2, CheckCircle, AlertTriangle, Activity, X, Save, Mail } from 'lucide-react';
+import { Truck, Search, Plus, Eye, Trash2, CheckCircle, AlertTriangle, Activity, X, Save, Mail, Star } from 'lucide-react';
 import StatCard from '../StatCard';
 import { StatusBadge } from './_shared';
 import { haversineKm, formatDist } from '../../../utils/geo';
@@ -495,7 +495,7 @@ export default function RecyclerFleet() {
                   <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{typeof f.nearestDistanceM === 'number' ? formatDist(f.nearestDistanceM) : '—'}</td>
                   <td className="px-3 py-2 text-gray-600 dark:text-gray-300 text-xs">{formatLastSeen(f.driver)}</td>
                   <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{f.trips}</td>
-                  <td className="px-3 py-2 text-yellow-600 font-semibold">{f.driver ? `⭐ ${f.rating.toFixed(1)}` : '—'}</td>
+                  <td className="px-3 py-2 text-yellow-600 font-semibold">{f.driver ? <span className="flex items-center gap-1"><Star size={12} className="fill-yellow-500"/> {f.rating.toFixed(1)}</span> : '—'}</td>
                   <td className="px-3 py-2">
                     {f.driver ? (
                       f.onRoute
@@ -622,7 +622,7 @@ export default function RecyclerFleet() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 dark:text-white text-base">{viewDriver.driver.name || `Driver #${viewDriver.driver.id}`}</p>
-                  <p className="text-xs text-gray-400">⭐ {viewDriver.driver.rating.toFixed(1)} · {viewDriver.driver.total_trips} trips</p>
+                  <p className="text-xs text-gray-400 flex items-center gap-1"><Star size={11} className="fill-yellow-500 text-yellow-500"/> {viewDriver.driver.rating.toFixed(1)} · {viewDriver.driver.total_trips} trips</p>
                 </div>
               </div>
               {[

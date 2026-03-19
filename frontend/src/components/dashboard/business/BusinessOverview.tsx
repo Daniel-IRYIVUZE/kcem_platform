@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import {
-  listingsAPI, collectionsAPI, transactionsAPI, messagesAPI,
+  listingsAPI, collectionsAPI, transactionsAPI, messagesAPI, hotelsAPI,
   type WasteListing, type Collection, type Transaction, type Message
 } from '../../../services/api';
 import {
@@ -27,6 +27,7 @@ export default function BusinessOverview() {
   const [collections, setCollections]   = useState<Collection[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [messages, setMessages]         = useState<Message[]>([]);
+  const [greenScore, setGreenScore]     = useState<number>(0);
 
   useEffect(() => {
     Promise.all([
@@ -34,11 +35,13 @@ export default function BusinessOverview() {
       collectionsAPI.list({ limit: 200 } as Parameters<typeof collectionsAPI.list>[0]).catch(() => []),
       transactionsAPI.mine({ limit: 200 } as Parameters<typeof transactionsAPI.mine>[0]).catch(() => []),
       messagesAPI.list().catch(() => []),
-    ]).then(([l, c, t, m]) => {
+      hotelsAPI.me().catch(() => null),
+    ]).then(([l, c, t, m, h]) => {
       setListings(Array.isArray(l) ? l : []);
       setCollections(Array.isArray(c) ? c : []);
       setTransactions(Array.isArray(t) ? t : []);
       setMessages(Array.isArray(m) ? m : []);
+      if (h) setGreenScore(h.green_score ?? 0);
     });
   }, []);
 
@@ -46,7 +49,9 @@ export default function BusinessOverview() {
   const totalRevenue  = transactions.reduce((s, t) => s + (t.gross_amount || 0), 0);
   const unreadMsgs    = messages.filter(m => !m.is_read).length;
   const activeCollect = collections.filter(c => c.status === 'scheduled' || c.status === 'en-route');
-  const sparkRevenue   = [35, 40, 45, 50, 55, 60, 65, 80, 90, 85, 95, 100];
+  const sparkRevenue = transactions.length > 0
+    ? transactions.slice(-8).map(t => t.gross_amount ?? 0)
+    : [0, 0, 0, 0, 0, 0, 0, 0];
   const displayName = getDashboardDisplayName(authUser, hotelProfile.name);
 
   // Build Revenue Trend chart from real transaction data (last 6 months)
@@ -126,8 +131,6 @@ export default function BusinessOverview() {
           value={openListings.length}
           icon={<Package size={22}/>}
           color="cyan"
-          change="+3"
-          trend="up"
           sparkline={[2, 4, 3, 5, 6, 4, 7, openListings.length]}
         />
         <StatCard
@@ -135,17 +138,14 @@ export default function BusinessOverview() {
           value={`RWF ${(totalRevenue / 1000).toFixed(0)}K`}
           icon={<DollarSign size={22}/>}
           color="blue"
-          change="+12%"
-          trend="up"
           sparkline={sparkRevenue}
         />
         <StatCard
           title="Green Score"
-          value={hotelProfile.greenScore}
+          value={greenScore}
           icon={<Trophy size={22}/>}
           color="cyan"
-          progress={hotelProfile.greenScore}
-          change="+5"
+          progress={greenScore}
           trend="up"
         />
         <StatCard

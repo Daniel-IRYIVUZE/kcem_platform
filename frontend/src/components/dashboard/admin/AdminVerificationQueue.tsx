@@ -23,7 +23,7 @@ export default function AdminVerificationQueue() {
 
   const handleApprove = (u: APIUser) => {
     usersAPI.approve(u.id).then(() => {
-      toast(`✓ ${u.full_name} approved`);
+      toast(`${u.full_name} approved`);
       setPending(prev => prev.filter(x => x.id !== u.id));
       setSelected(null);
     }).catch(() => toast('Approve failed'));
@@ -31,7 +31,7 @@ export default function AdminVerificationQueue() {
 
   const handleReject = (u: APIUser) => {
     usersAPI.suspend(u.id).then(() => {
-      toast(`✗ ${u.full_name} rejected`);
+      toast(`${u.full_name} rejected`);
       setPending(prev => prev.filter(x => x.id !== u.id));
       setSelected(null);
     }).catch(() => toast('Reject failed'));

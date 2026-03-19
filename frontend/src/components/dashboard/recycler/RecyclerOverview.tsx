@@ -204,24 +204,20 @@ export default function RecyclerOverview() {
           icon={<Truck size={22}/>}
           color="cyan"
           subtitle={`${drivers.filter(d => d.status === 'on_route' || d.status === 'available').length} active`}
-          sparkline={[1, 2, 2, 2, 2, 2, 2]}
         />
         <StatCard
           title="Active Bids"
           value={liveActiveBids}
           icon={<Eye size={22}/>}
           color="blue"
-          change="+3"
-          trend="up"
-          sparkline={[1, 2, 3, 2, 4, 3, liveActiveBids]}
+          trend={liveActiveBids > 0 ? 'up' : undefined}
+          sparkline={liveBids.slice(-7).map((_, i) => i + 1)}
         />
         <StatCard
           title="Monthly Revenue"
           value={monthlyRevenue > 0 ? `RWF ${(monthlyRevenue / 1000).toFixed(0)}K` : 'RWF 0'}
           icon={<DollarSign size={22}/>}
           color="cyan"
-          change="+12%"
-          trend="up"
           sparkline={sparkRevenue}
         />
         <StatCard

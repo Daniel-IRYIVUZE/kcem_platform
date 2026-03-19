@@ -126,9 +126,9 @@ const TimelineSection = ({ onReadMore }: TimelineSectionProps) => {
                         milestone.status === 'in-progress' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300' :
                         'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                       }`}>
-                        {milestone.status === 'completed' ? '✓ Completed' :
-                         milestone.status === 'in-progress' ? '⟳ In Progress' :
-                         '○ Upcoming'}
+                        {milestone.status === 'completed' ? 'Completed' :
+                         milestone.status === 'in-progress' ? 'In Progress' :
+                         'Upcoming'}
                       </span>
                     </div>
                   </div>

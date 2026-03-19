@@ -22,6 +22,7 @@ def enrich_bid(bid: Bid) -> dict:
         'listing_id': bid.listing_id,
         'recycler_id': bid.recycler_id,
         'amount': bid.amount,
+        'quantity': bid.quantity,
         'previous_amount': bid.previous_amount,
         'status': bid.status,
         'notes': bid.notes,
@@ -91,8 +92,15 @@ def accept_bid(bid_id: int, db: Session = Depends(get_db),
     hotel = crud_hotel.get_by_user(db, current_user.id)
     if not hotel or bid.listing.hotel_id != hotel.id:
         raise HTTPException(403, "Not your listing.")
+    # Determine if this is a partial bid before accepting (accept() mutates bid.status)
+    listing_volume = bid.listing.volume if bid.listing else None
+    is_partial = (
+        bid.quantity is not None
+        and listing_volume is not None
+        and bid.quantity < listing_volume
+    )
     bid = crud_bid.accept(db, bid=bid)
-    crud_listing.accept_bid(db, listing=bid.listing, bid_id=bid_id)
+    crud_listing.accept_bid(db, listing=bid.listing, bid_id=bid_id, partial=is_partial)
 
     # Auto-create a Collection so the recycler can assign a driver
     from app.models.collection import Collection, CollectionStatus

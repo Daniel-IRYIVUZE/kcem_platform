@@ -285,7 +285,7 @@ export default function AdminUserManagement() {
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${roleColorMap[selected.role]}`}>{selected.role}</span>
                     <StatusBadge status={selected.status} size="sm" dot />
-                    {selected.is_verified && <span className="text-xs text-cyan-600 dark:text-cyan-400 font-medium">✓ Verified</span>}
+                    {selected.is_verified && <span className="text-xs text-cyan-600 dark:text-cyan-400 font-medium flex items-center gap-0.5"><Check size={11}/> Verified</span>}
                   </div>
                 </div>
               </div>

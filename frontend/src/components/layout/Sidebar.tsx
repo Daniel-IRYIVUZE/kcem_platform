@@ -2,10 +2,10 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  Home, Users, Package, Truck, Settings, BarChart3, 
-  Calendar, Map, FileText, ShoppingCart,  LogOut, ChevronLeft,
-  ChevronRight, Menu, X, ClipboardList, Trophy,Star, Eye,
-  CheckCircle, Warehouse, Route,
+  Home, Users, Package, Truck, Settings, BarChart3,
+  Calendar, Map, FileText, ShoppingCart, LogOut, ChevronLeft,
+  ChevronRight, Menu, X, ClipboardList, Trophy, Star, Eye,
+  CheckCircle, Route, Warehouse, DollarSign,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -64,6 +64,7 @@ const roleConfigs: Record<string, {
       { path: '/dashboard/recycler/bids', label: 'My Bids', icon: <Eye size={20} /> },
       { path: '/dashboard/recycler/collections', label: 'Active Collections', icon: <Route size={20} /> },
       { path: '/dashboard/recycler/inventory', label: 'Inventory', icon: <Warehouse size={20} /> },
+      { path: '/dashboard/recycler/revenue', label: 'Revenue & Payouts', icon: <DollarSign size={20} /> },
       { path: '/dashboard/recycler/impact', label: 'Green Impact', icon: <Trophy size={20} /> },
       { path: '/dashboard/recycler/settings', label: 'Company Settings', icon: <Settings size={20} /> },
       { path: '/dashboard/recycler/reports', label: 'Reports', icon: <FileText size={20} /> },
@@ -76,7 +77,6 @@ const roleConfigs: Record<string, {
       { path: '/dashboard/driver', label: "Today's Route", icon: <Map size={20} /> },
       { path: '/dashboard/driver/assignments', label: 'My Assignments', icon: <ClipboardList size={20} /> },
       { path: '/dashboard/driver/completed', label: 'Completed Jobs', icon: <CheckCircle size={20} /> },
-      { path: '/dashboard/driver/vehicle', label: 'My Vehicle', icon: <Truck size={20} /> },
       { path: '/dashboard/driver/settings', label: 'Settings', icon: <Settings size={20} /> },
     ]
   }

@@ -20,7 +20,11 @@ export default function RecyclerBids() {
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 30_000);
+    return () => clearInterval(t);
+  }, [load]);
 
   const filtered = statusFilter === 'all' ? bids : bids.filter(b => b.status === statusFilter);
 
@@ -45,7 +49,7 @@ export default function RecyclerBids() {
     quantity: b.volume && b.unit ? `${b.volume} ${b.unit}` : '—',
     myBid: `RWF ${(b.amount ?? 0).toLocaleString()}`,
     status: b.status,
-    bidDate: new Date(b.created_at).toLocaleDateString(),
+    bidDate: new Date(b.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     _bidId: b.id,
     _status: b.status,
   }));
@@ -85,7 +89,7 @@ export default function RecyclerBids() {
         {loading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600 mx-auto" />
-            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Loading bidsâ€¦</p>
+            <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">Loading bids…</p>
           </div>
         ) : (
           <DataTable

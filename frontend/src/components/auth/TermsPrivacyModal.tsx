@@ -245,7 +245,7 @@ const TermsPrivacyModal = ({ isOpen, onAccept, onDecline }: TermsPrivacyModalPro
                 ) : accepted ? (
                   <>
                     <Check size={18} />
-                    Accepted ✓
+                    Accepted
                   </>
                 ) : (
                   'Accept & Continue'

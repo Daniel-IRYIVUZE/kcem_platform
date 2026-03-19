@@ -51,8 +51,8 @@ export default function DriverCompletedJobs() {
             { key: 'totalWeight', label: 'Weight' },
             { key: 'duration', label: 'Duration' },
             { key: 'earnings', label: 'Earnings', render: (v: string) => <span className="font-semibold text-green-600 dark:text-green-400">{v}</span> },
-            { key: 'rating', label: 'Rating', render: (v: number) => <span className="text-yellow-700 dark:text-yellow-700 font-semibold">⭐ {v}</span> },
-            { key: 'issues', label: 'Issues', render: (v: string) => !v || v === 'None' ? <span className="text-green-600 dark:text-green-400 text-xs">✓ Clean</span> : <span className="text-yellow-700 dark:text-yellow-700 text-xs">{v}</span> },
+            { key: 'rating', label: 'Rating', render: (v: number) => <span className="text-yellow-700 dark:text-yellow-700 font-semibold flex items-center gap-1"><Star size={12} className="fill-yellow-500"/> {v}</span> },
+            { key: 'issues', label: 'Issues', render: (v: string) => !v || v === 'None' ? <span className="text-green-600 dark:text-green-400 text-xs flex items-center gap-0.5"><CheckCircle size={11}/> Clean</span> : <span className="text-yellow-700 dark:text-yellow-700 text-xs">{v}</span> },
           ]}
           data={tableData}
           pageSize={6}

@@ -299,7 +299,7 @@ function AssignVehicleModal({
               {unassignedVehicles.map(v => (
                 <option key={v.id} value={v.id}>
                   {v.vehicle_type} — {v.plate_number} ({v.capacity_kg.toLocaleString()} kg)
-                  {v.id === driver.vehicle_id ? ' ✓ Current' : ''}
+                  {v.id === driver.vehicle_id ? ' (current)' : ''}
                 </option>
               ))}
             </select>
@@ -441,7 +441,7 @@ export default function BusinessDrivers() {
     if (!confirm(`Remove ${driver.name || `Driver #${driver.id}`} from your organisation? This cannot be undone.`)) return;
     try {
       await driversAPI.delete(driver.id);
-      showFlash('success', `✅ Driver removed successfully.`);
+      showFlash('success', `Driver removed successfully.`);
       load();
     } catch (err: unknown) {
       showFlash('error', err instanceof Error ? err.message : 'Failed to remove driver.');
@@ -452,7 +452,7 @@ export default function BusinessDrivers() {
     if (!assignVehicleDriver) return;
     try {
       await driversAPI.assignVehicle(assignVehicleDriver.id, vehicleId);
-      showFlash('success', vehicleId ? `✅ Vehicle assigned to ${assignVehicleDriver.name || 'driver'}.` : `✅ Vehicle unassigned from ${assignVehicleDriver.name || 'driver'}.`);
+      showFlash('success', vehicleId ? `Vehicle assigned to ${assignVehicleDriver.name || 'driver'}.` : `Vehicle unassigned from ${assignVehicleDriver.name || 'driver'}.`);
       setAssignVehicleDriver(null);
       load();
     } catch (err: unknown) {
@@ -496,7 +496,7 @@ export default function BusinessDrivers() {
         vehicle_id: selectedDriver.vehicle_id,
       });
       setSelectedDriver(null);
-      showFlash('success', `✅ ${selectedDriver.name || `Driver #${selectedDriver.id}`} assigned successfully!`);
+      showFlash('success', `${selectedDriver.name || `Driver #${selectedDriver.id}`} assigned successfully!`);
       load();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Assignment failed. Please try again.';
@@ -511,7 +511,7 @@ export default function BusinessDrivers() {
     try {
       const result = await collectionsAPI.autoAssign(true, true);
       const count = Array.isArray(result) ? result.length : (result as { assigned?: number })?.assigned ?? 0;
-      showFlash('success', `✅ Auto-assigned ${count} collection(s) to nearby available drivers.`);
+      showFlash('success', `Auto-assigned ${count} collection(s) to nearby available drivers.`);
       load();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Auto-assign failed.';

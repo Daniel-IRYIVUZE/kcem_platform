@@ -49,7 +49,7 @@ const ChipPicker = ({
               ? { backgroundColor: color + '1a', borderColor: color, color }
               : { backgroundColor: 'transparent', borderColor: '#d1d5db', color: '#6b7280' }}
           >
-            {sel && <span className="mr-1">✓</span>}{opt}
+            {sel && <Check size={11} className="mr-1"/>}{opt}
           </button>
         );
       })}
@@ -222,7 +222,7 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
     personal.password === personal.confirmPassword &&
     availability.fullName.status === 'available' &&
     availability.email.status === 'available' &&
-    (personal.phone.trim() === '' || availability.phone.status === 'available');
+    availability.phone.status === 'available';
 
   useEffect(() => {
     const name = personal.fullName.trim();
@@ -285,11 +285,11 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
   useEffect(() => {
     const phone = personal.phone.trim();
     if (!phone) {
-      setAvailability(prev => ({ ...prev, phone: { status: 'idle', message: '' } }));
+      setAvailability(prev => ({ ...prev, phone: { status: 'invalid', message: 'Phone number is required.' } }));
       return;
     }
-    if (!/^\+?[0-9\s\-]{7,20}$/.test(phone)) {
-      setAvailability(prev => ({ ...prev, phone: { status: 'invalid', message: 'Enter a valid phone number.' } }));
+    if (!/^\d{10}$/.test(phone)) {
+      setAvailability(prev => ({ ...prev, phone: { status: 'invalid', message: 'Phone must be exactly 10 digits (e.g. 0788000000).' } }));
       return;
     }
 
@@ -439,7 +439,7 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
             )}
             <Field label="Full Name" name="fullName" value={personal.fullName} onChange={handlePersonalChange} placeholder="Enter your full name" required />
             {availability.fullName.status !== 'idle' && <p className={`text-xs mt-1 ${availabilityClass(availability.fullName.status)}`}>{availability.fullName.message}</p>}
-            <Field label="Phone Number" name="phone" value={personal.phone} onChange={handlePersonalChange} placeholder="+250 7XX XXX XXX" type="tel" />
+            <Field label="Phone Number" name="phone" value={personal.phone} onChange={handlePersonalChange} placeholder="0788000000" type="tel" required />
             {availability.phone.status !== 'idle' && <p className={`text-xs mt-1 ${availabilityClass(availability.phone.status)}`}>{availability.phone.message}</p>}
             <Field label="Email Address" name="email" value={personal.email} onChange={handlePersonalChange} placeholder="your@email.com" type="email" required />
             {availability.email.status !== 'idle' && <p className={`text-xs mt-1 ${availabilityClass(availability.email.status)}`}>{availability.email.message}</p>}

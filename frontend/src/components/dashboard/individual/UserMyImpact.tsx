@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { recyclingAPI, type RecyclingEvent } from '../../../services/api';
-import { Recycle, Leaf, Trophy, BarChart3, Star, Plus, X, Trash2 } from 'lucide-react';
+import { Recycle, Leaf, Trophy, BarChart3, Star, Plus, X, Trash2, Check, Target, Shield, Globe, Wind, CheckSquare, Users, Flame } from 'lucide-react';
 import StatCard from '../StatCard';
 import Widget from '../Widget';
 import DataTable from '../DataTable';
@@ -97,7 +97,7 @@ export default function UserMyImpact() {
               { key: 'weight', label: 'Weight', render: (v: number) => <span>{v} kg</span> },
               { key: 'points', label: 'Points', render: (v: number) => <span className="font-semibold text-green-600 dark:text-green-400">+{v}</span> },
               { key: 'location', label: 'Location' },
-              { key: 'verified', label: 'Status', render: (v: boolean) => v ? <span className="text-xs text-green-600 dark:text-green-400 font-medium">✓ Verified</span> : <span className="text-xs text-yellow-700 dark:text-yellow-700">Pending</span> },
+              { key: 'verified', label: 'Status', render: (v: boolean) => v ? <span className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-0.5"><Check size={11}/> Verified</span> : <span className="text-xs text-yellow-700 dark:text-yellow-700">Pending</span> },
               { key: 'id', label: '', render: (v: number) => <button onClick={() => handleDelete(v)} className="p-1 text-red-400 hover:text-red-600 dark:text-red-400"><Trash2 size={13} /></button> },
             ]}
             data={events}
@@ -108,20 +108,20 @@ export default function UserMyImpact() {
       <Widget title="Achievements" icon={<Trophy size={20} className="text-yellow-700 dark:text-yellow-700" />}>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { name: 'First Recycler', desc: 'Completed first recycling drop-off', earned: events.length > 0 || unlocked(1), icon: '🎯' },
-            { name: 'Green Starter', desc: 'Recycled 10 kg of waste', earned: unlocked(10), icon: '' },
-            { name: 'Eco Warrior', desc: 'Recycled 50 kg of waste', earned: unlocked(50), icon: '🛡️' },
-            { name: 'Planet Protector', desc: 'Recycled 100 kg of waste', earned: unlocked(100), icon: '🌍' },
-            { name: 'Carbon Hero', desc: 'Saved 100 kg of CO₂', earned: parseFloat(co2Saved) >= 100, icon: '💨' },
-            { name: 'Perfect Sorter', desc: 'Sorted all 5 waste types', earned: new Set(events.map(e => e.waste_type)).size >= 5, icon: '✅' },
-            { name: 'Community Leader', desc: 'Referred 5 friends', earned: false, icon: '👥' },
-            { name: 'Monthly Streak', desc: '6 consecutive months', earned: events.length >= 6, icon: '🔥' },
+            { name: 'First Recycler', desc: 'Completed first recycling drop-off', earned: events.length > 0 || unlocked(1), icon: <Target size={28} className="text-cyan-600"/> },
+            { name: 'Green Starter', desc: 'Recycled 10 kg of waste', earned: unlocked(10), icon: <Leaf size={28} className="text-green-600"/> },
+            { name: 'Eco Warrior', desc: 'Recycled 50 kg of waste', earned: unlocked(50), icon: <Shield size={28} className="text-blue-600"/> },
+            { name: 'Planet Protector', desc: 'Recycled 100 kg of waste', earned: unlocked(100), icon: <Globe size={28} className="text-emerald-600"/> },
+            { name: 'Carbon Hero', desc: 'Saved 100 kg of CO₂', earned: parseFloat(co2Saved) >= 100, icon: <Wind size={28} className="text-sky-600"/> },
+            { name: 'Perfect Sorter', desc: 'Sorted all 5 waste types', earned: new Set(events.map(e => e.waste_type)).size >= 5, icon: <CheckSquare size={28} className="text-green-700"/> },
+            { name: 'Community Leader', desc: 'Referred 5 friends', earned: false, icon: <Users size={28} className="text-purple-600"/> },
+            { name: 'Monthly Streak', desc: '6 consecutive months', earned: events.length >= 6, icon: <Flame size={28} className="text-orange-500"/> },
           ].map(a => (
             <div key={a.name} className={`p-4 rounded-lg text-center border ${a.earned ? 'bg-white dark:bg-gray-800 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 opacity-50'}`}>
-              <span className="text-3xl">{a.icon}</span>
+              <div className="flex justify-center">{a.icon}</div>
               <p className="text-sm font-semibold mt-2">{a.name}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{a.desc}</p>
-              {a.earned && <span className="inline-block mt-2 text-xs text-green-600 dark:text-green-400 font-medium">✓ Earned</span>}
+              {a.earned && <span className="inline-flex items-center gap-0.5 mt-2 text-xs text-green-600 dark:text-green-400 font-medium"><Check size={11}/> Earned</span>}
             </div>
           ))}
         </div>

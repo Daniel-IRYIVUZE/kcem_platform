@@ -66,30 +66,48 @@ export default function AdminOverview() {
   const openListings = listings.filter(l => l.status === 'open');
   const activeRoutes = collections.filter(c => c.status === 'en_route');
 
-  console.log("Here are the totals", totalWaste, co2Saved)
-
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (6 - i));
     return d.toLocaleDateString('en-GB', { weekday: 'short' });
   });
+  const last7Dates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6 - i));
+    return d.toISOString().split('T')[0];
+  });
 
   const wasteTrendChart = {
     labels: last7,
-    datasets: [{ label: 'Volume (kg)', data: [120, 95, 200, 145, 180, 110, 160], borderColor: '#0891b2', backgroundColor: '#0891b2' }],
+    datasets: [{
+      label: 'Volume (kg)',
+      data: last7Dates.map(day =>
+        collections
+          .filter(c => c.status === 'completed' && (c.completed_at || c.scheduled_date || '').startsWith(day))
+          .reduce((s, c) => s + (c.actual_volume ?? c.volume ?? 0), 0)
+      ),
+      borderColor: '#0891b2', backgroundColor: '#0891b2',
+    }],
   };
 
   const revenueAreaChart = {
     labels: last7,
-    datasets: [{ label: 'Revenue (RWF)', data: [28000, 35000, 29000, 48000, 52000, 41000, 57000], borderColor: '#0891b2', backgroundColor: '#0891b2' }],
+    datasets: [{
+      label: 'Revenue (RWF)',
+      data: last7Dates.map(day =>
+        transactions
+          .filter(t => t.status === 'completed' && t.created_at?.startsWith(day))
+          .reduce((s, t) => s + (t.platform_fee ?? 0), 0)
+      ),
+      borderColor: '#0891b2', backgroundColor: '#0891b2',
+    }],
   };
 
   const collectionPieChart = {
     labels: ['Completed', 'En Route', 'Scheduled'],
     datasets: [{
       data: [
-        collections.filter(c => c.status === 'completed').length || 12,
-        collections.filter(c => c.status === 'en_route').length   || 4,
-        collections.filter(c => c.status === 'scheduled').length || 7,
+        collections.filter(c => c.status === 'completed').length,
+        collections.filter(c => c.status === 'en_route').length,
+        collections.filter(c => c.status === 'scheduled').length,
       ],
       backgroundColor: '#0891b2', borderColor: '#0891b2',
     }],
@@ -187,7 +205,7 @@ export default function AdminOverview() {
         <StatCard title="Total Users"     value={users.length}                               icon={<Users size={20}/>}    change={pendingUsers.length > 0 ? `+${pendingUsers.length} pending` : undefined} color="cyan"    sparkline={sparkUp}   />
         <StatCard title="Active Hotels"   value={hotels.filter(h=>h.status==='active').length} icon={<Building2 size={20}/>} change={`${hotels.length} total`}                                            color="blue"    sparkline={sparkFlat} />
         <StatCard title="Recyclers"       value={recyclers.length}                           icon={<Recycle size={20}/>}  color="cyan"   sparkline={sparkUp}   />
-        <StatCard title="Active Drivers"  value={drivers.filter(d=>d.status==='active').length} icon={<Truck size={20}/>}   color="purple"    sparkline={sparkDown} />
+        <StatCard title="Active Drivers"  value={drivers.filter(d=>d.status==='active').length || drivers.length} icon={<Truck size={20}/>}   color="purple"    sparkline={sparkDown} />
         <StatCard title="Waste Diverted"  value={`${(totalWaste/1000).toFixed(1)}t`}          icon={<Package size={20}/>}  color="cyan"      sparkline={sparkUp}   />
         <StatCard title="CO₂ Avoided"     value={`${co2Saved.toFixed(1)}t`}                  icon={<Leaf size={20}/>}    change={`≈${Math.round(co2Saved*45)} trees`} color="cyan" sparkline={sparkUp} />
         <StatCard title="Platform Revenue" value={`RWF ${(totalRevenue/1000).toFixed(0)}K`}   icon={<DollarSign size={20}/>} change="+12%"                    color="yellow"   sparkline={sparkUp}   />
@@ -224,9 +242,9 @@ export default function AdminOverview() {
           <ChartComponent type="donut" data={collectionPieChart} height={180} />
           <div className="mt-3 space-y-2">
             {[
-              { label: 'Completed', count: collections.filter(c=>c.status==='completed').length||12, status: 'completed' as const },
-              { label: 'En Route',  count: activeRoutes.length||4,                                    status: 'en_route' as const },
-              { label: 'Scheduled', count: collections.filter(c=>c.status==='scheduled').length||7, status: 'scheduled' as const },
+              { label: 'Completed', count: collections.filter(c=>c.status==='completed').length, status: 'completed' as const },
+              { label: 'En Route',  count: activeRoutes.length,                                  status: 'en_route' as const },
+              { label: 'Scheduled', count: collections.filter(c=>c.status==='scheduled').length, status: 'scheduled' as const },
             ].map(item => (
               <div key={item.status} className="flex items-center justify-between">
                 <StatusBadge status={item.status} size="sm" />

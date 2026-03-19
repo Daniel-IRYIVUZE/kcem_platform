@@ -1,6 +1,6 @@
 // components/dashboard/business/BusinessLocation.tsx
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Plus, Trash2, X } from 'lucide-react';
+import { MapPin, Plus, Trash2, X, Star, Info } from 'lucide-react';
 import { hotelsAPI, type HotelProfile } from '../../../services/api';
 import 'leaflet/dist/leaflet.css';
 
@@ -50,7 +50,7 @@ export default function BusinessLocation() {
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 18 }).addTo(map);
 
       const hotelIcon = L.divIcon({
-        html: `<div style="background:#0891b2;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35);border:2px solid white;font-size:16px">🏨</div>`,
+        html: `<div style="background:#0891b2;color:#fff;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35);border:2px solid white;font-size:12px;font-weight:bold">H</div>`,
         className: '', iconSize: [32, 32], iconAnchor: [16, 16],
       });
       L.marker(HOTEL_COORD, { icon: hotelIcon }).addTo(map).bindPopup('<b>Hotel</b><br>Kigali').openPopup();
@@ -60,7 +60,7 @@ export default function BusinessLocation() {
           html: `<div style="background:#16a34a;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);border:2px solid white;font-size:13px">♻</div>`,
           className: '', iconSize: [28, 28], iconAnchor: [14, 14],
         });
-        L.marker(r.coord, { icon: rIcon }).addTo(map).bindPopup(`<b>${r.name}</b><br>${r.distance} — ⭐ ${r.rating}`);
+        L.marker(r.coord, { icon: rIcon }).addTo(map).bindPopup(`<b>${r.name}</b><br>${r.distance} — ${r.rating} stars`);
         L.polyline([HOTEL_COORD, r.coord], { color: '#06b6d4', weight: 2, dashArray: '5 5', opacity: 0.5 }).addTo(map);
       });
       setMapReady(true);
@@ -81,7 +81,7 @@ export default function BusinessLocation() {
       customLocs.forEach(loc => {
         if (customMarkersRef.current[loc.id]) return;
         const icon = L.divIcon({
-          html: `<div style="background:#dc2626;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);border:2px solid white;font-size:13px">📍</div>`,
+          html: `<div style="background:#dc2626;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.3);border:2px solid white"><svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='white' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'/><circle cx='12' cy='10' r='3' fill='#dc2626'/></svg></div>`,
           className: '', iconSize: [28, 28], iconAnchor: [14, 14],
         });
         const marker = L.marker([loc.lat, loc.lng], { icon }).addTo(leafletMapRef.current)
@@ -152,9 +152,9 @@ export default function BusinessLocation() {
               <div key={r.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">{r.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">📍 {r.distance}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1"><MapPin size={10}/> {r.distance}</p>
                 </div>
-                <span className="text-sm font-semibold text-yellow-600">⭐ {r.rating}</span>
+                <span className="text-sm font-semibold text-yellow-600 flex items-center gap-1"><Star size={12} className="fill-yellow-500"/> {r.rating}</span>
               </div>
             ))}
           </div>
@@ -227,7 +227,7 @@ export default function BusinessLocation() {
                   placeholder="e.g. Waste pickup point, secondary storage"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent" />
               </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500">💡 Right-click any point on Google Maps to copy its coordinates.</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1"><Info size={11}/> Right-click any point on Google Maps to copy its coordinates.</p>
             </div>
             <div className="flex gap-3 p-6 pt-0">
               <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">Cancel</button>

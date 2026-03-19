@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Instagram, Twitter, Mail, MapPin, Phone, Facebook, Linkedin, Youtube,
-  ArrowUp, ChevronRight
+  ArrowUp, ChevronRight, CheckCircle
 } from 'lucide-react';
 
 const Footer = () => {
@@ -188,7 +188,7 @@ const Footer = () => {
 
               {subscribed ? (
                 <div className="flex items-center gap-2 bg-cyan-900/40 border border-cyan-700/50 text-cyan-300 px-4 py-3 rounded-xl text-sm">
-                  <span className="text-lg">🎉</span>
+                  <CheckCircle size={18} />
                   <span>You're subscribed!</span>
                 </div>
               ) : (

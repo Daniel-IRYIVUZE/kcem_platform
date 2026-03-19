@@ -1,6 +1,6 @@
 // components/home/InteractiveMap.tsx — Real Leaflet map showing Kigali HORECA activity
 import { useEffect, useRef } from 'react';
-import { Maximize2, ArrowRight } from 'lucide-react';
+import { Maximize2, ArrowRight, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 
@@ -220,7 +220,7 @@ const InteractiveMap = () => {
 
           {/* Location badge */}
           <div className="absolute top-4 left-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg z-[400]">
-            <p className="text-sm font-medium text-gray-900 dark:text-white">📍 Kigali, Rwanda</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-1"><MapPin size={13} className="text-cyan-500"/> Kigali, Rwanda</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">Nyarugenge · Gasabo · Kicukiro</p>
           </div>
         </div>

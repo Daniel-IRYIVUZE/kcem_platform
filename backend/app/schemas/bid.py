@@ -8,6 +8,7 @@ from app.models.bid import BidStatus
 class BidCreate(BaseModel):
     listing_id: int
     amount:     float
+    quantity:   Optional[float] = None   # kg/units; None = bid on full listing
     notes:      Optional[str] = None
 
 
@@ -21,6 +22,7 @@ class BidRead(BaseModel):
     listing_id:      int
     recycler_id:     int
     amount:          float
+    quantity:        Optional[float] = None
     previous_amount: Optional[float]
     status:          BidStatus
     notes:           Optional[str]

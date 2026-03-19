@@ -75,7 +75,11 @@ export default function RecyclerAvailableWaste() {
       setActiveBidByListingId(new Map());
     }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 30_000);
+    return () => clearInterval(t);
+  }, [load]);
 
   const filtered = listings.filter(l => {
     const matchSearch = (l.hotel_name || '').toLowerCase().includes(search.toLowerCase()) || String(l.id).includes(search);
@@ -124,7 +128,7 @@ export default function RecyclerAvailableWaste() {
 
     setBidFormMessage(null);
     try {
-      await listingsAPI.placeBid(selectedListing.id, { amount, note: '' });
+      await listingsAPI.placeBid(selectedListing.id, { amount, quantity, note: '' });
       setBidFormMessageType('success');
       setBidFormMessage(`Total bid price of RWF ${amount.toLocaleString()} submitted successfully.`);
       setTimeout(() => {
@@ -166,8 +170,8 @@ export default function RecyclerAvailableWaste() {
     id: l.id, hotel: l.hotel_name, type: l.waste_type,
     quantity: `${l.volume} ${l.unit}`,
     askPrice: `RWF ${(l.min_bid ?? 0).toLocaleString()}`,
-    distance: 'Kigali', bids: l.bid_count || 0,
-    pickupDate: new Date(l.created_at).toLocaleDateString(), _raw: l,
+    bids: l.bid_count || 0,
+    listedDate: new Date(l.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), _raw: l,
   }));
 
   return (
@@ -197,9 +201,8 @@ export default function RecyclerAvailableWaste() {
             { key: 'type', label: 'Type', render: (v: string) => <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium">{v}</span> },
             { key: 'quantity', label: 'Volume' },
             { key: 'askPrice', label: 'Min Bid', render: (v: string) => <span className="font-semibold">{v}</span> },
-            { key: 'distance', label: 'Location', render: (v: string) => <span className="text-sm">📍 {v}</span> },
             { key: 'bids', label: 'Bids', render: (v: number) => <span className={`font-semibold ${v > 0 ? 'text-cyan-600' : 'text-gray-400 dark:text-gray-500'}`}>{v}</span> },
-            { key: 'pickupDate', label: 'Expires' },
+            { key: 'listedDate', label: 'Listed' },
             { key: 'id', label: 'Action', render: (_v: string, r: typeof displayData[0]) => (
               activeBidListingIds.has(r._raw.id)
                 ? <button
@@ -264,10 +267,20 @@ export default function RecyclerAvailableWaste() {
                 />
               </div>
               <div className="rounded-lg border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20 px-3 py-2 text-sm">
-                <p className="text-cyan-700 dark:text-cyan-300 font-medium">Your Total Bid Price</p>
-                <p className="text-cyan-800 dark:text-cyan-200 font-semibold">
-                  RWF {Math.round((Number(bidUnitPrice) || 0) * (Number(bidQuantity) || 0)).toLocaleString()}
-                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-cyan-700 dark:text-cyan-300 font-medium">Total Bid Price</p>
+                    <p className="text-cyan-800 dark:text-cyan-200 font-semibold">
+                      RWF {Math.round((Number(bidUnitPrice) || 0) * (Number(bidQuantity) || 0)).toLocaleString()}
+                    </p>
+                  </div>
+                  {Number(bidQuantity) < Number(selectedListing.volume) && (
+                    <p className="text-xs text-cyan-600 dark:text-cyan-400 text-right">
+                      Partial bid<br/>
+                      <span className="text-gray-500">{Number(selectedListing.volume) - Number(bidQuantity)} {selectedListing.unit} stays on market</span>
+                    </p>
+                  )}
+                </div>
               </div>
               {bidFormMessage && (
                 <div className={`text-sm px-3 py-2 rounded-lg border ${

@@ -6,7 +6,7 @@ import { haversineKm, etaMinutes, formatDist } from '../../../utils/geo';
 import {
   Map, CheckCircle, DollarSign, Phone, Clock, Navigation,
   Package, MapPin, Star, ChevronRight, Locate, AlertCircle,
-  Maximize2, Minimize2, Eye, EyeOff, ListChecks
+  Maximize2, Minimize2, Eye, EyeOff, ListChecks, Moon, Globe, Check, FileText,
 } from 'lucide-react';
 import StatCard from '../StatCard';
 import PageHeader from '../../ui/PageHeader';
@@ -272,7 +272,7 @@ export default function DriverTodaysRoute() {
     // ─── Driver marker (live GPS) ───────────────────────────────────────────
     if (driverPos) {
       const driverIcon = L.divIcon({
-        html: `<div style="background:#0891b2;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)">🚛</div>`,
+        html: `<div style="background:#0891b2;color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4)"><svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3'/><polygon points='16 3 21 8 21 17 16 17 16 3'/><circle cx='6.5' cy='17.5' r='2.5'/><circle cx='18.5' cy='17.5' r='2.5'/></svg></div>`,
         className: '', iconSize: [36, 36], iconAnchor: [18, 18],
       });
       if (driverMarkerRef.current) {
@@ -394,7 +394,7 @@ export default function DriverTodaysRoute() {
         actions={
           <div className="flex gap-2">
             <button className="btn-secondary flex items-center gap-1.5 text-sm" onClick={() => {
-              const activeStop = stops.find(s => s.status === 'en-route' || s.status === 'in_progress' || s.status === 'scheduled');
+              const activeStop = stops.find(s => s.status === 'en_route' || s.status === 'in_progress' || s.status === 'scheduled');
               if (activeStop) handleNavigate(activeStop.address);
             }}><Navigation size={14}/> Navigate</button>
             <button className="btn-primary flex items-center gap-1.5 text-sm" onClick={() => { window.open('tel:+250788000000'); }}><Phone size={14}/> Dispatch</button>
@@ -436,8 +436,8 @@ export default function DriverTodaysRoute() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard title="Stops Done"      value={`${completedStops}/${totalStops}`} icon={<CheckCircle size={20}/>} color="cyan"   progress={progressPct} />
         <StatCard title="Current Stop"    value={`${Math.min(completedStops + 1, totalStops)} of ${totalStops}`}   icon={<MapPin size={20}/>}     color="blue" />
-        <StatCard title="Total Weight"    value="1,530 kg"                            icon={<Package size={20}/>}    color="purple" />
-        <StatCard title="Est. Earnings"   value="RWF 45K"                             icon={<DollarSign size={20}/>} color="orange" />
+        <StatCard title="Total Weight"    value={`${collections.reduce((s, c) => s + (c.actual_weight ?? c.volume ?? 0), 0).toLocaleString()} kg`} icon={<Package size={20}/>} color="purple" />
+        <StatCard title="Est. Earnings"   value={`RWF ${(collections.reduce((s, c) => s + (c.earnings ?? 0), 0) / 1000).toFixed(0)}K`}             icon={<DollarSign size={20}/>} color="orange" />
       </div>
 
       {/* Progress Bar */}
@@ -501,8 +501,8 @@ export default function DriverTodaysRoute() {
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center gap-2 flex-shrink-0">
             <Map size={16} className="text-cyan-600 flex-shrink-0"/>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Live Route Map</h3>
-            <span className="text-xs text-gray-400">
-              {driverPos ? '📍 Live GPS' : 'Kigali, Rwanda'}
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              {driverPos ? (<><MapPin size={11} className="text-cyan-500" /> Live GPS</>) : 'Kigali, Rwanda'}
             </span>
 
             {/* Tile layer switcher */}
@@ -517,7 +517,7 @@ export default function DriverTodaysRoute() {
                       : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  {layer === 'normal' ? '🗺 Normal' : layer === 'dark' ? '🌙 Dark' : '🛰 Satellite'}
+                  {layer === 'normal' ? <><Map size={11}/> Normal</> : layer === 'dark' ? <><Moon size={11}/> Dark</> : <><Globe size={11}/> Satellite</>}
                 </button>
               ))}
             </div>
@@ -563,7 +563,7 @@ export default function DriverTodaysRoute() {
                   <div key={stop.id} className={`px-3 py-2.5 ${isActive ? 'bg-cyan-50 dark:bg-cyan-900/15 border-l-2 border-cyan-500' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}>
                     <div className="flex items-start gap-2">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 ${isDone ? 'bg-cyan-500 text-white' : isActive ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>
-                        {isDone ? '✓' : idx + 1}
+                        {isDone ? <Check size={12}/> : idx + 1}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{stop.hotel}</p>
@@ -594,7 +594,7 @@ export default function DriverTodaysRoute() {
         <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {stops.map((stop, idx) => {
             const isDone = stop.status === 'completed' || stop.status === 'collected' || stop.status === 'verified';
-            const isActive = stop.status === 'en-route' || stop.status === 'in_progress';
+            const isActive = stop.status === 'en_route' || stop.status === 'in_progress';
             const stopTracking = stop._dsId ? trackingMap[stop._dsId as number] : undefined;
             return (
               <div key={stop.id} className={`px-5 py-4 transition-colors ${isActive ? 'bg-cyan-50 dark:bg-cyan-900/15 border-l-4 border-cyan-500' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'}`}>
@@ -648,7 +648,7 @@ export default function DriverTodaysRoute() {
                         return null;
                       })()}
                     </div>
-                    {stop.notes && <p className="mt-1 text-xs text-gray-400 italic">📝 {stop.notes}</p>}
+                    {stop.notes && <p className="mt-1 text-xs text-gray-400 italic flex items-center gap-1"><FileText size={11}/> {stop.notes}</p>}
 
                     {(isActive || stop.status === 'scheduled') && (
                       <div className="mt-3 flex flex-wrap gap-2">
