@@ -17,114 +17,97 @@ class HotelProfileScreen extends ConsumerWidget {
     final user = ref.watch(authProvider).user;
     return Scaffold(
       backgroundColor: context.cBg,
-      body: CustomScrollView(
-        slivers: [
-          // Profile header
-          SliverAppBar(
-            expandedHeight: 220,
-            pinned: true,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
-                child: SafeArea(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 20),
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 2),
-                        ),
-                        child: const Center(
-                          child: Icon(Icons.business, size: 38, color: Colors.white),
-                        ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Profile header
+            Container(
+              decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+              child: SafeArea(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 20),
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withAlpha(50),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withAlpha(120), width: 2),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        user?.displayName ?? 'Hotel',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 20,
-                        ),
+                      child: const Center(
+                        child: Icon(Icons.business, size: 38, color: Colors.white),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            'Kigali City',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 13,
-                            ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      user?.displayName ?? 'Hotel',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 20,
+                      ),
+                    ).animate().slideY(begin: 0.2, duration: 300.ms).fadeIn(),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Kigali City',
+                          style: TextStyle(
+                            color: Colors.white.withAlpha(200),
+                            fontSize: 13,
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.verified_rounded, color: Colors.white, size: 14),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                      onPressed: () => _showEditProfileSheet(context),
+                    ),
+                  ],
                 ),
               ),
             ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                onPressed: () => _showEditProfileSheet(context,
-                    name: user?.displayName ?? '',
-                    phone: user?.phone ?? '',
-                    location: 'KN 5 Rd, Kigali'),
+            const SizedBox(height: 16),
+            // Green Score
+            GreenScoreCard(
+              score: (user?.greenScore ?? 0).toDouble(),
+              level: _scoreLevel(user?.greenScore ?? 0),
+            ).animate().slideY(begin: 0.2, duration: 300.ms).fadeIn(),
+            const SizedBox(height: 20),
+            // Business Details
+            _ProfileSection(
+              title: 'Business Details',
+              children: [
+                _ProfileRow(icon: Icons.business_outlined, label: 'Business Name', value: user?.displayName ?? 'N/A'),
+                _ProfileRow(icon: Icons.numbers_outlined, label: 'TIN Number', value: '119874652'),
+                _ProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: 'KN 5 Rd, Kigali'),
+                _ProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
+                _ProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
+              ],
+            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 80.ms).fadeIn(),
+            const SizedBox(height: 16),
+            // QR Code Identity Card
+            _QrCodeSection(
+              userId: user?.id ?? 'user-001',
+              displayName: user?.displayName ?? 'Hotel',
+              role: 'Business',
+            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 120.ms).fadeIn(),
+            const SizedBox(height: 16),
+            // Payment Methods
+            _ProfileSection(
+              title: 'Payment Methods',
+              trailing: TextButton(
+                onPressed: () => _showAddPaymentSheet(context),
+                child: const Text('Add'),
               ),
-            ],
-          ),
-
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                // Green Score
-                GreenScoreCard(
-                  score: (user?.greenScore ?? 0).toDouble(),
-                  level: _scoreLevel(user?.greenScore ?? 0),
-                ).animate().slideY(begin: 0.2, duration: 300.ms).fadeIn(),
-
-                const SizedBox(height: 20),
-
-                // Business Details
-                _ProfileSection(
-                  title: 'Business Details',
-                  children: [
-                    _ProfileRow(icon: Icons.business_outlined, label: 'Business Name', value: user?.displayName ?? 'N/A'),
-                    const _ProfileRow(icon: Icons.numbers_outlined, label: 'TIN Number', value: '119874652'),
-                    const _ProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: 'KN 5 Rd, Kigali'),
-                    _ProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
-                    _ProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
-                  ],
-                ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 80.ms).fadeIn(),
-
-                const SizedBox(height: 16),
-
-                // QR Code Identity Card
-                _QrCodeSection(
-                  userId: user?.id ?? 'user-001',
-                  displayName: user?.displayName ?? 'Hotel',
-                  role: 'Business',
-                ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 120.ms).fadeIn(),
-
-                const SizedBox(height: 16),
-
-                // Payment Methods
-                _ProfileSection(
-                  title: 'Payment Methods',
-                  trailing: TextButton(
-                    onPressed: () => _showAddPaymentSheet(context),
-                    child: const Text('Add'),
-                  ),
-                  children: const [
+              children: const [
                     _PaymentMethodCard(
                       icon: Icons.phone_android_rounded,
                       name: 'MTN Mobile Money',
@@ -137,88 +120,73 @@ class HotelProfileScreen extends ConsumerWidget {
                       detail: '**** **** 8873',
                       isDefault: false,
                     ),
-                  ],
-                ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 160.ms).fadeIn(),
-
-                const SizedBox(height: 16),
-
-                // Settings
-                _ProfileSection(
-                  title: 'Settings',
-                  children: [
-                    _SettingRow(icon: Icons.notifications_outlined, label: 'Notifications',
-                      onTap: () => context.push(AppRoutes.notifications)),
-                    _SettingRow(
-                      icon: Icons.language_outlined,
-                      label: 'Language',
-                      trailing: const Text('English'),
-                      onTap: () => _showLanguageSheet(context),
-                    ),
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final isDark = ref.watch(themeProvider) == ThemeMode.dark;
-                        return SwitchListTile(
-                          secondary: Icon(
-                            isDark ? Icons.dark_mode : Icons.light_mode,
-                            color: AppColors.textSecondary,
-                            size: 20,
-                          ),
-                          title: const Text('Dark Mode',
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                          value: isDark,
-                          onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
-                          activeThumbColor: AppColors.primary,
-                          dense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                        );
-                      },
-                    ),
-                    _SettingRow(
-                      icon: Icons.lock_outline,
-                      label: 'Change Password',
-                      onTap: () => _showChangePasswordSheet(context),
-                    ),
-                  ],
-                ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 240.ms).fadeIn(),
-
-                const SizedBox(height: 16),
-
-                // Support
-                _ProfileSection(
-                  title: 'Support',
-                  children: [
-                    _SettingRow(icon: Icons.help_outline,           label: 'Help & FAQ',
-                      onTap: () => context.push(AppRoutes.support)),
-                    _SettingRow(icon: Icons.support_agent_outlined,  label: 'Contact Support',
-                      onTap: () => context.push(AppRoutes.support)),
-                    _SettingRow(icon: Icons.privacy_tip_outlined,    label: 'Privacy Policy',
-                      onTap: () => _showLegalModal(context, TermsTab.privacy)),
-                    _SettingRow(icon: Icons.description_outlined,    label: 'Terms of Service',
-                      onTap: () => _showLegalModal(context, TermsTab.terms)),
-                  ],
-                ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 320.ms).fadeIn(),
-
-                const SizedBox(height: 16),
-
-                // Logout
-                OutlinedButton.icon(
-                  onPressed: () {
-                    ref.read(authProvider.notifier).logout();
-                    // Router redirect handles navigation to /login
+              ],
+            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 160.ms).fadeIn(),
+            const SizedBox(height: 16),
+            // Settings
+            _ProfileSection(
+              title: 'Settings',
+              children: [
+                _SettingRow(icon: Icons.notifications_outlined, label: 'Notifications', onTap: () => context.push(AppRoutes.notifications)),
+                _SettingRow(
+                  icon: Icons.language_outlined,
+                  label: 'Language',
+                  trailing: const Text('English'),
+                  onTap: () => _showLanguageSheet(context),
+                ),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final isDark = ref.watch(themeProvider) == ThemeMode.dark;
+                    return SwitchListTile(
+                      secondary: Icon(
+                        isDark ? Icons.dark_mode : Icons.light_mode,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                      title: const Text('Dark Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                      value: isDark,
+                      onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
+                      activeThumbColor: AppColors.primary,
+                      dense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    );
                   },
-                  icon: const Icon(Icons.logout, color: AppColors.error),
-                  label: const Text('Sign Out', style: TextStyle(color: AppColors.error)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.error),
-                    minimumSize: const Size(double.infinity, 52),
-                  ),
-                ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
-
-                const SizedBox(height: 32),
-              ]),
-            ),
-          ),
-        ],
+                ),
+                _SettingRow(
+                  icon: Icons.lock_outline,
+                  label: 'Change Password',
+                  onTap: () => _showChangePasswordSheet(context),
+                ),
+              ],
+            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 240.ms).fadeIn(),
+            const SizedBox(height: 16),
+            // Support
+            _ProfileSection(
+              title: 'Support',
+              children: [
+                _SettingRow(icon: Icons.help_outline, label: 'Help & FAQ', onTap: () => context.push(AppRoutes.support)),
+                _SettingRow(icon: Icons.support_agent_outlined, label: 'Contact Support', onTap: () => context.push(AppRoutes.support)),
+                _SettingRow(icon: Icons.privacy_tip_outlined, label: 'Privacy Policy', onTap: () => _showLegalModal(context, TermsTab.privacy)),
+                _SettingRow(icon: Icons.description_outlined, label: 'Terms of Service', onTap: () => _showLegalModal(context, TermsTab.terms)),
+              ],
+            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 320.ms).fadeIn(),
+            const SizedBox(height: 16),
+            // Logout
+            OutlinedButton.icon(
+              onPressed: () {
+                ref.read(authProvider.notifier).logout();
+                // Router redirect handles navigation to /login
+              },
+              icon: const Icon(Icons.logout, color: AppColors.error),
+              label: const Text('Sign Out', style: TextStyle(color: AppColors.error)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.error),
+                minimumSize: const Size(double.infinity, 52),
+              ),
+            ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
+            const SizedBox(height: 32),
+          ],
+        ),
       ),
     );
   }

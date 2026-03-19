@@ -12,6 +12,7 @@ import 'list_waste_screen.dart';
 import 'bids_screen.dart';
 import 'collections_screen.dart';
 import 'hotel_profile_screen.dart';
+import '../../core/utils/image_url.dart';
 
 class HotelMainScreen extends ConsumerStatefulWidget {
   final Widget child;
@@ -109,7 +110,7 @@ class _HotelHomeTab extends ConsumerWidget {
             automaticallyImplyLeading: false,
             flexibleSpace: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Row(
                   children: [
                     Flexible(
@@ -377,42 +378,66 @@ class _WasteListingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            listing.wasteType == WasteType.uco
-                ? Icons.water_drop_outlined
-                : listing.wasteType == WasteType.glass
+          // Responsive grid of images
+          if (listing.photos != null && listing.photos.isNotEmpty)
+            SizedBox(
+              height: 60,
+              child: GridView.builder(
+                shrinkWrap: true,
+                scrollDirection: Axis.horizontal,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 1,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 1,
+                ),
+                itemCount: listing.photos.length,
+                itemBuilder: (context, idx) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      getAbsoluteImageUrl(listing.photos[idx]),
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: AppColors.primaryLight,
+                        width: 60,
+                        height: 60,
+                        child: Icon(
+                          listing.wasteType == WasteType.glass
+                              ? Icons.wine_bar_outlined
+                              : listing.wasteType == WasteType.paperCardboard
+                                  ? Icons.article_outlined
+                                  : Icons.delete_outline,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          else
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: context.cPrimaryLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                listing.wasteType == WasteType.glass
                     ? Icons.wine_bar_outlined
                     : listing.wasteType == WasteType.paperCardboard
                         ? Icons.article_outlined
                         : Icons.delete_outline,
-            size: 28,
-            color: AppColors.primary,
-          ),
-          const Spacer(),
-          Text(
-            listing.wasteType.label,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${listing.volume.toStringAsFixed(0)} ${listing.unit}',
-            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              const Icon(Icons.gavel, size: 12, color: AppColors.primary),
-              const SizedBox(width: 4),
-              Text(
-                '${listing.activeBidCount} bids',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
+                color: AppColors.primary,
+                size: 22,
               ),
-            ],
-          ),
+            ),
+          const SizedBox(height: 10),
+          // ...existing code...
         ],
       ),
     );
@@ -653,113 +678,89 @@ class _ManageListingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: context.cPrimaryLight,
-                  borderRadius: BorderRadius.circular(12),
+          // Responsive grid of images
+          if (listing.photos != null && listing.photos.isNotEmpty)
+            SizedBox(
+              height: 60,
+              child: GridView.builder(
+                shrinkWrap: true,
+                scrollDirection: Axis.horizontal,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 1,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 1,
                 ),
-                child: Icon(
-                  listing.wasteType == WasteType.glass
-                      ? Icons.wine_bar_outlined
-                      : listing.wasteType == WasteType.paperCardboard
-                          ? Icons.article_outlined
-                          : Icons.delete_outline,
-                  color: AppColors.primary,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      listing.wasteType.label,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: context.cText),
+                itemCount: listing.photos.length,
+                itemBuilder: (context, idx) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      getAbsoluteImageUrl(listing.photos[idx]),
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: AppColors.primaryLight,
+                        width: 60,
+                        height: 60,
+                        child: Icon(
+                          listing.wasteType == WasteType.glass
+                              ? Icons.wine_bar_outlined
+                              : listing.wasteType == WasteType.paperCardboard
+                                  ? Icons.article_outlined
+                                  : Icons.delete_outline,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${listing.volume.toStringAsFixed(0)} ${listing.unit}  ·  ${listing.quality.label}',
-                      style:
-                          TextStyle(fontSize: 13, color: context.cTextSec),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+            )
+          else
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                color: context.cPrimaryLight,
+                borderRadius: BorderRadius.circular(12),
               ),
-            ],
-          ),
+              child: Icon(
+                listing.wasteType == WasteType.glass
+                    ? Icons.wine_bar_outlined
+                    : listing.wasteType == WasteType.paperCardboard
+                        ? Icons.article_outlined
+                        : Icons.delete_outline,
+                color: AppColors.primary,
+                size: 22,
+              ),
+            ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 16,
-            runSpacing: 4,
-            children: [
-              _InfoChip(
-                  icon: Icons.gavel_outlined,
-                  label: '${listing.activeBidCount} bids',
-                  color: context.cTextSec),
-              _InfoChip(
-                  icon: Icons.payments_outlined,
-                  label:
-                      'Min RWF ${listing.minBid.toStringAsFixed(0)}',
-                  color: context.cTextSec),
-              _InfoChip(
-                  icon: Icons.location_on_outlined,
-                  label: listing.location,
-                  color: context.cTextSec),
-            ],
+          Text(
+            listing.wasteType.label,
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+                color: context.cText),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 2),
+          Text(
+            '${listing.volume.toStringAsFixed(0)} ${listing.unit}  ·  ${listing.quality.label}',
+            style:
+                TextStyle(fontSize: 13, color: context.cTextSec),
+          ),
+          const SizedBox(height: 6),
           Row(
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onEdit,
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Edit'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline, size: 16),
-                  label: const Text('Delete'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: const BorderSide(color: AppColors.error),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
+              const Icon(Icons.gavel, size: 12, color: AppColors.primary),
+              const SizedBox(width: 4),
+              Text(
+                '${listing.activeBidCount} bids',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],

@@ -15,6 +15,7 @@ import 'marketplace_screen.dart';
 import 'my_bids_screen.dart';
 import 'fleet_screen.dart';
 import 'recycler_collections_screen.dart';
+import '../../core/utils/image_url.dart';
 
 class RecyclerMainScreen extends ConsumerStatefulWidget {
   final Widget child;
@@ -91,7 +92,7 @@ class _RecyclerHomeTab extends ConsumerWidget {
             automaticallyImplyLeading: false,
             flexibleSpace: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 child: Row(
                   children: [
                     Flexible(
@@ -281,6 +282,7 @@ class _RecyclerHomeTab extends ConsumerWidget {
                   subtitle: '${listing.wasteType.label} ${listing.volume.toStringAsFixed(0)}${listing.unit} \u2022 ${listing.activeBidCount} bids',
                   color: AppColors.primary,
                   onTap: onBrowseMarket,
+                  photos: listing.photos,
                 )),
               ]),
             ),
@@ -417,12 +419,14 @@ class _ActivityCard extends StatelessWidget {
   final String subtitle;
   final Color color;
   final VoidCallback? onTap;
+  final List<String>? photos;
   const _ActivityCard({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.color,
     this.onTap,
+    this.photos,
   });
 
   @override
@@ -430,41 +434,59 @@ class _ActivityCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: context.cSurf,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: context.cBorder),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.cSurf,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: context.cBorder),
+        ),
+        child: Row(
+          children: [
+            // Image thumbnail
+            if (photos != null && photos!.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  getFirstImageUrl(photos),
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: color.withValues(alpha: 0.1),
+                    width: 40,
+                    height: 40,
+                    child: Icon(icon, color: color, size: 20),
+                  ),
+                ),
+              )
+            else
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: context.cText)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: context.cTextSec)),
+                ],
+              ),
             ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: context.cText)),
-                const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: context.cTextSec)),
-              ],
-            ),
-          ),
-          if (onTap != null)
-            Icon(Icons.chevron_right, color: context.cTextSec, size: 18),
-        ],
+            if (onTap != null)
+              Icon(Icons.chevron_right, color: context.cTextSec, size: 18),
+          ],
+        ),
       ),
-    ),
-    ).animate().slideY(begin: 0.1, duration: 300.ms).fadeIn();
+    );
   }
 }
 

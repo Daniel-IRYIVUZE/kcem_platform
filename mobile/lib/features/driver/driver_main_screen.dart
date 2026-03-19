@@ -51,6 +51,25 @@ class _DriverMainScreenState extends ConsumerState<DriverMainScreen> {
     ];
 
     return Scaffold(
+      backgroundColor: context.cBg,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: AppBar(
+          title: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text('Driver Dashboard'),
+          ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () {},
+              ),
+            ),
+          ],
+        ),
+      ),
       body: screens[_selectedIndex],
       bottomNavigationBar: Builder(builder: (ctx) => Container(
         decoration: BoxDecoration(

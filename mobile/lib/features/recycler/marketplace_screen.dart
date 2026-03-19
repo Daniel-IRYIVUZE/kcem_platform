@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/models/models.dart';
 import '../shared/widgets/eco_button.dart';
+import '../../core/utils/image_url.dart';
 
 class MarketplaceScreen extends ConsumerStatefulWidget {
   const MarketplaceScreen({super.key});
@@ -174,18 +175,30 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
     final filtered = _filtered(allListings);
     return Scaffold(
       backgroundColor: context.cBg,
-      appBar: AppBar(
-        title: const Text('Marketplace'),
-        actions: [
-          IconButton(
-            onPressed: () => setState(() => _isMapView = !_isMapView),
-            icon: Icon(_isMapView ? Icons.list : Icons.map_outlined),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: AppBar(
+          title: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text('Marketplace'),
           ),
-          IconButton(
-            onPressed: () => _showFilters(context),
-            icon: const Icon(Icons.tune),
-          ),
-        ],
+          actions: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: IconButton(
+                onPressed: () => setState(() => _isMapView = !_isMapView),
+                icon: Icon(_isMapView ? Icons.list : Icons.map_outlined),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: IconButton(
+                onPressed: () => _showFilters(context),
+                icon: const Icon(Icons.tune),
+              ),
+            ),
+          ],
+        ),
       ),
       body: Column(
         children: [
@@ -341,61 +354,90 @@ class _ListingCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
+          // Grid of images
+          if (listing.photos != null && listing.photos.isNotEmpty)
+            SizedBox(
+              height: 60,
+              child: GridView.builder(
+                shrinkWrap: true,
+                scrollDirection: Axis.horizontal,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 1,
+                  mainAxisSpacing: 8,
+                  childAspectRatio: 1,
+                ),
+                itemCount: listing.photos.length,
+                itemBuilder: (context, idx) {
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      getAbsoluteImageUrl(listing.photos[idx]),
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: AppColors.primaryLight,
+                        width: 60,
+                        height: 60,
+                        child: Icon(
+                          listing.wasteType == WasteType.uco
+                              ? Icons.water_drop_outlined
+                              : listing.wasteType == WasteType.glass
+                                  ? Icons.wine_bar_outlined
+                                  : listing.wasteType == WasteType.paperCardboard
+                                      ? Icons.article_outlined
+                                      : Icons.delete_outline,
+                          color: AppColors.primary,
+                          size: 26,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            )
+          else
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                getFirstImageUrl(listing.photos),
                 width: 48,
                 height: 48,
-                decoration: BoxDecoration(
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
                   color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  listing.wasteType == WasteType.uco
-                      ? Icons.water_drop_outlined
-                      : listing.wasteType == WasteType.glass
-                          ? Icons.wine_bar_outlined
-                          : listing.wasteType == WasteType.paperCardboard
-                              ? Icons.article_outlined
-                              : Icons.delete_outline,
-                  color: AppColors.primary,
-                  size: 26,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          listing.wasteType.label,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                        ),
-
-                      ],
-                    ),
-                    Text(
-                      listing.businessName,
-                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                  ],
+                  width: 48,
+                  height: 48,
+                  child: Icon(
+                    listing.wasteType == WasteType.uco
+                        ? Icons.water_drop_outlined
+                        : listing.wasteType == WasteType.glass
+                            ? Icons.wine_bar_outlined
+                            : listing.wasteType == WasteType.paperCardboard
+                                ? Icons.article_outlined
+                                : Icons.delete_outline,
+                    color: AppColors.primary,
+                    size: 26,
+                  ),
                 ),
               ),
-              Text(
-                'RWF ${listing.minBid.toStringAsFixed(0)}+',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: AppColors.primary,
-                ),
-              ),
+            ),
+          const SizedBox(width: 12),
+          // Listing details
+          Row(
+            children: [
+              const Icon(Icons.recycling, color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Expanded(child: Text(listing.wasteType.label,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
             ],
           ),
-
+          const SizedBox(height: 4),
+          Text(
+            listing.businessName,
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
           const SizedBox(height: 12),
-
           Row(
             children: [
               _Tag(icon: Icons.scale_outlined, label: '${listing.volume.toStringAsFixed(0)} ${listing.unit}'),
@@ -407,9 +449,7 @@ class _ListingCard extends StatelessWidget {
               _Tag(icon: Icons.gavel_outlined, label: '${listing.activeBidCount} bids'),
             ],
           ),
-
           const SizedBox(height: 12),
-
           Row(
             children: [
               Text(

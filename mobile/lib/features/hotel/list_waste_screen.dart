@@ -8,6 +8,7 @@ import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
 import '../shared/widgets/app_text_field.dart';
 import '../shared/widgets/eco_button.dart';
+import '../../core/utils/image_url.dart';
 
 class ListWasteScreen extends ConsumerStatefulWidget {
   final WasteListing? existingListing;
@@ -427,38 +428,29 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                     const SizedBox(height: 12),
                     SizedBox(
                       height: 70,
-                      child: ListView.separated(
+                      child: GridView.builder(
+                        shrinkWrap: true,
                         scrollDirection: Axis.horizontal,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 1,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 1,
+                        ),
                         itemCount: _uploadedPhotos,
-                        separatorBuilder: (_, __) => const SizedBox(width: 8),
                         itemBuilder: (context, index) {
-                          return Container(
-                            width: 70,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Stack(
-                              children: [
-                                const Center(
-                                  child: Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 28),
-                                ),
-                                Positioned(
-                                  top: 4,
-                                  right: 4,
-                                  child: GestureDetector(
-                                    onTap: () => setState(() => _uploadedPhotos--),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(2),
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.error,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.close, size: 12, color: Colors.white),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              getAbsoluteImageUrl(null),
+                              width: 70,
+                              height: 70,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: AppColors.primaryLight,
+                                width: 70,
+                                height: 70,
+                                child: const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 28),
+                              ),
                             ),
                           );
                         },
