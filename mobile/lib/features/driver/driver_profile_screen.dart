@@ -3,18 +3,33 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import '../../core/services/api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
 import '../shared/terms_privacy_screen.dart';
 import '../shared/widgets/shared_cards.dart';
 
-class DriverProfileScreen extends ConsumerWidget {
+class DriverProfileScreen extends ConsumerStatefulWidget {
   const DriverProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DriverProfileScreen> createState() => _DriverProfileScreenState();
+}
+
+class _DriverProfileScreenState extends ConsumerState<DriverProfileScreen> {
+  String _scoreLevel(int score) {
+    if (score >= 90) return 'Eco Master';
+    if (score >= 75) return 'Eco Champion';
+    if (score >= 55) return 'Eco Starter';
+    return 'Eco Beginner';
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
+    final driverAsync = ref.watch(driverProfileProvider);
+
     return Scaffold(
       backgroundColor: context.cBg,
       body: SingleChildScrollView(
@@ -52,18 +67,21 @@ class DriverProfileScreen extends ConsumerWidget {
                       ),
                     ).animate().slideY(begin: 0.2, duration: 300.ms).fadeIn(),
                     const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Kigali City',
-                          style: TextStyle(
-                            color: Colors.white.withAlpha(200),
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                      ],
+                    driverAsync.when(
+                      data: (d) {
+                        final loc = d['location'] as String? ?? d['address'] as String? ?? '';
+                        return loc.isNotEmpty
+                            ? Text(
+                                loc,
+                                style: TextStyle(
+                                  color: Colors.white.withAlpha(200),
+                                  fontSize: 13,
+                                ),
+                              )
+                            : const SizedBox.shrink();
+                      },
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
                     ),
                     const SizedBox(height: 16),
                     IconButton(
@@ -82,45 +100,37 @@ class DriverProfileScreen extends ConsumerWidget {
             ).animate().slideY(begin: 0.2, duration: 300.ms).fadeIn(),
             const SizedBox(height: 20),
             // Driver Details
-            _ProfileSection(
-              title: 'Driver Details',
-              children: [
-                _ProfileRow(icon: Icons.drive_eta, label: 'Driver Name', value: user?.displayName ?? 'N/A'),
-                _ProfileRow(icon: Icons.numbers_outlined, label: 'License Number', value: 'DR-987654'),
-                _ProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: 'KN 5 Rd, Kigali'),
-                _ProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
-                _ProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
-              ],
+            driverAsync.when(
+              data: (d) {
+                final plate = d['plate_number'] as String? ?? d['vehicle_plate'] as String? ?? '—';
+                final location = d['location'] as String? ?? d['address'] as String? ?? '—';
+                return _ProfileSection(
+                  title: 'Driver Details',
+                  children: [
+                    _ProfileRow(icon: Icons.drive_eta, label: 'Driver Name', value: user?.displayName ?? 'N/A'),
+                    _ProfileRow(icon: Icons.directions_car_outlined, label: 'Plate Number', value: plate),
+                    _ProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: location),
+                    _ProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
+                    _ProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
+                  ],
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => _ProfileSection(
+                title: 'Driver Details',
+                children: [
+                  _ProfileRow(icon: Icons.drive_eta, label: 'Driver Name', value: user?.displayName ?? 'N/A'),
+                  _ProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
+                  _ProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
+                ],
+              ),
             ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 80.ms).fadeIn(),
             const SizedBox(height: 16),
             // QR Code Identity Card
             _DriverQrSection(
-              userId: user?.id ?? 'user-002',
+              userId: user?.id ?? '',
               displayName: user?.displayName ?? 'Driver',
             ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 120.ms).fadeIn(),
-            const SizedBox(height: 16),
-            // Payment Methods
-            _ProfileSection(
-              title: 'Payment Methods',
-              trailing: TextButton(
-                onPressed: () => _showAddPaymentSheet(context),
-                child: const Text('Add'),
-              ),
-              children: const [
-                _PaymentMethodCard(
-                  icon: Icons.phone_android_rounded,
-                  name: 'MTN Mobile Money',
-                  detail: '+250 780 162 164',
-                  isDefault: true,
-                ),
-                _PaymentMethodCard(
-                  icon: Icons.account_balance_rounded,
-                  name: 'Bank of Kigali',
-                  detail: '**** **** 8873',
-                  isDefault: false,
-                ),
-              ],
-            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 160.ms).fadeIn(),
             const SizedBox(height: 16),
             // Settings
             _ProfileSection(
@@ -174,7 +184,6 @@ class DriverProfileScreen extends ConsumerWidget {
             OutlinedButton.icon(
               onPressed: () {
                 ref.read(authProvider.notifier).logout();
-                // Router redirect handles navigation to /login
               },
               icon: const Icon(Icons.logout, color: AppColors.error),
               label: const Text('Sign Out', style: TextStyle(color: AppColors.error)),
@@ -190,14 +199,19 @@ class DriverProfileScreen extends ConsumerWidget {
     );
   }
 
-  String _scoreLevel(int score) {
-    if (score >= 90) return 'Eco Master';
-    if (score >= 75) return 'Eco Champion';
-    if (score >= 55) return 'Eco Starter';
-    return 'Eco Beginner';
-  }
-
   void _showEditProfileSheet(BuildContext context) {
+    final user = ref.read(authProvider).user;
+    final driverData = ref.read(driverProfileProvider).valueOrNull ?? {};
+
+    final nameCtrl = TextEditingController(text: user?.displayName ?? '');
+    final phoneCtrl = TextEditingController(text: user?.phone ?? '');
+    final plateCtrl = TextEditingController(
+      text: driverData['plate_number'] as String? ?? driverData['vehicle_plate'] as String? ?? '',
+    );
+    final locationCtrl = TextEditingController(
+      text: driverData['location'] as String? ?? driverData['address'] as String? ?? '',
+    );
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -205,54 +219,120 @@ class DriverProfileScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          bool loading = false;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Edit Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                const Spacer(),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                Row(
+                  children: [
+                    const Text('Edit Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                    const Spacer(),
+                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    prefixIcon: Icon(Icons.person_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: plateCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Plate Number',
+                    prefixIcon: Icon(Icons.directions_car_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: locationCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Location',
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            setSheet(() => loading = true);
+                            try {
+                              final futures = <Future>[];
+                              if (nameCtrl.text.trim().isNotEmpty || phoneCtrl.text.trim().isNotEmpty) {
+                                futures.add(ApiService.updateProfile({
+                                  if (nameCtrl.text.trim().isNotEmpty) 'full_name': nameCtrl.text.trim(),
+                                  if (phoneCtrl.text.trim().isNotEmpty) 'phone': phoneCtrl.text.trim(),
+                                }));
+                              }
+                              final driverUpdate = <String, dynamic>{};
+                              if (plateCtrl.text.trim().isNotEmpty) driverUpdate['plate_number'] = plateCtrl.text.trim();
+                              if (locationCtrl.text.trim().isNotEmpty) driverUpdate['location'] = locationCtrl.text.trim();
+                              if (driverUpdate.isNotEmpty) {
+                                futures.add(ApiService.updateMyDriver(driverUpdate));
+                              }
+                              await Future.wait(futures);
+                              ref.invalidate(driverProfileProvider);
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Row(children: [
+                                      Icon(Icons.check_circle, color: Colors.white, size: 18),
+                                      SizedBox(width: 8),
+                                      Text('Profile updated'),
+                                    ]),
+                                    backgroundColor: AppColors.primary,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              setSheet(() => loading = false);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to update: $e'),
+                                    backgroundColor: AppColors.error,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                    child: loading
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 16),
-            const TextField(
-              decoration: InputDecoration(
-                labelText: 'Full Name',
-                prefixIcon: Icon(Icons.person_outline),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const TextField(
-              decoration: InputDecoration(
-                labelText: 'Phone Number',
-                prefixIcon: Icon(Icons.phone_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const TextField(
-              decoration: InputDecoration(
-                labelText: 'Vehicle Type',
-                prefixIcon: Icon(Icons.local_shipping_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-                child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -268,187 +348,106 @@ class DriverProfileScreen extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Change Password', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 20),
-            TextField(
-              controller: currentCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Current Password',
-                prefixIcon: Icon(Icons.lock_outline),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: newCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'New Password',
-                prefixIcon: Icon(Icons.lock_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: confirmCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Confirm New Password',
-                prefixIcon: Icon(Icons.lock_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (newCtrl.text != confirmCtrl.text) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Passwords do not match'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
-                    );
-                    return;
-                  }
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Row(
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.white, size: 18),
-                          SizedBox(width: 8),
-                          Text('Password changed successfully'),
-                        ],
-                      ),
-                      backgroundColor: AppColors.primary,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-                child: const Text('Update Password', style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAddPaymentSheet(BuildContext context) {
-    String selectedType = 'momo';
-    final numCtrl = TextEditingController();
-    final nameCtrl = TextEditingController();
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) => Padding(
-          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text('Add Payment Method', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                  const Spacer(),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  for (final t in [
-                    {'id': 'momo', 'label': 'MTN MoMo'},
-                    {'id': 'airtel', 'label': 'Airtel'},
-                    {'id': 'bank', 'label': 'Bank'},
-                  ])
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setModalState(() => selectedType = t['id']!),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          margin: const EdgeInsets.only(right: 6),
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: selectedType == t['id'] ? AppColors.primary : Colors.grey.shade300,
-                              width: selectedType == t['id'] ? 2 : 1,
-                            ),
-                            color: selectedType == t['id'] ? AppColors.primaryLight : null,
-                          ),
-                          child: Column(
-                            children: [
-                              Text(t['label']!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: numCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: selectedType == 'bank' ? 'Account Number' : 'Phone Number',
-                  prefixIcon: Icon(selectedType == 'bank' ? Icons.credit_card_outlined : Icons.phone_outlined),
-                  border: const OutlineInputBorder(),
+        builder: (ctx, setSheet) {
+          bool loading = false;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Change Password', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: currentCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Current Password',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Account Holder Name',
-                  prefixIcon: Icon(Icons.person_outline),
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: newCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'New Password',
+                    prefixIcon: Icon(Icons.lock_outlined),
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (numCtrl.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                        content: Text('Please fill in all fields'),
-                        backgroundColor: AppColors.error,
-                        behavior: SnackBarBehavior.floating,
-                      ));
-                      return;
-                    }
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Row(children: [
-                        Icon(Icons.check_circle, color: Colors.white, size: 18),
-                        SizedBox(width: 8),
-                        Text('Payment method added'),
-                      ]),
-                      backgroundColor: AppColors.primary,
-                      behavior: SnackBarBehavior.floating,
-                    ));
-                  },
-                  style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-                  child: const Text('Add Payment Method', style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm New Password',
+                    prefixIcon: Icon(Icons.lock_outlined),
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            if (newCtrl.text != confirmCtrl.text) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Passwords do not match'),
+                                  backgroundColor: AppColors.error,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                              return;
+                            }
+                            setSheet(() => loading = true);
+                            try {
+                              await ApiService.changePassword(
+                                currentPassword: currentCtrl.text,
+                                newPassword: newCtrl.text,
+                              );
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Row(children: [
+                                      Icon(Icons.check_circle, color: Colors.white, size: 18),
+                                      SizedBox(width: 8),
+                                      Text('Password changed successfully'),
+                                    ]),
+                                    backgroundColor: AppColors.primary,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              setSheet(() => loading = false);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed: $e'),
+                                    backgroundColor: AppColors.error,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                    child: loading
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Update Password', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -642,116 +641,6 @@ class _ProfileRow extends StatelessWidget {
   }
 }
 
-class _PaymentMethodCard extends StatelessWidget {
-  final IconData icon;
-  final String name;
-  final String detail;
-  final bool isDefault;
-
-  const _PaymentMethodCard({
-    required this.icon,
-    required this.name,
-    required this.detail,
-    required this.isDefault,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Center(child: Icon(icon, color: AppColors.primary, size: 20)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                    if (isDefault) ...[
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'Default',
-                          style: TextStyle(fontSize: 10, color: AppColors.primary, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                Text(detail, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, size: 18, color: AppColors.textSecondary),
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              builder: (ctx) => SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 8),
-                    Container(
-                      width: 36, height: 4,
-                      decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
-                    ),
-                    const SizedBox(height: 4),
-                    if (!isDefault)
-                      ListTile(
-                        leading: const Icon(Icons.star_outline, color: AppColors.accent),
-                        title: const Text('Set as Default'),
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                            content: Text('Default payment method updated'),
-                            backgroundColor: AppColors.primary,
-                            behavior: SnackBarBehavior.floating,
-                          ));
-                        },
-                      ),
-                    ListTile(
-                      leading: const Icon(Icons.delete_outline, color: AppColors.error),
-                      title: const Text('Remove Payment Method', style: TextStyle(color: AppColors.error)),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          content: Text('Payment method removed'),
-                          backgroundColor: AppColors.error,
-                          behavior: SnackBarBehavior.floating,
-                        ));
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SettingRow extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -822,30 +711,10 @@ class _DriverQrSection extends StatelessWidget {
               const SizedBox(height: 12),
               Text(qrData, style: const TextStyle(fontSize: 11, color: Colors.grey)),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, size: 16),
-                    label: const Text('Close'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('QR code shared!'), behavior: SnackBarBehavior.floating),
-                      );
-                    },
-                    icon: const Icon(Icons.share_outlined, size: 16),
-                    label: const Text('Share'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
+              OutlinedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, size: 16),
+                label: const Text('Close'),
               ),
             ],
           ),
@@ -936,62 +805,12 @@ class _DriverQrSection extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text('Scan to verify driver identity',
                         style: TextStyle(fontSize: 12, color: context.cTextSec)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        _DrvQrButton(
-                          icon: Icons.share_outlined,
-                          label: 'Share',
-                          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('QR code shared!'), behavior: SnackBarBehavior.floating),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        _DrvQrButton(
-                          icon: Icons.download_outlined,
-                          label: 'Save',
-                          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('QR code saved!'), behavior: SnackBarBehavior.floating),
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _DrvQrButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _DrvQrButton({required this.icon, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          border: Border.all(color: context.cBorder),
-          borderRadius: BorderRadius.circular(8),
-          color: context.cSurfAlt,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: context.cTextSec),
-            const SizedBox(width: 4),
-            Text(label, style: TextStyle(fontSize: 12, color: context.cTextSec)),
-          ],
-        ),
       ),
     );
   }

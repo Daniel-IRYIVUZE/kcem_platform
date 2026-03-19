@@ -552,6 +552,40 @@ class ApiService {
   static Future<Map<String, dynamic>> updateDriverProfile(int userId, Map<String, dynamic> data) async {
     return await _request('PATCH', '/drivers/$userId', body: data);
   }
+
+  static Future<Map<String, dynamic>> updateMyDriver(Map<String, dynamic> data) async {
+    return await _request('PATCH', '/drivers/me', body: data);
+  }
+
+  static Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _request('POST', '/auth/change-password', body: {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
+  }
+
+  static Future<void> rejectBid(int bidId) async {
+    await _request('POST', '/bids/$bidId/reject');
+  }
+
+  static Future<Map<String, dynamic>> inviteDriver({
+    required String name,
+    required String phone,
+    String? vehiclePlate,
+  }) async {
+    return await _request('POST', '/drivers/invite', body: {
+      'full_name': name,
+      'phone': phone,
+      if (vehiclePlate != null && vehiclePlate.isNotEmpty) 'plate_number': vehiclePlate,
+    });
+  }
+
+  static Future<Map<String, dynamic>> requestWithdrawal(double amount) async {
+    return await _request('POST', '/transactions/withdraw', body: {'amount': amount});
+  }
   
   // ── Inventory ───────────────────────────────────────────────────────────────
   

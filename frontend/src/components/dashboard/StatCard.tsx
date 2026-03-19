@@ -76,7 +76,7 @@ const StatCard = ({ title, value, icon, subtitle, change, progress, color = 'cya
   const sparkData = sparkline?.map((v, i) => ({ i, v }));
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-5 overflow-hidden relative animate-fade-up">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 p-4 sm:p-5 overflow-hidden relative animate-fade-up">
       {/* Top row: icon + change badge */}
       <div className="flex items-start justify-between mb-3">
         <div className={`w-11 h-11 flex items-center justify-center rounded-xl ${c.iconBg} animate-rotate-in`}>
@@ -91,7 +91,7 @@ const StatCard = ({ title, value, icon, subtitle, change, progress, color = 'cya
       </div>
 
       {/* Value */}
-      <p className="text-3xl font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tight mt-1">
+      <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tabular-nums tracking-tight mt-1">
         {displayValue}
       </p>
       <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-0.5">{title}</p>

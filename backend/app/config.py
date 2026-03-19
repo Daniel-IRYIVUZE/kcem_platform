@@ -3,7 +3,6 @@ config.py — Application configuration using pydantic-settings.
 """
 from pydantic_settings import BaseSettings
 from functools import lru_cache
-from pydantic import Field
 import secrets
 
 
@@ -19,14 +18,13 @@ class Settings(BaseSettings):
     DATABASE_ECHO: bool = False
 
     # ── JWT ───────────────────────────────────────────────────────────────────
-    SECRET_KEY: str = Field(default_factory=lambda: secrets.token_urlsafe(64))
+    SECRET_KEY: str = secrets.token_urlsafe(64)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 240
     REFRESH_TOKEN_EXPIRE_DAYS: int = 60
 
     # ── CORS ──────────────────────────────────────────────────────────────────
     ALLOWED_ORIGINS: list[str] = [
-        "https://ecotrade-rwanda.netlify.app",
         "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:5174",
@@ -46,13 +44,18 @@ class Settings(BaseSettings):
     PLATFORM_FEE_PERCENT: float = 5.0          # 5% platform fee on transactions
 
     # ── Email (SMTP) ────────────────────────────────────────────────────────────
-    SMTP_HOST: str = ""
+    SMTP_HOST: str = "webhost.dynadot.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    EMAIL_FROM: str = ""
+    SMTP_USER: str = "security@nexventures.net"
+    SMTP_PASSWORD: str = "63502013"
+    EMAIL_FROM: str = "security@nexventures.net"
     EMAIL_FROM_NAME: str = "EcoTrade Rwanda"
     EMAIL_USE_TLS: bool = True
+    ADMIN_EMAIL: str = "security@nexventures.net"
+
+    @property
+    def is_email_configured(self) -> bool:
+        return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD and self.EMAIL_FROM)
 
     # ── Pagination defaults ───────────────────────────────────────────────────
     DEFAULT_PAGE_SIZE: int = 20

@@ -180,7 +180,7 @@ export default function AdminAnalytics() {
       </DashboardWidget>
 
       {/* Waste by Type + Users Distribution */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DashboardWidget title="Waste Volume by Type" icon={<Package size={16}/>}
           action={<span className="text-xs text-gray-400">{analytics.totalWasteVolume.toFixed(0)} kg/L total</span>}>
           <ChartComponent type="bar" data={chartData.wasteByType} height={260} yLabel="kg/L" />
@@ -193,7 +193,7 @@ export default function AdminAnalytics() {
       </div>
 
       {/* Collection Performance + Driver Radar */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DashboardWidget title="Collection Performance" icon={<Truck size={16}/>}>
           <div className="grid grid-cols-2 gap-4">
             <ChartComponent type="donut" data={chartData.collectionPerformance} height={200} />
@@ -218,7 +218,7 @@ export default function AdminAnalytics() {
       </div>
 
       {/* Recent transactions + listings tables */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <DashboardWidget title="Recent Transactions" icon={<Activity size={16}/>}>
           <div className="space-y-2">
             {transactions.slice(0, 6).map(txn => (
@@ -265,7 +265,7 @@ export default function AdminAnalytics() {
       />
 
       {/* Bottom Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {[
           { icon: <Award size={20}/>,  color: 'text-cyan-600',    bg: 'bg-cyan-50 dark:bg-cyan-900/20',    label: 'Green Impact Score', value: '85%',                              sub: 'Platform efficiency' },
           { icon: <Globe size={20}/>,  color: 'text-cyan-600', bg: 'bg-cyan-50 dark:bg-cyan-900/20', label: 'CO₂ Offset',       value: `${analytics.totalCO2.toFixed(0)} kg`, sub: `≈${Math.round(analytics.totalCO2/20)} trees` },

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Eye, X, Check, Users, ShieldCheck, UserX, Download } from 'lucide-react';
 import { downloadPDF } from '../../../utils/dataStore';
-import { usersAPI, type APIUser } from '../../../services/api';
+import { usersAPI, authAPI, type APIUser } from '../../../services/api';
 import DataTable, { type Column, type BulkAction } from '../../ui/DataTable';
 import PageHeader from '../../ui/PageHeader';
 import StatusBadge from '../../ui/StatusBadge';
@@ -50,16 +50,31 @@ export default function AdminUserManagement() {
         setModal(null); load();
       }).catch(() => {});
     } else {
-      // Create via local optimistic update (no create endpoint)
-      setSaved(true); setTimeout(() => setSaved(false), 2000);
-      setModal(null);
+      // Create new user via registration endpoint
+      const tempPassword = Math.random().toString(36).slice(-10) + 'A1!';
+      authAPI.register({
+        full_name: form.full_name,
+        email: form.email,
+        password: tempPassword,
+        phone: form.phone || undefined,
+        role: form.role,
+      }).then(() => {
+        setSaved(true); setTimeout(() => setSaved(false), 2000);
+        setModal(null); load();
+      }).catch(() => {});
     }
   };
 
   const handleDelete = () => {
     if (selected) {
-      setUsers(prev => prev.filter(u => u.id !== selected.id));
-      setModal(null);
+      usersAPI.delete(selected.id).then(() => {
+        setUsers(prev => prev.filter(u => u.id !== selected.id));
+        setModal(null);
+      }).catch(() => {
+        // Fallback: remove from local state even if API fails
+        setUsers(prev => prev.filter(u => u.id !== selected.id));
+        setModal(null);
+      });
     }
   };
 
@@ -75,6 +90,7 @@ export default function AdminUserManagement() {
     ids.forEach(id => usersAPI.approve(Number(id)).then(updated => setUsers(prev => prev.map(x => x.id === updated.id ? updated : x))).catch(() => {}));
   };
   const handleBulkDelete = (ids: string[]) => {
+    ids.forEach(id => usersAPI.delete(Number(id)).catch(() => {}));
     setUsers(prev => prev.filter(u => !ids.includes(String(u.id))));
   };
 

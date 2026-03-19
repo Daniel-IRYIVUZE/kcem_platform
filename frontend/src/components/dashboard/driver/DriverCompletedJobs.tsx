@@ -4,7 +4,6 @@ import { downloadCSV } from '../../../utils/dataStore';
 import { CheckCircle, Package, Star, DollarSign, Download } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
-import { completedJobs } from './_shared';
 
 export default function DriverCompletedJobs() {
   const [completedCols, setCompletedCols] = useState<Collection[]>([]);
@@ -13,19 +12,20 @@ export default function DriverCompletedJobs() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const tableData = completedCols.length > 0
-    ? completedCols.map(c => ({
-        id: c.id, date: c.completed_at?.split('T')[0] ?? c.scheduled_date,
-        route: (c.location || 'Kigali').split(',')[0], stops: 1,
-        totalWeight: `${c.actual_weight ?? c.volume} kg`,
-        duration: '2h', earnings: `RWF ${(c.earnings ?? 0).toLocaleString()}`,
-        rating: c.rating ?? 4.8, issues: c.notes || 'None',
-      }))
-    : completedJobs;
+  const tableData = completedCols.map(c => ({
+    id: c.id, date: c.completed_at?.split('T')[0] ?? c.scheduled_date,
+    route: (c.location || 'Kigali').split(',')[0], stops: 1,
+    totalWeight: `${c.actual_weight ?? c.volume} kg`,
+    duration: '2h', earnings: `RWF ${(c.earnings ?? 0).toLocaleString()}`,
+    rating: c.rating ?? '—', issues: c.notes || 'None',
+  }));
 
-  const totalEarnings = completedCols.length > 0 ? completedCols.reduce((s, c) => s + (c.earnings ?? 0), 0) : 333000;
-  const totalWeight = completedCols.length > 0 ? (completedCols.reduce((s, c) => s + Number(c.actual_weight ?? c.volume ?? 0), 0) / 1000).toFixed(1) + 't' : '10.1t';
-  const avgRating = completedCols.length > 0 ? (completedCols.reduce((s, c) => s + (c.rating ?? 4.8), 0) / completedCols.length).toFixed(1) : '4.8';
+  const totalEarnings = completedCols.reduce((s, c) => s + (c.earnings ?? 0), 0);
+  const totalWeight = (completedCols.reduce((s, c) => s + Number(c.actual_weight ?? c.volume ?? 0), 0) / 1000).toFixed(1) + 't';
+  const ratedCols = completedCols.filter(c => c.rating);
+  const avgRating = ratedCols.length > 0
+    ? (ratedCols.reduce((s, c) => s + (c.rating ?? 0), 0) / ratedCols.length).toFixed(1)
+    : '—';
 
   return (
     <div className="space-y-6">

@@ -189,9 +189,13 @@ def remind_driver_to_login(driver_id: int, db: Session = Depends(get_db),
         full_name=driver.user.full_name or driver.user.email,
         recycler_name=current_user.full_name or "your recycling company",
     )
-    if not sent:
-        raise HTTPException(500, "Failed to send reminder email. Check server SMTP configuration.")
-    return {"message": "Reminder email sent successfully."}
+    if sent:
+        return {"message": "Reminder email sent successfully.", "email_sent": True}
+    # SMTP not configured — acknowledge the action but report the email wasn't delivered
+    return {
+        "message": "Reminder recorded. Email delivery failed — configure SMTP in server settings to enable email notifications.",
+        "email_sent": False,
+    }
 
 
 @router.post("/{driver_id}/direction-alert", status_code=200,
@@ -229,7 +233,10 @@ def send_direction_alert(driver_id: int, payload: dict, db: Session = Depends(ge
         distance_km=distance_km,
     )
     if not sent:
-        raise HTTPException(500, "Failed to send direction alert email. Check server SMTP configuration.")
+        return {
+            "message": "Alert recorded. Email delivery failed — configure SMTP in server settings to enable email notifications.",
+            "email_sent": False,
+        }
     return {"message": "Direction alert email sent successfully."}
 
 

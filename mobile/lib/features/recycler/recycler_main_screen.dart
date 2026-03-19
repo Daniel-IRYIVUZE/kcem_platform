@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import '../../core/services/api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
@@ -249,10 +250,10 @@ class _RecyclerHomeTab extends ConsumerWidget {
                             children: [
                               const Icon(Icons.location_on, color: AppColors.primary, size: 18),
                               const SizedBox(width: 8),
-                              const Expanded(
+                              Expanded(
                                 child: Text(
-                                  '12 listings within 5km of Kigali City',
-                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                                  '${listings.length} listings in marketplace',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                                 ),
                               ),
                               TextButton(
@@ -491,12 +492,22 @@ class _ActivityCard extends StatelessWidget {
 }
 
 // ─── Recycler Profile Tab ─────────────────────────────────────────────────────
-class _RecyclerProfileTab extends ConsumerWidget {
+class _RecyclerProfileTab extends ConsumerStatefulWidget {
   const _RecyclerProfileTab();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_RecyclerProfileTab> createState() => _RecyclerProfileTabState();
+}
+
+class _RecyclerProfileTabState extends ConsumerState<_RecyclerProfileTab> {
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
+    final recyclerAsync = ref.watch(recyclerProfileProvider);
+    final recyclerData = recyclerAsync.valueOrNull ?? {};
+    final tin = recyclerData['tin'] as String? ?? recyclerData['tin_number'] as String? ?? '—';
+    final location = recyclerData['location'] as String? ?? recyclerData['address'] as String? ?? '—';
+
     return Scaffold(
       backgroundColor: context.cBg,
       body: CustomScrollView(
@@ -511,7 +522,7 @@ class _RecyclerProfileTab extends ConsumerWidget {
                 onPressed: () => _showEditProfileSheet(context,
                     name: user?.displayName ?? '',
                     phone: user?.phone ?? '',
-                    location: 'Kicukiro, Kigali'),
+                    location: location == '—' ? '' : location),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -545,7 +556,7 @@ class _RecyclerProfileTab extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Recycler • Kigali',
+                        location != '—' ? 'Recycler • $location' : 'Recycler',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 13,
@@ -568,8 +579,8 @@ class _RecyclerProfileTab extends ConsumerWidget {
                   title: 'Company Details',
                   children: [
                     _RecyclerProfileRow(icon: Icons.business_outlined, label: 'Company Name', value: user?.displayName ?? 'N/A'),
-                    const _RecyclerProfileRow(icon: Icons.numbers_outlined, label: 'TIN Number', value: '119874300'),
-                    const _RecyclerProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: 'Kicukiro, Kigali'),
+                    _RecyclerProfileRow(icon: Icons.numbers_outlined, label: 'TIN Number', value: tin),
+                    _RecyclerProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: location),
                     _RecyclerProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
                     _RecyclerProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
                   ],
@@ -680,74 +691,99 @@ class _RecyclerProfileTab extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Change Password',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface)),
-            const SizedBox(height: 20),
-            TextField(
-              controller: currentCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Current Password',
-                prefixIcon: Icon(Icons.lock_outline),
-                border: OutlineInputBorder(),
-              ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          bool loading = false;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Change Password',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.onSurface)),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: currentCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Current Password',
+                    prefixIcon: Icon(Icons.lock_outline),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: newCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'New Password',
+                    prefixIcon: Icon(Icons.lock_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: confirmCtrl,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Confirm New Password',
+                    prefixIcon: Icon(Icons.lock_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            if (newCtrl.text != confirmCtrl.text) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Passwords do not match'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
+                              );
+                              return;
+                            }
+                            setSheet(() => loading = true);
+                            try {
+                              await ApiService.changePassword(
+                                currentPassword: currentCtrl.text,
+                                newPassword: newCtrl.text,
+                              );
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Row(children: [
+                                      Icon(Icons.check_circle, color: Colors.white, size: 18),
+                                      SizedBox(width: 8),
+                                      Text('Password changed successfully'),
+                                    ]),
+                                    backgroundColor: AppColors.primary,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              setSheet(() => loading = false);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed: $e'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
+                                );
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                    child: loading
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Update Password', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: newCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'New Password',
-                prefixIcon: Icon(Icons.lock_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: confirmCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Confirm New Password',
-                prefixIcon: Icon(Icons.lock_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (newCtrl.text != confirmCtrl.text) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Passwords do not match'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating),
-                    );
-                    return;
-                  }
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Row(children: [
-                        Icon(Icons.check_circle, color: Colors.white, size: 18),
-                        SizedBox(width: 8),
-                        Text('Password changed successfully'),
-                      ]),
-                      backgroundColor: AppColors.primary,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-                child: const Text('Update Password', style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -785,67 +821,100 @@ class _RecyclerProfileTab extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              const Text('Edit Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-              const Spacer(),
-              IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
-            ]),
-            const SizedBox(height: 16),
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Company Name',
-                prefixIcon: Icon(Icons.recycling_outlined),
-                border: OutlineInputBorder(),
-              ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          bool loading = false;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Text('Edit Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  const Spacer(),
+                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                ]),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Company Name',
+                    prefixIcon: Icon(Icons.recycling_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: locationCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Location',
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: loading
+                        ? null
+                        : () async {
+                            setSheet(() => loading = true);
+                            try {
+                              final futures = <Future>[];
+                              final profileData = <String, dynamic>{};
+                              if (nameCtrl.text.trim().isNotEmpty) profileData['full_name'] = nameCtrl.text.trim();
+                              if (phoneCtrl.text.trim().isNotEmpty) profileData['phone'] = phoneCtrl.text.trim();
+                              if (profileData.isNotEmpty) futures.add(ApiService.updateProfile(profileData));
+                              if (locationCtrl.text.trim().isNotEmpty) {
+                                futures.add(ApiService.updateMyRecycler({'location': locationCtrl.text.trim()}));
+                              }
+                              await Future.wait(futures);
+                              ref.invalidate(recyclerProfileProvider);
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                                  content: Row(children: [
+                                    Icon(Icons.check_circle, color: Colors.white, size: 18),
+                                    SizedBox(width: 8),
+                                    Text('Profile updated successfully'),
+                                  ]),
+                                  backgroundColor: AppColors.primary,
+                                  behavior: SnackBarBehavior.floating,
+                                ));
+                              }
+                            } catch (e) {
+                              setSheet(() => loading = false);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                  content: Text('Failed to update: $e'),
+                                  backgroundColor: AppColors.error,
+                                  behavior: SnackBarBehavior.floating,
+                                ));
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                    child: loading
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: phoneCtrl,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number',
-                prefixIcon: Icon(Icons.phone_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: locationCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Location',
-                prefixIcon: Icon(Icons.location_on_outlined),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Row(children: [
-                      Icon(Icons.check_circle, color: Colors.white, size: 18),
-                      SizedBox(width: 8),
-                      Text('Profile updated successfully'),
-                    ]),
-                    backgroundColor: AppColors.primary,
-                    behavior: SnackBarBehavior.floating,
-                  ));
-                },
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-                child: const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

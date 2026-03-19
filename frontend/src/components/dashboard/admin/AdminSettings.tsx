@@ -1,7 +1,15 @@
 // pages/dashboard/admin/Settings.tsx
 import { useEffect, useState } from 'react';
-import { Save, Settings, Bell, Shield, CreditCard, Globe } from 'lucide-react';
+import { Save, Settings, Bell, Shield, CreditCard, Globe, Mail, CheckCircle, XCircle, Loader } from 'lucide-react';
 import { adminAPI, type AdminPlatformSettings } from '../../../services/api';
+
+interface SmtpStatus {
+  configured: boolean;
+  smtp_host: string | null;
+  smtp_user: string | null;
+  email_from: string | null;
+  admin_email: string | null;
+}
 
 const defaults: AdminPlatformSettings = {
   platformName: 'EcoTrade Rwanda',
@@ -25,27 +33,42 @@ export default function AdminSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [smtp, setSmtp] = useState<SmtpStatus | null>(null);
+  const [smtpTesting, setSmtpTesting] = useState(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   useEffect(() => {
     let mounted = true;
-    adminAPI.getSettings()
-      .then((data) => {
-        if (!mounted) return;
-        setSettings({ ...defaults, ...data });
-        setError(null);
-      })
-      .catch((err: Error) => {
-        if (!mounted) return;
-        setError(err.message || 'Failed to load settings.');
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+    Promise.all([
+      adminAPI.getSettings(),
+      adminAPI.getSmtpStatus(),
+    ]).then(([data, smtpData]) => {
+      if (!mounted) return;
+      setSettings({ ...defaults, ...data });
+      setSmtp(smtpData);
+      setError(null);
+    }).catch((err: Error) => {
+      if (!mounted) return;
+      setError(err.message || 'Failed to load settings.');
+    }).finally(() => {
+      if (mounted) setLoading(false);
+    });
 
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, []);
+
+  const testSmtp = async () => {
+    setSmtpTesting(true);
+    setSmtpTestResult(null);
+    try {
+      const res = await adminAPI.testSmtp();
+      setSmtpTestResult({ ok: true, msg: res.message });
+    } catch (e) {
+      setSmtpTestResult({ ok: false, msg: e instanceof Error ? e.message : 'SMTP test failed.' });
+    } finally {
+      setSmtpTesting(false);
+    }
+  };
 
   const save = async () => {
     setIsSaving(true);
@@ -248,6 +271,72 @@ export default function AdminSettings() {
             onChange={v => setSettings({...settings, maintenanceMode: v})}
           />
         </div>
+      </div>
+
+      {/* SMTP Status Panel */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
+        <h3 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+          <Mail size={16} />
+          Email (SMTP) Configuration
+        </h3>
+        {smtp ? (
+          <>
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-lg border ${
+              smtp.configured
+                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+            }`}>
+              {smtp.configured
+                ? <CheckCircle size={18} className="text-green-600 dark:text-green-400 flex-shrink-0" />
+                : <XCircle size={18} className="text-red-500 flex-shrink-0" />}
+              <div>
+                <p className={`text-sm font-medium ${smtp.configured ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-400'}`}>
+                  {smtp.configured ? 'SMTP is configured and ready' : 'SMTP is not configured — emails will not be delivered'}
+                </p>
+                {!smtp.configured && (
+                  <p className="text-xs text-red-500 dark:text-red-400 mt-0.5">
+                    Set SMTP_USER, SMTP_PASSWORD and EMAIL_FROM in <code className="font-mono bg-red-100 dark:bg-red-900/40 px-1 rounded">backend/.env</code> then restart the server.
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              {[
+                ['SMTP Host', smtp.smtp_host],
+                ['SMTP User', smtp.smtp_user],
+                ['From Address', smtp.email_from],
+                ['Admin Email', smtp.admin_email],
+              ].map(([label, val]) => (
+                <div key={label as string} className="bg-gray-50 dark:bg-gray-900/40 rounded-lg px-3 py-2">
+                  <p className="text-xs text-gray-400 mb-0.5">{label}</p>
+                  <p className={`font-medium text-xs truncate ${val ? 'text-gray-800 dark:text-white' : 'text-gray-400 italic'}`}>
+                    {val ?? 'not set'}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {smtp.configured && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={testSmtp}
+                  disabled={smtpTesting}
+                  className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {smtpTesting ? <Loader size={14} className="animate-spin" /> : <Mail size={14} />}
+                  {smtpTesting ? 'Sending test email…' : 'Send Test Email'}
+                </button>
+                {smtpTestResult && (
+                  <span className={`text-sm flex items-center gap-1.5 ${smtpTestResult.ok ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    {smtpTestResult.ok ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                    {smtpTestResult.msg}
+                  </span>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-gray-400">Loading SMTP status…</p>
+        )}
       </div>
 
       {/* Maintenance Warning */}

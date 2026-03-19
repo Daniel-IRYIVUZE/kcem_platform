@@ -1,5 +1,6 @@
 ﻿"""routes/support.py — Support ticket endpoints."""
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from typing import Any
 from app.database import get_db
@@ -10,8 +11,22 @@ from app.schemas.support import (
     TicketResponseCreate,
 )
 from app.models.user import User, UserRole
+from app.services.email_service import (
+    send_support_ticket_created_email,
+    send_support_ticket_response_email,
+)
+from app.config import settings
 
 router = APIRouter(prefix="/support", tags=["Support"])
+
+
+class PublicContactPayload(BaseModel):
+    name: str
+    email: str
+    phone: str | None = None
+    user_type: str | None = None
+    subject: str
+    message: str
 
 
 def _ticket_to_dict(ticket) -> dict:
@@ -36,6 +51,57 @@ def _ticket_to_dict(ticket) -> dict:
             for r in ticket.responses
         ],
     }
+
+
+@router.post("/public", status_code=201)
+def create_public_ticket(payload: PublicContactPayload, db: Session = Depends(get_db)) -> Any:
+    """Public contact form — no authentication required.
+
+    Creates a support ticket as a guest user and notifies the admin by email.
+    """
+    # Determine priority from subject keywords
+    priority = "low"
+    subj_lower = payload.subject.lower()
+    if "urgent" in subj_lower:
+        priority = "urgent"
+    elif "billing" in subj_lower:
+        priority = "high"
+    elif payload.user_type in ("Business/Restaurant", "Recycling Company"):
+        priority = "medium"
+
+    # Enrich the message with sender context
+    context = f"[From: {payload.name} <{payload.email}>]"
+    if payload.phone:
+        context += f" [Phone: {payload.phone}]"
+    if payload.user_type:
+        context += f" [Type: {payload.user_type}]"
+    full_message = f"{context}\n\n{payload.message}"
+
+    ticket = crud_support.create(
+        db,
+        user_id=None,  # guest — no user account
+        user_name=payload.name,
+        obj_in=SupportTicketCreate(
+            subject=payload.subject,
+            message=full_message,
+            priority=priority,
+        ),
+    )
+
+    # Email admin
+    admin_email = getattr(settings, "ADMIN_EMAIL", settings.EMAIL_FROM)
+    if admin_email:
+        send_support_ticket_created_email(
+            admin_email=admin_email,
+            ticket_id=ticket.id,
+            user_name=payload.name,
+            user_email=payload.email,
+            subject=payload.subject,
+            message=payload.message,
+            priority=priority,
+        )
+
+    return {"id": ticket.id, "status": ticket.status, "message": "Ticket created successfully."}
 
 
 @router.get("/")
@@ -72,6 +138,18 @@ def create_ticket(
 ) -> Any:
     ticket = crud_support.create(db, user_id=current_user.id,
                                   user_name=current_user.full_name, obj_in=payload)
+    # Notify admin by email
+    admin_email = getattr(settings, "ADMIN_EMAIL", settings.EMAIL_FROM)
+    if admin_email:
+        send_support_ticket_created_email(
+            admin_email=admin_email,
+            ticket_id=ticket.id,
+            user_name=current_user.full_name,
+            user_email=current_user.email,
+            subject=payload.subject,
+            message=payload.message,
+            priority=ticket.priority,
+        )
     return _ticket_to_dict(ticket)
 
 
@@ -92,6 +170,16 @@ def add_response(ticket_id: int, payload: TicketResponseCreate,
     if not ticket:
         raise HTTPException(404, "Ticket not found.")
     resp = crud_support.add_response(db, ticket_id, payload)
+    # Email the ticket owner if they have an account with an email
+    if ticket.user and ticket.user.email:
+        send_support_ticket_response_email(
+            user_email=ticket.user.email,
+            user_name=ticket.user.full_name,
+            ticket_id=ticket.id,
+            ticket_subject=ticket.subject,
+            response_message=payload.message,
+            from_name=payload.from_name,
+        )
     return {
         "id": resp.id,
         "ticket_id": resp.ticket_id,

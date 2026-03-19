@@ -13,7 +13,7 @@ class SupportTicket(Base):
     __tablename__ = "support_tickets"
 
     id         = Column(Integer, primary_key=True, index=True)
-    user_id    = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     subject    = Column(String(255), nullable=False)
     message    = Column(Text, nullable=False)
     status     = Column(String(50), default="open")       # open, in_progress, resolved, closed

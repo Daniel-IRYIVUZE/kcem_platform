@@ -21,7 +21,17 @@ def send_email(*, to_email: str, subject: str, html_body: str, text_body: str = 
     """Send an email via SMTP.
 
     Returns True on success, logs the error and returns False on failure.
+    Immediately returns False (without attempting a connection) when SMTP
+    credentials are not configured.
     """
+    if not settings.is_email_configured:
+        logger.warning(
+            "Email not sent to %s — SMTP not configured. "
+            "Set SMTP_HOST, SMTP_USER, SMTP_PASSWORD and EMAIL_FROM in .env",
+            to_email,
+        )
+        return False
+
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
@@ -238,7 +248,7 @@ def send_driver_reminder_email(*, email: str, full_name: str, recycler_name: str
                 </p>
                 <!-- CTA -->
                 <div style="text-align:center;margin:32px 0;">
-                  <a href="https://ecotrade.rw/login"
+                  <a href="http://localhost:5173/login"
                      style="display:inline-block;background:linear-gradient(135deg,#0891b2,#0e7490);
                             color:#ffffff;text-decoration:none;font-weight:700;font-size:16px;
                             padding:14px 36px;border-radius:8px;">
@@ -266,6 +276,116 @@ def send_driver_reminder_email(*, email: str, full_name: str, recycler_name: str
     </html>
     """
     return send_email(to_email=email, subject=subject, html_body=html)
+
+
+def send_support_ticket_created_email(
+    *,
+    admin_email: str,
+    ticket_id: int,
+    user_name: str,
+    user_email: str,
+    subject: str,
+    message: str,
+    priority: str,
+) -> bool:
+    """Notify admin when a new support ticket is created."""
+    email_subject = f"[Support #{ticket_id}] New {priority.upper()} ticket — {subject}"
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px 20px;">
+      <table width="600" cellpadding="0" cellspacing="0" align="center"
+             style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+        <tr>
+          <td style="background:linear-gradient(135deg,#0891b2,#0e7490);padding:28px 36px;">
+            <h1 style="color:#fff;margin:0;font-size:20px;">📩 New Support Ticket #{ticket_id}</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px 36px;">
+            <table width="100%" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;
+                                        margin-bottom:20px;padding:20px;" cellpadding="4">
+              <tr><td style="color:#64748b;width:100px;">From:</td>
+                  <td style="color:#0f172a;font-weight:600;">{user_name} &lt;{user_email}&gt;</td></tr>
+              <tr><td style="color:#64748b;">Subject:</td>
+                  <td style="color:#0f172a;">{subject}</td></tr>
+              <tr><td style="color:#64748b;">Priority:</td>
+                  <td style="color:#0f172a;font-weight:700;text-transform:uppercase;">{priority}</td></tr>
+            </table>
+            <p style="color:#475569;font-size:14px;line-height:1.6;
+                       background:#f8fafc;border-left:4px solid #0891b2;padding:16px;border-radius:4px;">
+              {message}
+            </p>
+            <p style="color:#94a3b8;font-size:13px;margin-top:24px;">
+              Log in to the admin dashboard to respond to this ticket.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#f8fafc;padding:16px 36px;border-top:1px solid #e2e8f0;">
+            <p style="color:#94a3b8;font-size:12px;margin:0;text-align:center;">
+              © 2025 EcoTrade Rwanda
+            </p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
+    return send_email(to_email=admin_email, subject=email_subject, html_body=html)
+
+
+def send_support_ticket_response_email(
+    *,
+    user_email: str,
+    user_name: str,
+    ticket_id: int,
+    ticket_subject: str,
+    response_message: str,
+    from_name: str,
+) -> bool:
+    """Notify a user by email when admin responds to their support ticket."""
+    subject = f"Re: {ticket_subject} [Ticket #{ticket_id}]"
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px 20px;">
+      <table width="600" cellpadding="0" cellspacing="0" align="center"
+             style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);">
+        <tr>
+          <td style="background:linear-gradient(135deg,#0891b2,#0e7490);padding:28px 36px;">
+            <h1 style="color:#fff;margin:0;font-size:20px;">💬 Support Reply — Ticket #{ticket_id}</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px 36px;">
+            <p style="color:#1e293b;font-size:16px;">Hi <strong>{user_name}</strong>,</p>
+            <p style="color:#475569;">
+              <strong>{from_name}</strong> from EcoTrade Rwanda has responded to your support ticket
+              "<em>{ticket_subject}</em>":
+            </p>
+            <p style="color:#0f172a;font-size:14px;line-height:1.7;
+                       background:#f0fdf4;border:1px solid #bbf7d0;border-left:4px solid #22c55e;
+                       padding:16px;border-radius:4px;">
+              {response_message}
+            </p>
+            <p style="color:#64748b;font-size:13px;margin-top:20px;">
+              You can view your ticket and reply by logging in to your EcoTrade Rwanda account.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#f8fafc;padding:16px 36px;border-top:1px solid #e2e8f0;">
+            <p style="color:#94a3b8;font-size:12px;margin:0;text-align:center;">
+              © 2025 EcoTrade Rwanda
+            </p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
+    return send_email(to_email=user_email, subject=subject, html_body=html)
 
 
 def send_driver_wrong_direction_email(

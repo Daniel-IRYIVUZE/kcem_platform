@@ -6,7 +6,7 @@ from app.crud import crud_user
 from app.auth.dependencies import get_current_active_user, require_admin
 from app.schemas.user import UserRead, UserUpdate, DocumentUpload
 from app.utils.file_upload import save_upload
-from app.models.user import User, UserRole
+from app.models.user import User, UserRole, UserStatus
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -66,6 +66,49 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
               dependencies=[Depends(require_admin)])
 def update_user_status(user_id: int, payload: dict, db: Session = Depends(get_db)):
     user = crud_user.admin_update(db, user_id=user_id, data=payload)
+    if not user:
+        raise HTTPException(404, "User not found.")
+    return user
+
+
+@router.put("/{user_id}", response_model=UserRead,
+            dependencies=[Depends(require_admin)])
+def update_user(user_id: int, payload: dict, db: Session = Depends(get_db)):
+    """Admin: full update of a user record (name, email, phone, role, status, etc.)."""
+    user = crud_user.admin_update(db, user_id=user_id, data=payload)
+    if not user:
+        raise HTTPException(404, "User not found.")
+    return user
+
+
+@router.delete("/{user_id}", status_code=204,
+               dependencies=[Depends(require_admin)])
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    """Admin: permanently delete a user account."""
+    user = crud_user.get(db, user_id)
+    if not user:
+        raise HTTPException(404, "User not found.")
+    db.delete(user)
+    db.commit()
+
+
+@router.post("/{user_id}/approve", response_model=UserRead,
+             dependencies=[Depends(require_admin)])
+def approve_user(user_id: int, db: Session = Depends(get_db)):
+    """Admin: approve / activate a user account."""
+    user = crud_user.admin_update(db, user_id=user_id,
+                                  data={"status": UserStatus.active, "is_verified": True})
+    if not user:
+        raise HTTPException(404, "User not found.")
+    return user
+
+
+@router.post("/{user_id}/suspend", response_model=UserRead,
+             dependencies=[Depends(require_admin)])
+def suspend_user(user_id: int, db: Session = Depends(get_db)):
+    """Admin: suspend a user account."""
+    user = crud_user.admin_update(db, user_id=user_id,
+                                  data={"status": UserStatus.suspended})
     if not user:
         raise HTTPException(404, "User not found.")
     return user

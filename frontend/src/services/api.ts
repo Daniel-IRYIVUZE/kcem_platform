@@ -756,6 +756,19 @@ export const supportAPI = {
   create: (data: { subject: string; message: string; priority?: string }) =>
     request<SupportTicket>('/support', { method: 'POST', body: JSON.stringify(data) }),
 
+  createPublic: (data: {
+    name: string;
+    email: string;
+    phone?: string;
+    user_type?: string;
+    subject: string;
+    message: string;
+  }) =>
+    request<{ id: number; status: string; message: string }>(
+      '/support/public',
+      { method: 'POST', body: JSON.stringify(data) },
+    ),
+
   update: (id: number, data: { status?: string; priority?: string }) =>
     request<SupportTicket>(`/support/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
@@ -959,6 +972,32 @@ export const adminAPI = {
 
   deleteListingImage: (listingId: number, imageId: number) =>
     request<void>(`/admin/listings/${listingId}/images/${imageId}`, { method: 'DELETE' }),
+
+  getSmtpStatus: () =>
+    request<{
+      configured: boolean;
+      smtp_host: string | null;
+      smtp_port: number;
+      smtp_user: string | null;
+      email_from: string | null;
+      admin_email: string | null;
+    }>('/admin/smtp-status'),
+
+  testSmtp: () =>
+    request<{ success: boolean; message: string }>('/admin/smtp-test', { method: 'POST' }),
+
+  getAuditLogs: (limit = 200) =>
+    request<{
+      id: number;
+      user_id: number | null;
+      action: string;
+      entity_type: string | null;
+      entity_id: number | null;
+      notes: string | null;
+      ip_address: string | null;
+      created_at: string;
+      user?: { full_name: string; email: string };
+    }[]>(`/admin/audit-logs?limit=${limit}`),
 
   getSettings: () =>
     request<AdminPlatformSettings>('/admin/settings'),
@@ -1168,7 +1207,7 @@ export const driversAPI = {
       body: JSON.stringify({ vehicle_id: vehicleId }),
     }),
   sendReminder: (driverId: number) =>
-    request<{ message: string }>(`/drivers/${driverId}/remind`, { method: 'POST' }),
+    request<{ message: string; email_sent: boolean }>(`/drivers/${driverId}/remind`, { method: 'POST' }),
   sendDirectionAlert: (driverId: number, data: { message: string; destination?: string; distance_km?: number }) =>
     request<{ message: string }>(`/drivers/${driverId}/direction-alert`, {
       method: 'POST',

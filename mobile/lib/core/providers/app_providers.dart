@@ -571,6 +571,17 @@ final hotelProfileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   }
 });
 
+/// Driver profile data from /drivers/me — provides license number, vehicle, location, etc.
+final driverProfileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final user = ref.watch(authProvider).user;
+  if (user == null || user.role != UserRole.driver) return {};
+  try {
+    return await ApiService.getMyDriver();
+  } catch (_) {
+    return {};
+  }
+});
+
 /// Recycler profile data from /recyclers/me — provides company name, TIN, city, etc.
 final recyclerProfileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final user = ref.watch(authProvider).user;

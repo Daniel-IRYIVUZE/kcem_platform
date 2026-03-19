@@ -72,9 +72,68 @@ def platform_stats(db: Session = Depends(get_db)):
     }
 
 
+@router.get("/smtp-status")
+def smtp_status():
+    """Return current SMTP configuration status (no credentials exposed)."""
+    from app.config import settings
+    return {
+        "configured": settings.is_email_configured,
+        "smtp_host": settings.SMTP_HOST or None,
+        "smtp_port": settings.SMTP_PORT,
+        "smtp_user": settings.SMTP_USER or None,
+        "email_from": settings.EMAIL_FROM or None,
+        "email_from_name": settings.EMAIL_FROM_NAME,
+        "use_tls": settings.EMAIL_USE_TLS,
+        "admin_email": settings.ADMIN_EMAIL or None,
+    }
+
+
+@router.post("/smtp-test")
+def smtp_test():
+    """Send a test email to ADMIN_EMAIL to verify SMTP is working."""
+    from app.config import settings
+    from app.services.email_service import send_email
+    if not settings.is_email_configured:
+        raise HTTPException(400, "SMTP is not configured. Set SMTP_USER, SMTP_PASSWORD and EMAIL_FROM in .env then restart the server.")
+    target = settings.ADMIN_EMAIL or settings.EMAIL_FROM
+    sent = send_email(
+        to_email=target,
+        subject="EcoTrade Rwanda — SMTP Test",
+        html_body="""
+        <div style="font-family:Arial,sans-serif;padding:32px;background:#f0fdf4;border-radius:12px;">
+          <h2 style="color:#0891b2;">✅ SMTP is working!</h2>
+          <p style="color:#475569;">Your EcoTrade Rwanda email configuration is correct.
+          Transactional emails (driver reminders, bid notifications, support tickets) will be delivered.</p>
+          <p style="color:#94a3b8;font-size:12px;">© EcoTrade Rwanda</p>
+        </div>
+        """,
+        text_body="EcoTrade Rwanda SMTP test — if you received this, email delivery is working correctly.",
+    )
+    if not sent:
+        raise HTTPException(500, "SMTP connection failed. Check your credentials in .env and restart the server.")
+    return {"success": True, "message": f"Test email sent to {target}"}
+
+
 @router.get("/audit-logs")
-def audit_logs(limit: int = 100, db: Session = Depends(get_db)):
-    return crud_audit_log.get_recent(db, limit=limit)
+def audit_logs(limit: int = 200, db: Session = Depends(get_db)):
+    logs = crud_audit_log.get_recent(db, limit=limit)
+    return [
+        {
+            "id": log.id,
+            "user_id": log.user_id,
+            "action": log.action,
+            "entity_type": log.entity_type,
+            "entity_id": log.entity_id,
+            "notes": log.notes,
+            "ip_address": log.ip_address,
+            "created_at": log.created_at.isoformat() if log.created_at else None,
+            "user": {
+                "full_name": log.user.full_name,
+                "email": log.user.email,
+            } if log.user else None,
+        }
+        for log in logs
+    ]
 
 
 @router.get("/green-leaderboard")

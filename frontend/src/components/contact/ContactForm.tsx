@@ -1,8 +1,7 @@
 // components/contact/ContactForm.tsx
 import { useState } from 'react';
 import type { RefObject } from 'react';
-import { create, generateId } from '../../utils/dataStore';
-import type { SupportTicket } from '../../utils/dataStore';
+import { supportAPI } from '../../services/api';
 import { Send, Paperclip, X, CheckCircle, AlertCircle, Loader, FileText } from 'lucide-react';
 
 interface ContactFormProps {
@@ -79,30 +78,19 @@ const ContactForm = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormStatus('submitting');
 
-    const now = new Date().toISOString();
-    const priority: SupportTicket['priority'] =
-      formData.subject.toLowerCase().includes('urgent') ? 'urgent' :
-      formData.subject.toLowerCase().includes('billing') ? 'high' :
-      formData.userType === 'Business/Restaurant' || formData.userType === 'Recycling Company' ? 'medium' : 'low';
-
-    create<SupportTicket>('supportTickets', {
-      id: generateId('TKT'),
-      userId: 'guest',
-      userName: formData.name,
-      subject: formData.subject || 'General Inquiry',
-      message: formData.message,
-      status: 'open',
-      priority,
-      createdAt: now,
-      updatedAt: now,
-      responses: [],
-    });
-
-    setTimeout(() => {
+    try {
+      await supportAPI.createPublic({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || undefined,
+        user_type: formData.userType || undefined,
+        subject: formData.subject || 'General Inquiry',
+        message: formData.message,
+      });
       setFormStatus('success');
       setTimeout(() => {
         setFormStatus('idle');
@@ -118,7 +106,9 @@ const ContactForm = ({
         setAttachments([]);
         setCharCount(0);
       }, 3000);
-    }, 1500);
+    } catch {
+      setFormStatus('error');
+    }
   };
 
   const userTypes = [

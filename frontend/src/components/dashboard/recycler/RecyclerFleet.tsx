@@ -153,13 +153,18 @@ export default function RecyclerFleet() {
   const handleSendReminder = async (driverId: number) => {
     setSendingReminder(driverId);
     try {
-      await driversAPI.sendReminder(driverId);
-      setReminderMsg({ text: 'Reminder email sent successfully.', ok: true });
+      const res = await driversAPI.sendReminder(driverId);
+      setReminderMsg({
+        text: res.email_sent
+          ? 'Reminder email sent successfully.'
+          : 'Reminder recorded — email not sent (SMTP not configured in server settings).',
+        ok: res.email_sent,
+      });
     } catch (e) {
       setReminderMsg({ text: e instanceof Error ? e.message : 'Failed to send reminder.', ok: false });
     } finally {
       setSendingReminder(null);
-      setTimeout(() => setReminderMsg(null), 5000);
+      setTimeout(() => setReminderMsg(null), 6000);
     }
   };
 

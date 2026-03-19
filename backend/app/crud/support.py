@@ -4,7 +4,7 @@ from app.models.support import SupportTicket, TicketResponse
 from app.schemas.support import SupportTicketCreate, SupportTicketUpdate, TicketResponseCreate
 
 
-def create(db: Session, user_id: int, user_name: str, obj_in: SupportTicketCreate) -> SupportTicket:
+def create(db: Session, user_id: int | None, user_name: str, obj_in: SupportTicketCreate) -> SupportTicket:
     ticket = SupportTicket(
         user_id=user_id,
         subject=obj_in.subject,

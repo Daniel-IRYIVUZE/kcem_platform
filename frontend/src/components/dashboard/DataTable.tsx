@@ -30,7 +30,7 @@ const DataTable = ({ columns, data, pageSize = 5 }: DataTableProps) => {
             {columns.map((column, columnIndex) => (
               <th
                 key={`${column.key}-${columnIndex}`}
-                className="px-6 py-3 bg-gray-50 dark:bg-gray-900 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                className="px-3 sm:px-6 py-2 sm:py-3 bg-gray-50 dark:bg-gray-900 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               >
                 {column.label}
               </th>
@@ -41,7 +41,7 @@ const DataTable = ({ columns, data, pageSize = 5 }: DataTableProps) => {
           {currentData.map((row, rowIndex) => (
               <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
               {columns.map((column, columnIndex) => (
-                <td key={`${column.key}-${columnIndex}`} className="px-6 py-4 whitespace-nowrap">
+                <td key={`${column.key}-${columnIndex}`} className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-sm">
                   {column.render ? column.render(row[column.key], row) : row[column.key]}
                 </td>
               ))}

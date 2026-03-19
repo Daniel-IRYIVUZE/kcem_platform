@@ -67,6 +67,38 @@ def _run_migrations() -> None:
             except Exception:
                 pass  # column already exists — safe to ignore
 
+    # Make support_tickets.user_id nullable (for public/guest contact form tickets).
+    # SQLite does not support ALTER COLUMN, so we recreate the table if the NOT NULL
+    # constraint is still in place.
+    with engine.connect() as conn:
+        try:
+            row = conn.execute(
+                text("SELECT sql FROM sqlite_master WHERE type='table' AND name='support_tickets'")
+            ).fetchone()
+            if row and "NOT NULL" in (row[0] or "").upper() and "USER_ID" in (row[0] or "").upper():
+                conn.execute(text("PRAGMA foreign_keys=OFF"))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS support_tickets_new (
+                        id         INTEGER PRIMARY KEY,
+                        user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                        subject    VARCHAR(255) NOT NULL,
+                        message    TEXT NOT NULL,
+                        status     VARCHAR(50)  DEFAULT 'open',
+                        priority   VARCHAR(20)  DEFAULT 'medium',
+                        created_at DATETIME,
+                        updated_at DATETIME
+                    )
+                """))
+                conn.execute(text(
+                    "INSERT INTO support_tickets_new SELECT id,user_id,subject,message,status,priority,created_at,updated_at FROM support_tickets"
+                ))
+                conn.execute(text("DROP TABLE support_tickets"))
+                conn.execute(text("ALTER TABLE support_tickets_new RENAME TO support_tickets"))
+                conn.execute(text("PRAGMA foreign_keys=ON"))
+                conn.commit()
+        except Exception:
+            pass  # Already migrated or table doesn't exist yet
+
 
 app = FastAPI(
     title="EcoTrade Rwanda API",

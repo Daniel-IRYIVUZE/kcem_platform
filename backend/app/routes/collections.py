@@ -10,6 +10,7 @@ from app.services.notification_service import notify_collection_status, notify_d
 from app.services.green_score_service import update_score
 from app.utils.file_upload import save_upload
 from app.services.assignment_service import auto_assign_collections
+from app.services.email_service import send_driver_assigned_notification_email
 
 router = APIRouter(prefix="/collections", tags=["Collections"])
 
@@ -174,11 +175,27 @@ def hotel_request_driver(collection_id: int, payload: dict, db: Session = Depend
     col = crud_collection.assign_driver(db, collection_id=collection_id,
                                         driver_id=driver_id, vehicle_id=vehicle_id)
     try:
+        hotel_name = col.listing.hotel.hotel_name if (col.listing and col.listing.hotel) else "Hotel"
+        hotel_address = col.listing.hotel.address if (col.listing and col.listing.hotel) else ""
+        waste_type = col.listing.waste_type.value if col.listing else "Waste"
+        volume = col.listing.volume if col.listing else 0
         notify_driver_assigned(db, driver_user_id=driver.user_id,
-                               hotel_name=col.listing.hotel.hotel_name if (col.listing and col.listing.hotel) else "Hotel",
-                               waste_type=col.listing.waste_type.value if col.listing else "Waste",
-                               volume=col.listing.volume if col.listing else 0,
+                               hotel_name=hotel_name,
+                               waste_type=waste_type,
+                               volume=volume,
                                collection_id=col.id)
+        # Also send email notification if the driver has an email address
+        if driver.user and driver.user.email:
+            send_driver_assigned_notification_email(
+                email=driver.user.email,
+                driver_name=driver.user.full_name,
+                hotel_name=hotel_name,
+                hotel_address=hotel_address,
+                waste_type=waste_type,
+                volume=volume,
+                scheduled_date=col.scheduled_date.isoformat() if col.scheduled_date else None,
+                collection_id=col.id,
+            )
     except Exception:
         pass  # Notification failure is non-critical
     return col
