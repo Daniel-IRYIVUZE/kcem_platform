@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 
 class LiveTrackingScreen extends StatefulWidget {
   final Collection collection;
+  /// When true, the driver's GPS position is pushed to backend on each update.
   final bool pushDriverLocation;
 
   const LiveTrackingScreen({
@@ -27,7 +28,9 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
 
   LatLng? _current;
   LatLng? _destination;
-  double? _distanceMeters;
+  List<LatLng> _routePoints = [];
+  double? _roadDistanceMeters;
+  double? _durationSeconds;
   bool _loading = true;
   String? _error;
 
@@ -50,124 +53,152 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        setState(() {
-          _error = 'Location service is disabled';
-          _loading = false;
-        });
+        setState(() { _error = 'Location service is disabled'; _loading = false; });
         return;
       }
-
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-        setState(() {
-          _error = 'Location permission denied';
-          _loading = false;
-        });
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        setState(() { _error = 'Location permission denied'; _loading = false; });
         return;
       }
 
       final initialPos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
-
       final destination = await _resolveDestination();
       final current = LatLng(initialPos.latitude, initialPos.longitude);
-      final firstDistance = Geolocator.distanceBetween(
-        current.latitude,
-        current.longitude,
-        destination.latitude,
-        destination.longitude,
-      );
+
+      // Fetch road-following route from OSRM
+      final route = await _fetchRoute(current, destination);
 
       setState(() {
         _current = current;
         _destination = destination;
-        _distanceMeters = firstDistance;
+        _routePoints = route.points;
+        _roadDistanceMeters = route.distanceMeters;
+        _durationSeconds = route.durationSeconds;
         _loading = false;
       });
 
-      _fitBoth();
-      if (widget.pushDriverLocation) {
-        await _safePushDriverLocation(current);
-      }
+      _fitBounds();
+      if (widget.pushDriverLocation) await _safePushLocation(current);
 
       _positionSub = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          distanceFilter: 5,
+          distanceFilter: 10,
         ),
       ).listen((pos) async {
         final next = LatLng(pos.latitude, pos.longitude);
-        final dest = _destination ?? destination;
-        final meters = Geolocator.distanceBetween(
-          next.latitude,
-          next.longitude,
-          dest.latitude,
-          dest.longitude,
-        );
         if (!mounted) return;
-        setState(() {
-          _current = next;
-          _distanceMeters = meters;
-        });
-        if (widget.pushDriverLocation) {
-          await _safePushDriverLocation(next);
+        setState(() { _current = next; });
+        if (widget.pushDriverLocation) await _safePushLocation(next);
+
+        // Recompute road distance to destination from new position
+        final dest = _destination;
+        if (dest != null) {
+          final updated = await _fetchRoute(next, dest);
+          if (mounted) {
+            setState(() {
+              _routePoints = updated.points;
+              _roadDistanceMeters = updated.distanceMeters;
+              _durationSeconds = updated.durationSeconds;
+            });
+          }
         }
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        _error = 'Failed to start live tracking.';
-        _loading = false;
-      });
+      setState(() { _error = 'Failed to start live tracking.'; _loading = false; });
     }
   }
 
-  Future<void> _safePushDriverLocation(LatLng point) async {
+  Future<_RouteResult> _fetchRoute(LatLng from, LatLng to) async {
+    try {
+      final routes = await ApiService.getOSRMRoute(
+        from.latitude, from.longitude,
+        to.latitude, to.longitude,
+      );
+      if (routes.isNotEmpty) {
+        final r = routes[0] as Map<String, dynamic>;
+        final geometry = r['geometry'] as Map<String, dynamic>?;
+        final coords = geometry?['coordinates'] as List? ?? [];
+        final points = coords.map((c) {
+          final list = c as List;
+          return LatLng((list[1] as num).toDouble(), (list[0] as num).toDouble());
+        }).toList();
+        return _RouteResult(
+          points: points.isNotEmpty ? points : [from, to],
+          distanceMeters: (r['distance'] as num?)?.toDouble(),
+          durationSeconds: (r['duration'] as num?)?.toDouble(),
+        );
+      }
+    } catch (_) {}
+    // Straight-line fallback
+    final meters = Geolocator.distanceBetween(
+      from.latitude, from.longitude, to.latitude, to.longitude,
+    );
+    return _RouteResult(points: [from, to], distanceMeters: meters);
+  }
+
+  Future<void> _safePushLocation(LatLng point) async {
     try {
       await ApiService.updateDriverLocation(point.latitude, point.longitude);
     } catch (_) {}
   }
 
   Future<LatLng> _resolveDestination() async {
-    if (widget.collection.destinationLat != null && widget.collection.destinationLng != null) {
-      return LatLng(widget.collection.destinationLat!, widget.collection.destinationLng!);
+    if (widget.collection.destinationLat != null &&
+        widget.collection.destinationLng != null) {
+      return LatLng(
+        widget.collection.destinationLat!,
+        widget.collection.destinationLng!,
+      );
     }
-
     final id = int.tryParse(widget.collection.id);
     if (id != null) {
       try {
         final tracking = await ApiService.getCollectionTracking(id);
         final lat = (tracking['hotel_lat'] as num?)?.toDouble();
         final lng = (tracking['hotel_lng'] as num?)?.toDouble();
-        if (lat != null && lng != null) {
-          return LatLng(lat, lng);
-        }
+        if (lat != null && lng != null) return LatLng(lat, lng);
       } catch (_) {}
     }
-
     return _kigaliFallback;
   }
 
-  void _fitBoth() {
+  void _fitBounds() {
     if (_current == null || _destination == null) return;
-    final bounds = LatLngBounds.fromPoints([_current!, _destination!]);
-    _mapController.fitCamera(
-      CameraFit.bounds(
-        bounds: bounds,
-        padding: const EdgeInsets.all(40),
-      ),
-    );
+    final allPoints = [_current!, _destination!, ..._routePoints];
+    final bounds = LatLngBounds.fromPoints(allPoints);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _mapController.fitCamera(
+          CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(48)),
+        );
+      }
+    });
   }
 
   String _distanceLabel() {
-    final meters = _distanceMeters;
-    if (meters == null) return '—';
-    if (meters < 1000) return '${meters.toStringAsFixed(0)} m';
-    return '${(meters / 1000).toStringAsFixed(2)} km';
+    final m = _roadDistanceMeters;
+    if (m == null) return '—';
+    if (m < 1000) return '${m.toStringAsFixed(0)} m';
+    return '${(m / 1000).toStringAsFixed(1)} km';
+  }
+
+  String _etaLabel() {
+    final s = _durationSeconds;
+    if (s == null) return '—';
+    final minutes = (s / 60).ceil();
+    if (minutes < 60) return '~$minutes min';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return '~${h}h ${m}min';
   }
 
   @override
@@ -177,10 +208,12 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Live Distance Tracking'),
+        title: Text(widget.collection.businessName.isNotEmpty
+            ? widget.collection.businessName
+            : 'Live Navigation'),
         actions: [
           IconButton(
-            onPressed: _fitBoth,
+            onPressed: _fitBounds,
             icon: const Icon(Icons.fit_screen),
             tooltip: 'Fit route',
           ),
@@ -192,26 +225,80 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: Text(_error!, style: const TextStyle(color: AppColors.error)),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.location_off_outlined,
+                            size: 56, color: AppColors.textTertiary),
+                        const SizedBox(height: 12),
+                        Text(_error!,
+                            style: const TextStyle(color: AppColors.error),
+                            textAlign: TextAlign.center),
+                      ],
+                    ),
                   ),
                 )
               : Column(
                   children: [
+                    // Info banner
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
                       color: AppColors.primaryLight,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Text(
-                            widget.collection.businessName,
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                          const Icon(Icons.navigation,
+                              color: AppColors.primary, size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.collection.businessName.isNotEmpty
+                                      ? widget.collection.businessName
+                                      : 'Collection point',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14),
+                                ),
+                                Text(
+                                  widget.collection.location.isNotEmpty
+                                      ? widget.collection.location
+                                      : 'Kigali, Rwanda',
+                                  style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Distance remaining: ${_distanceLabel()}',
-                            style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.route,
+                                      color: AppColors.primary, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _distanceLabel(),
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.primary,
+                                        fontSize: 14),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                _etaLabel(),
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -225,59 +312,184 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                         ),
                         children: [
                           TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                             userAgentPackageName: 'com.ecotrade.app',
                           ),
-                          if (current != null && destination != null)
+                          // Road-following route polyline
+                          if (_routePoints.length >= 2)
                             PolylineLayer(
                               polylines: [
                                 Polyline(
-                                  points: [current, destination],
+                                  points: _routePoints,
                                   color: AppColors.primary,
-                                  strokeWidth: 4,
+                                  strokeWidth: 5,
                                 ),
                               ],
                             ),
+                          // Markers
                           MarkerLayer(
                             markers: [
                               if (current != null)
                                 Marker(
                                   point: current,
-                                  width: 44,
-                                  height: 44,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.green,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
-                                    ),
-                                    child: const Icon(Icons.my_location, color: Colors.white, size: 20),
+                                  width: 48,
+                                  height: 48,
+                                  child: _MapPin(
+                                    icon: Icons.directions_car,
+                                    color: AppColors.primary,
+                                    label: 'You',
                                   ),
                                 ),
                               if (destination != null)
                                 Marker(
                                   point: destination,
-                                  width: 46,
-                                  height: 46,
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
-                                    ),
-                                    child: const Icon(Icons.location_on, color: Colors.white, size: 22),
+                                  width: 52,
+                                  height: 52,
+                                  child: _MapPin(
+                                    icon: Icons.location_on,
+                                    color: AppColors.error,
+                                    label: 'Drop',
                                   ),
                                 ),
                             ],
                           ),
                           const RichAttributionWidget(
-                            attributions: [TextSourceAttribution('OpenStreetMap contributors')],
+                            attributions: [
+                              TextSourceAttribution(
+                                  'OpenStreetMap contributors'),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Bottom action bar
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                      color: context.cSurf,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _InfoTile(
+                              icon: Icons.recycling,
+                              label: 'Waste',
+                              value: widget.collection.wasteType.label,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _InfoTile(
+                              icon: Icons.scale_outlined,
+                              label: 'Volume',
+                              value:
+                                  '${widget.collection.volume.toStringAsFixed(0)} kg',
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _InfoTile(
+                              icon: Icons.access_time,
+                              label: 'ETA',
+                              value: _etaLabel(),
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
+    );
+  }
+}
+
+class _RouteResult {
+  final List<LatLng> points;
+  final double? distanceMeters;
+  final double? durationSeconds;
+  const _RouteResult({
+    required this.points,
+    this.distanceMeters,
+    this.durationSeconds,
+  });
+}
+
+class _MapPin extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  const _MapPin({required this.icon, required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.4),
+                blurRadius: 6,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Icon(icon, color: Colors.white, size: 18),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+                fontWeight: FontWeight.w700),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _InfoTile(
+      {required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      decoration: BoxDecoration(
+        color: context.cSurfAlt,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.cBorder),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.primary),
+          const SizedBox(height: 3),
+          Text(value,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w700, fontSize: 12),
+              overflow: TextOverflow.ellipsis),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 10, color: AppColors.textSecondary)),
+        ],
+      ),
     );
   }
 }

@@ -42,21 +42,16 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen>
         c.status == CollectionStatus.missed).toList();
     return Scaffold(
       backgroundColor: context.cBg,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(60),
-        child: AppBar(
-          title: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Text('Collections'),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () {},
-              ),
-            ),
+      appBar: AppBar(
+        title: const Text('Collections'),
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: AppColors.textSecondary,
+          indicatorColor: AppColors.primary,
+          tabs: [
+            Tab(text: 'Scheduled (${scheduled.length})'),
+            Tab(text: 'History (${history.length})'),
           ],
         ),
       ),

@@ -119,12 +119,21 @@ class _BidsList extends StatelessWidget {
   }
 }
 
-class _BidCard extends ConsumerWidget {
+class _BidCard extends ConsumerStatefulWidget {
   final Bid bid;
   const _BidCard({required this.bid});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_BidCard> createState() => _BidCardState();
+}
+
+class _BidCardState extends ConsumerState<_BidCard> {
+  bool _accepting = false;
+
+  Bid get bid => widget.bid;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -234,7 +243,8 @@ class _BidCard extends ConsumerWidget {
                 child: EcoButton(
                   label: 'Accept',
                   height: 40,
-                  onPressed: () => _showAcceptDialog(context, ref, bid),
+                  isLoading: _accepting,
+                  onPressed: _accepting ? null : () => _showAcceptDialog(context, ref, bid),
                 ),
               ),
               const SizedBox(width: 10),
@@ -244,7 +254,7 @@ class _BidCard extends ConsumerWidget {
                   height: 40,
                   isOutlined: true,
                   backgroundColor: AppColors.error,
-                  onPressed: () => _showDeclineDialog(context, ref, bid),
+                  onPressed: _accepting ? null : () => _showDeclineDialog(context, ref, bid),
                 ),
               ),
               const SizedBox(width: 10),
@@ -369,20 +379,44 @@ class _BidCard extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Accept Bid?'),
-        content: Text('Accept bid from ${bid.recyclerName} for RWF ${bid.amount.toStringAsFixed(0)}?'),
+        content: Text(
+            'Accept bid from ${bid.recyclerName} for RWF ${bid.amount.toStringAsFixed(0)}?\n\nThis will schedule a collection automatically.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
-            onPressed: () {
-              ref.read(listingsNotifierProvider.notifier).acceptBid(bid.listingId, bid.id);
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Bid from ${bid.recyclerName} accepted!'),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              setState(() => _accepting = true);
+              try {
+                await ref
+                    .read(listingsNotifierProvider.notifier)
+                    .acceptBid(bid.listingId, bid.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(children: [
+                        const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                        const SizedBox(width: 8),
+                        Text('Bid from ${bid.recyclerName} accepted! Collection scheduled.'),
+                      ]),
+                      backgroundColor: AppColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to accept bid: $e'),
+                      backgroundColor: AppColors.error,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              } finally {
+                if (mounted) setState(() => _accepting = false);
+              }
             },
             child: const Text('Accept'),
           ),

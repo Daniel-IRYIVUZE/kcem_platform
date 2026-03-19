@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../shared/widgets/shared_cards.dart';
 import '../shared/widgets/eco_button.dart';
+import 'driver_tracking_screen.dart';
 
 class FleetScreen extends ConsumerStatefulWidget {
   const FleetScreen({super.key});
@@ -94,72 +97,62 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
 
               const SizedBox(height: 16),
 
-              // Map placeholder
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                height: 160,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD4EDDA),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
+              // Live fleet map preview
+              GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const DriverTrackingScreen()),
                 ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          color: const Color(0xFFD4EDDA),
-                          child: Stack(
-                            children: [
-                              ...List.generate(5, (i) => Positioned(
-                                left: i * 70.0, top: 0, bottom: 0,
-                                child: Container(width: 1, color: Colors.white.withValues(alpha: 0.5)),
-                              )),
-                              ...List.generate(4, (i) => Positioned(
-                                top: i * 40.0, left: 0, right: 0,
-                                child: Container(height: 1, color: Colors.white.withValues(alpha: 0.5)),
-                              )),
-                              // Driver position dots (visual only — real GPS tracking via LiveTrackingScreen)
-                              ...[
-                                {'x': 0.2, 'y': 0.3},
-                                {'x': 0.55, 'y': 0.5},
-                                {'x': 0.75, 'y': 0.25},
-                              ].map((m) => Positioned(
-                                left: (MediaQuery.of(context).size.width - 40) * (m['x'] as double),
-                                top: 160 * (m['y'] as double),
-                                child: Container(
-                                  width: 28, height: 28,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.primary,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.person, color: Colors.white, size: 14),
-                                ),
-                              )),
-                            ],
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  height: 180,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Stack(
+                      children: [
+                        _FleetMapPreview(driverData: drivers),
+                        // Tap overlay label
+                        Positioned(
+                          top: 10, left: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.my_location, size: 14, color: AppColors.primary),
+                                SizedBox(width: 4),
+                                Text('Live Fleet Map', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    Positioned(
-                      top: 10, left: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
+                        Positioned(
+                          bottom: 10, right: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.open_in_full, size: 12, color: Colors.white),
+                                SizedBox(width: 4),
+                                Text('Full Map', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.my_location, size: 14, color: AppColors.primary),
-                            SizedBox(width: 4),
-                            Text('Live Fleet Map', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 80.ms).fadeIn(),
 
@@ -293,6 +286,57 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ─── Fleet Map Preview ────────────────────────────────────────────────────────
+
+class _FleetMapPreview extends StatelessWidget {
+  final List<Map<String, dynamic>> driverData;
+  static const _kigali = LatLng(-1.9441, 30.0619);
+
+  const _FleetMapPreview({required this.driverData});
+
+  @override
+  Widget build(BuildContext context) {
+    final withGps = driverData
+        .where((d) => d['current_lat'] != null && d['current_lng'] != null)
+        .toList();
+
+    return FlutterMap(
+      options: const MapOptions(
+        initialCenter: _kigali,
+        initialZoom: 12.5,
+        interactionOptions: InteractionOptions(flags: InteractiveFlag.none),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.ecotrade.app',
+        ),
+        if (withGps.isNotEmpty)
+          MarkerLayer(
+            markers: withGps.map((d) {
+              final lat = (d['current_lat'] as num).toDouble();
+              final lng = (d['current_lng'] as num).toDouble();
+              final available = d['is_available'] as bool? ?? false;
+              return Marker(
+                point: LatLng(lat, lng),
+                width: 32,
+                height: 32,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: available ? AppColors.primary : AppColors.textSecondary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(Icons.directions_car, color: Colors.white, size: 14),
+                ),
+              );
+            }).toList(),
+          ),
+      ],
     );
   }
 }
@@ -452,8 +496,8 @@ class _DriverCard extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Tracking $name...'), behavior: SnackBarBehavior.floating),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DriverTrackingScreen()),
                   ),
                   icon: const Icon(Icons.my_location, size: 14),
                   label: const Text('Track'),

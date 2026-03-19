@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/api_service.dart';
+import 'driver_tracking_screen.dart';
 
 class RecyclerCollectionsScreen extends ConsumerStatefulWidget {
   const RecyclerCollectionsScreen({super.key});
@@ -29,6 +31,14 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
       appBar: AppBar(
         title: const Text('Collections Board'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.my_location),
+            tooltip: 'Track Drivers',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (_) => const DriverTrackingScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () {
@@ -145,6 +155,44 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
     );
   }
 
+  Future<void> _doAssign(
+    BuildContext sheetContext,
+    Collection col,
+    int driverId,
+    String driverName,
+  ) async {
+    Navigator.pop(sheetContext);
+    final collectionId = int.tryParse(col.id);
+    if (collectionId == null) return;
+    try {
+      await ApiService.assignDriverToCollection(collectionId, driverId);
+      await ref.read(collectionsNotifierProvider.notifier).refresh();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(children: [
+              const Icon(Icons.check_circle, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text('$driverName assigned successfully'),
+            ]),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to assign driver: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   void _showAssignDriver(BuildContext context, Collection col) {
     final driversAsync = ref.read(driversProvider);
 
@@ -187,6 +235,7 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
                   mainAxisSize: MainAxisSize.min,
                   children: drivers.map((driver) {
                     final name = driver['full_name'] as String? ?? driver['name'] as String? ?? 'Driver';
+                    final driverId = driver['id'] as int?;
                     final isAvailable = driver['is_available'] as bool? ?? true;
                     final initials = name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join();
                     return ListTile(
@@ -197,7 +246,9 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
                       title: Text(name),
                       subtitle: Text(isAvailable ? 'Available' : 'Unavailable'),
                       trailing: ElevatedButton(
-                        onPressed: isAvailable ? () => Navigator.pop(context) : null,
+                        onPressed: (isAvailable && driverId != null)
+                            ? () => _doAssign(context, col, driverId, name)
+                            : null,
                         style: ElevatedButton.styleFrom(minimumSize: const Size(70, 32)),
                         child: const Text('Assign'),
                       ),

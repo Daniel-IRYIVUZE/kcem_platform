@@ -351,6 +351,52 @@ class ApiService {
     });
   }
   
+  static Future<Map<String, dynamic>> uploadListingImage(int listingId, List<int> bytes, String filename) async {
+    final uri = Uri.parse('$baseUrl/listings/$listingId/images');
+    final request = http.MultipartRequest('POST', uri);
+    if (_accessToken != null) {
+      request.headers['Authorization'] = 'Bearer $_accessToken';
+    }
+    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return jsonDecode(response.body);
+    }
+    throw ApiException('Failed to upload image', statusCode: response.statusCode);
+  }
+
+  static Future<Map<String, dynamic>> assignDriverToCollection(int collectionId, int driverId) async {
+    return await _request('POST', '/collections/$collectionId/assign-driver', body: {'driver_id': driverId});
+  }
+
+  static Future<List<dynamic>> getMyRecyclerDrivers() async {
+    final response = await _request('GET', '/drivers/my-recycler');
+    if (response is List) return response;
+    if (response is Map<String, dynamic>) return (response['items'] as List?) ?? [];
+    return [];
+  }
+
+  /// Calls public OSRM API for road-following routing between two coordinates.
+  /// Returns decoded JSON route list from OSRM; empty list on failure.
+  static Future<List<dynamic>> getOSRMRoute(
+    double fromLat, double fromLng,
+    double toLat, double toLng,
+  ) async {
+    final url = 'https://router.project-osrm.org/route/v1/driving/'
+        '$fromLng,$fromLat;$toLng,$toLat'
+        '?geometries=geojson&overview=full&steps=false';
+    try {
+      final response = await http.get(Uri.parse(url))
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return (data['routes'] as List?) ?? [];
+      }
+    } catch (_) {}
+    return [];
+  }
+
   static Future<Map<String, dynamic>> uploadCollectionProof(int id, List<int> bytes, String filename) async {
     final uri = Uri.parse('$baseUrl/collections/$id/proofs');
     final request = http.MultipartRequest('POST', uri);

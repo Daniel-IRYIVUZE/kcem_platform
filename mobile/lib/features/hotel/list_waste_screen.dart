@@ -1,11 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/api_service.dart';
 import '../shared/widgets/app_text_field.dart';
 import '../shared/widgets/eco_button.dart';
 import '../../core/utils/image_url.dart';
@@ -29,9 +32,10 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
   final _minBidController = TextEditingController();
   final _addressController = TextEditingController();
   bool _useCurrentLocation = true;
-  int _uploadedPhotos = 0;
+  final List<XFile> _pickedImages = [];
   String _unit = 'kg';
   String _selectedPickupTime = 'ASAP';
+  final _imagePicker = ImagePicker();
 
   final List<String> _wasteTypes = [
     'Cardboard', 'Plastic PET', 'Plastic HDPE', 'Glass',
@@ -93,6 +97,27 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
     return WasteQuality.c;
   }
 
+  Future<void> _pickImages() async {
+    final remaining = 5 - _pickedImages.length;
+    if (remaining <= 0) return;
+    try {
+      final images = await _imagePicker.pickMultiImage(limit: remaining);
+      if (images.isNotEmpty) {
+        setState(() => _pickedImages.addAll(images));
+      }
+    } catch (_) {
+      // image_picker not available or permission denied — ignore silently
+    }
+  }
+
+  Future<void> _pickImageFromCamera() async {
+    if (_pickedImages.length >= 5) return;
+    try {
+      final image = await _imagePicker.pickImage(source: ImageSource.camera);
+      if (image != null) setState(() => _pickedImages.add(image));
+    } catch (_) {}
+  }
+
   Future<void> _submitListing() async {
     final auth = ref.read(authProvider);
     if (auth.user == null) return;
@@ -132,16 +157,21 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
           createdAt: e.createdAt,
         );
         await ref.read(listingsNotifierProvider.notifier).update(updated);
+
+        // Upload any newly picked images
+        final listingId = int.tryParse(e.id);
+        if (listingId != null && _pickedImages.isNotEmpty) {
+          await _uploadImages(listingId);
+        }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white, size: 18),
-                  SizedBox(width: 10),
-                  Text('Listing updated successfully!'),
-                ],
-              ),
+              content: Row(children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 18),
+                SizedBox(width: 10),
+                Text('Listing updated successfully!'),
+              ]),
               backgroundColor: AppColors.primary,
               behavior: SnackBarBehavior.floating,
             ),
@@ -150,7 +180,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
           widget.onDone?.call();
         }
       } else {
-        await ref.read(listingsNotifierProvider.notifier).create(
+        final listing = await ref.read(listingsNotifierProvider.notifier).create(
           businessId: auth.user!.id,
           businessName: auth.user!.displayName,
           wasteType: _mappedWasteType,
@@ -160,28 +190,32 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
           minBid: minBid,
           location: location,
         );
+
+        // Upload photos to the new listing
+        final listingId = int.tryParse(listing.id);
+        if (listingId != null && _pickedImages.isNotEmpty) {
+          await _uploadImages(listingId);
+        }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white, size: 18),
-                  SizedBox(width: 10),
-                  Text('Listing created successfully!'),
-                ],
-              ),
+              content: Row(children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 18),
+                SizedBox(width: 10),
+                Text('Listing created successfully!'),
+              ]),
               backgroundColor: AppColors.primary,
               behavior: SnackBarBehavior.floating,
             ),
           );
-          // Clear fields
           _volumeController.clear();
           _minBidController.clear();
           _notesController.clear();
           setState(() {
             _selectedWasteType = 'Cardboard';
             _qualityScore = 3;
-            _uploadedPhotos = 0;
+            _pickedImages.clear();
             _isSubmitting = false;
           });
           widget.onDone?.call();
@@ -192,10 +226,22 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to create listing.'),
+            content: Text('Failed to save listing: $e'),
             backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
           ),
         );
+      }
+    }
+  }
+
+  Future<void> _uploadImages(int listingId) async {
+    for (final img in _pickedImages) {
+      try {
+        final bytes = await img.readAsBytes();
+        await ApiService.uploadListingImage(listingId, bytes, img.name);
+      } catch (_) {
+        // Non-fatal: listing still created even if image upload fails
       }
     }
   }
@@ -389,74 +435,132 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
 
             // Photos
             _SectionCard(
-              title: 'Photos',
+              title: 'Photos (${_pickedImages.length}/5)',
               icon: Icons.camera_alt_outlined,
               child: Column(
                 children: [
-                  GestureDetector(
-                    onTap: () => setState(() => _uploadedPhotos = (_uploadedPhotos + 1).clamp(0, 5)),
-                    child: Container(
-                      height: 100,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: context.cSurfAlt,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.4),
-                          style: BorderStyle.solid,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.add_a_photo_outlined, color: AppColors.primary, size: 32),
-                          const SizedBox(height: 8),
-                          Text(
-                            _uploadedPhotos > 0
-                                ? '$_uploadedPhotos photo(s) added. Tap to add more'
-                                : 'Tap to capture or upload photos',
-                            style: TextStyle(
-                              color: context.cTextSec,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (_uploadedPhotos > 0) ...[
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 70,
-                      child: GridView.builder(
-                        shrinkWrap: true,
-                        scrollDirection: Axis.horizontal,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 1,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 1,
-                        ),
-                        itemCount: _uploadedPhotos,
-                        itemBuilder: (context, index) {
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              getAbsoluteImageUrl(null),
-                              width: 70,
-                              height: 70,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                color: AppColors.primaryLight,
-                                width: 70,
-                                height: 70,
-                                child: const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 28),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _pickedImages.length < 5 ? _pickImages : null,
+                          child: Container(
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: context.cSurfAlt,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.4),
                               ),
                             ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.photo_library_outlined,
+                                    color: AppColors.primary, size: 26),
+                                const SizedBox(height: 4),
+                                Text('Gallery',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: context.cTextSec)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _pickedImages.length < 5
+                              ? _pickImageFromCamera
+                              : null,
+                          child: Container(
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: context.cSurfAlt,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.4),
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.camera_alt_outlined,
+                                    color: AppColors.primary, size: 26),
+                                const SizedBox(height: 4),
+                                Text('Camera',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: context.cTextSec)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_pickedImages.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 80,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _pickedImages.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: 8),
+                        itemBuilder: (context, index) {
+                          return Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.file(
+                                  File(_pickedImages[index].path),
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 80,
+                                    height: 80,
+                                    color: AppColors.primaryLight,
+                                    child: const Icon(
+                                        Icons.image_not_supported_outlined,
+                                        color: AppColors.primary),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 2,
+                                right: 2,
+                                child: GestureDetector(
+                                  onTap: () => setState(
+                                      () => _pickedImages.removeAt(index)),
+                                  child: Container(
+                                    width: 20,
+                                    height: 20,
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.error,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.close,
+                                        color: Colors.white, size: 12),
+                                  ),
+                                ),
+                              ),
+                            ],
                           );
                         },
                       ),
                     ),
                   ],
+                  if (_pickedImages.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Add up to 5 photos of the waste',
+                        style: TextStyle(
+                            fontSize: 12, color: context.cTextSec),
+                      ),
+                    ),
                 ],
               ),
             ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 240.ms).fadeIn(),

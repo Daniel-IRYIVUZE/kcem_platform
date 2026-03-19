@@ -547,6 +547,19 @@ final driversProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   }
 });
 
+/// Recycler-specific driver fleet from /drivers/my-recycler — includes current_lat/current_lng
+/// for real-time location tracking on the fleet map.
+final recyclerDriversProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final user = ref.watch(authProvider).user;
+  if (user == null || user.role != UserRole.recycler) return [];
+  try {
+    final items = await ApiService.getMyRecyclerDrivers();
+    return items.map((j) => j as Map<String, dynamic>).toList();
+  } catch (_) {
+    return [];
+  }
+});
+
 /// Hotel profile data from /hotels/me — provides address, TIN, city, etc.
 final hotelProfileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final user = ref.watch(authProvider).user;
@@ -1065,6 +1078,12 @@ class CollectionsNotifier extends StateNotifier<List<Collection>> {
   CollectionsNotifier(this.ref) : super(const []);
 
   final Ref ref;
+
+  /// Invalidates the collections cache — used after driver assignment or
+  /// any external mutation that doesn't go through advanceStatus.
+  Future<void> refresh() async {
+    ref.invalidate(_apiMyCollectionsProvider);
+  }
 
   /// Advances the collection to the next status in the backend workflow.
   /// Refreshes collections data after success.
