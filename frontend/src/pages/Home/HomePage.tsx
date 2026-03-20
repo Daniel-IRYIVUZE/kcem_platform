@@ -6,7 +6,7 @@ import HowItWorks from '../../components/home/HowItWorks';
 import KeyFeatures from '../../components/home/KeyFeatures';
 // import LiveImpactTicker from '../../components/home/LiveImpactTicker';
 // import InteractiveMap from '../../components/home/InteractiveMap';
-import SuccessStories from '../../components/home/SuccessStories';
+// import SuccessStories from '../../components/home/SuccessStories';
 // import StatsCounter from '../../components/home/StatsCounter';
 // import MarketplacePreview from '../../components/home/MarketplacePreview';
 import CTASection from '../../components/home/CTASection';
@@ -24,7 +24,7 @@ const HomePage = () => {
         <KeyFeatures />
         {/* <LiveImpactTicker /> */}
         {/* <InteractiveMap /> */}
-        <SuccessStories />
+        {/* <SuccessStories /> */}
         {/* <MarketplacePreview /> */}
         {/* <PartnersCarousel /> */}
         <CTASection />
