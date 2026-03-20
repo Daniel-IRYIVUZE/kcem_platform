@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'd:\\\\Final Capstone\\\\EcoTrade_Rwanda' -name *.dart -o -name pubspec.yaml -o -name ios -o -name android)"
+    ]
+  }
+}

@@ -10,7 +10,6 @@ import '../shared/widgets/shared_cards.dart';
 import '../shared/widgets/offline_banner.dart';
 import '../shared/live_tracking_screen.dart';
 import 'collection_screen.dart';
-import 'earnings_screen.dart';
 import 'driver_profile_screen.dart';
 
 class DriverMainScreen extends ConsumerStatefulWidget {
@@ -39,14 +38,13 @@ class _DriverMainScreenState extends ConsumerState<DriverMainScreen> {
     final driverCollections = ref.watch(driverCollectionsProvider);
     final mapTarget = _firstStartedCollection(driverCollections);
     final screens = [
-      _DriverHomeTab(onGoToProfile: () => setState(() => _selectedIndex = 4)),
+      _DriverHomeTab(onGoToProfile: () => setState(() => _selectedIndex = 3)),
       mapTarget == null
           ? const Scaffold(
               body: Center(child: Text('No collections available for tracking.')),
             )
           : LiveTrackingScreen(collection: mapTarget, pushDriverLocation: true),
       const CollectionScreen(),
-      const EarningsScreen(),
       const DriverProfileScreen(),
     ];
 
@@ -85,7 +83,6 @@ class _DriverMainScreenState extends ConsumerState<DriverMainScreen> {
             NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
             NavigationDestination(icon: Icon(Icons.navigation_outlined), selectedIcon: Icon(Icons.navigation), label: 'Navigate'),
             NavigationDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2), label: 'Collect'),
-            NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet), label: 'Earnings'),
             NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
           ],
         ),
@@ -217,18 +214,18 @@ class _DriverHomeTab extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: StatCard(
-                      title: "Today's Earnings",
-                      value: 'RWF ${_fmtK(stats["todayEarnings"] ?? 0)}',
-                      icon: Icons.account_balance_wallet_outlined,
+                      title: 'Stops Done',
+                      value: '$doneCount / $totalCount',
+                      icon: Icons.check_circle_outline,
                       iconColor: AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: StatCard(
-                      title: 'Stops Done',
-                      value: '$doneCount / $totalCount',
-                      icon: Icons.check_circle_outline,
+                      title: 'Kg Collected',
+                      value: '${stats["totalVolume"] ?? 0} kg',
+                      icon: Icons.scale_outlined,
                       iconColor: AppColors.accent,
                       iconBg: AppColors.accentLight,
                     ),
@@ -303,12 +300,6 @@ class _DriverHomeTab extends ConsumerWidget {
     );
   }
 
-  String _fmtK(dynamic val) {
-    final n = (val ?? 0) is num ? (val as num).toDouble() : 0.0;
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(0)}K';
-    return n.toStringAsFixed(0);
-  }
 }
 
 class _RouteSummaryCard extends StatelessWidget {
@@ -351,7 +342,7 @@ class _RouteSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Est. ${stops * 30}min • RWF ${stops * 3000} potential',
+            '${stops > 0 ? "$stops stops assigned today" : "No stops assigned today"}',
             style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
           ),
           const SizedBox(height: 16),

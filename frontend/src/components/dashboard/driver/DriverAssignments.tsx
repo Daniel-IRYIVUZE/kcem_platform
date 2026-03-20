@@ -26,7 +26,10 @@ export default function DriverAssignments() {
     setLoading(true);
     collectionsAPI.list({ limit: 100 })
       .then(data => {
-        const active = data.filter((c: any) => !['cancelled', 'failed'].includes(c.status ?? ''));
+        // Only show pending/active assignments — never completed or cancelled
+        const active = data.filter((c: any) =>
+          ['scheduled', 'en_route', 'arrived', 'in_progress', 'collected'].includes(c.status ?? '')
+        );
         setCollections(active);
       })
       .catch(() => {})
@@ -67,14 +70,16 @@ export default function DriverAssignments() {
 
   const liveData = withGeo.map((c: any) => ({
     id: c.id, _id: c.id,
-    date: c.scheduled_date ? new Date(c.scheduled_date).toLocaleDateString() : '—',
+    date: c.scheduled_date
+      ? new Date(c.scheduled_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      : c.created_at
+        ? new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        : '—',
     route: (c.location || c.hotel_name || 'Kigali').split(',')[0],
-    stops: 1,
     totalWeight: c.volume ? `${c.volume} ${c.waste_type === 'UCO' ? 'L' : 'kg'}` : '—',
     distance: c._distKm != null ? formatDist(c._distKm * 1000) : '—',
     eta: c._eta != null ? `${c._eta} min` : '—',
     status: c.status,
-    earnings: `RWF ${(c.earnings || 0).toLocaleString()}`,
   }));
 
   const handleStartRoute = (id: any) => {
@@ -91,8 +96,8 @@ export default function DriverAssignments() {
             {gpsLabel}{driverPos ? ` · ${driverPos[0].toFixed(4)}, ${driverPos[1].toFixed(4)}` : ''}
           </p>
         </div>
-        <button onClick={() => downloadCSV('assignments', ['ID','Date','Route','Distance','ETA','Status','Earnings'],
-          liveData.map(r => [r.id, r.date, r.route, r.distance, r.eta, r.status, r.earnings]))}
+        <button onClick={() => downloadCSV('assignments', ['ID','Date','Route','Weight','Distance','ETA','Status'],
+          liveData.map(r => [r.id, r.date, r.route, r.totalWeight, r.distance, r.eta, r.status]))}
           className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700/50"><Download size={16}/> Export</button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -123,7 +128,6 @@ export default function DriverAssignments() {
                 </span>
               ),
             },
-            { key: 'earnings', label: 'Earnings', render: (v: string) => <span className="font-semibold text-green-600 dark:text-green-400">{v}</span> },
             { key: 'status', label: 'Status', render: (v: string) => <StatusBadge status={v} /> },
             { key: '_id', label: 'Action', render: (_v: string, r: typeof liveData[0]) => (r.status === 'in_progress' || r.status === 'en_route' || r.status === 'en-route') ? (
               <button className="px-3 py-1 text-xs bg-cyan-600 text-white rounded hover:bg-cyan-700 font-medium flex items-center gap-1"><Navigation size={12} /> Resume</button>

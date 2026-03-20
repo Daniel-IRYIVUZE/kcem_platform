@@ -67,7 +67,7 @@ export default function AdminAuditLogs() {
     downloadCSV('audit_logs',
       ['ID', 'Timestamp', 'User', 'Action', 'Entity', 'Notes', 'IP'],
       filtered.map(l => [
-        l.id,
+        String(l.id),
         new Date(l.created_at).toLocaleString(),
         l.user?.full_name ?? `User #${l.user_id ?? 'Guest'}`,
         l.action,

@@ -4,7 +4,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { collectionsAPI, driversAPI, vehiclesAPI, type Collection, type CollectionTracking, type DriverProfile, type VehicleItem } from '../../../services/api';
 import { haversineKm, etaMinutes, formatDist } from '../../../utils/geo';
 import {
-  Map, CheckCircle, DollarSign, Phone, Clock, Navigation,
+  Map, CheckCircle, Phone, Clock, Navigation,
   Package, MapPin, Star, ChevronRight, Locate, AlertCircle,
   Maximize2, Minimize2, Eye, EyeOff, ListChecks, Moon, Globe, Check, FileText,
 } from 'lucide-react';
@@ -43,19 +43,18 @@ export default function DriverTodaysRoute() {
   const routeAbortRef = useRef<AbortController | null>(null);
 
   const load = useCallback(() => {
-    // Fetch ALL collections assigned to this driver (role-scoped by backend)
+    // Fetch collections for this driver — only active/pending, never completed
     collectionsAPI.list({ limit: 100 }).then(all => {
-      // Exclude cancelled/failed; show scheduled/active/completed
-      const assigned = all.filter(c =>
-        !['cancelled', 'failed'].includes(c.status ?? '')
+      const active = all.filter(c =>
+        ['scheduled', 'en_route', 'arrived', 'in_progress', 'collected'].includes(c.status ?? '')
       );
-      // Prefer active/today's collections at the top
+      // Prefer today's collections at the top; fall back to all active
       const today = new Date().toISOString().split('T')[0];
-      const todayActive = assigned.filter(c =>
+      const todayActive = active.filter(c =>
         c.scheduled_date?.startsWith(today) ||
         ['en_route', 'arrived', 'in_progress'].includes(c.status ?? '')
       );
-      setCollections(todayActive.length > 0 ? todayActive : assigned);
+      setCollections(todayActive.length > 0 ? todayActive : active);
     }).catch(() => {});
   }, []);
 
@@ -433,11 +432,10 @@ export default function DriverTodaysRoute() {
 
       {showCards && <>
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard title="Stops Done"      value={`${completedStops}/${totalStops}`} icon={<CheckCircle size={20}/>} color="cyan"   progress={progressPct} />
-        <StatCard title="Current Stop"    value={`${Math.min(completedStops + 1, totalStops)} of ${totalStops}`}   icon={<MapPin size={20}/>}     color="blue" />
-        <StatCard title="Total Weight"    value={`${collections.reduce((s, c) => s + (c.actual_weight ?? c.volume ?? 0), 0).toLocaleString()} kg`} icon={<Package size={20}/>} color="purple" />
-        <StatCard title="Est. Earnings"   value={`RWF ${(collections.reduce((s, c) => s + (c.earnings ?? 0), 0) / 1000).toFixed(0)}K`}             icon={<DollarSign size={20}/>} color="orange" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard title="Stops Done"   value={`${completedStops}/${totalStops}`} icon={<CheckCircle size={20}/>} color="cyan"   progress={progressPct} />
+        <StatCard title="Current Stop" value={`${Math.min(completedStops + 1, totalStops)} of ${totalStops}`}   icon={<MapPin size={20}/>}     color="blue" />
+        <StatCard title="Total Weight" value={`${collections.reduce((s, c) => s + (c.actual_volume ?? c.volume ?? 0), 0).toLocaleString()} kg`} icon={<Package size={20}/>} color="purple" />
       </div>
 
       {/* Progress Bar */}

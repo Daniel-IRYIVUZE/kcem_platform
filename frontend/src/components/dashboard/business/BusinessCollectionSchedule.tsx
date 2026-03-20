@@ -237,10 +237,14 @@ export default function BusinessCollectionSchedule() {
 
   const displayData = filtered.map(c => ({
     id: c.id,
-    scheduledDate: c.scheduled_date ? new Date(c.scheduled_date).toLocaleDateString() : '—',
+    scheduledDate: c.scheduled_date
+      ? new Date(c.scheduled_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      : c.created_at
+        ? new Date(c.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        : '—',
     scheduledTime: c.scheduled_time || '—',
     wasteType: c.waste_type,
-    volume: `${c.actual_volume || '?'} kg`,
+    volume: `${c.actual_volume ?? c.volume ?? 0} ${c.waste_type === 'UCO' ? 'L' : 'kg'}`,
     recyclerName: c.recycler_name || 'Pending',
     driverName: c.driver_name || 'Pending',
     status: c.status,

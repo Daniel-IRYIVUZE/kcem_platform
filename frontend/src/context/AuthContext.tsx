@@ -215,14 +215,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error) {
       const msg = (error as Error).message;
       console.error('Login error:', error);
-      showToast(
+      setLoading(false);
+      throw new Error(
         msg.includes('Incorrect') || msg.includes('401') || msg.includes('suspended')
           ? msg
-          : 'Login failed. Please check your credentials.',
-        'error'
+          : 'Login failed. Please check your credentials.'
       );
-      setLoading(false);
-      throw new Error(msg);
     }
   };
 

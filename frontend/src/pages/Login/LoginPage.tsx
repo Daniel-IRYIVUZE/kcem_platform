@@ -20,7 +20,7 @@ const roleToDashboard: Record<string, string> = {
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, mustChangePassword, clearMustChangePassword } = useAuth();
+  const { login, clearMustChangePassword } = useAuth();
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
@@ -79,7 +79,7 @@ const LoginPage = () => {
           if (res.must_change_password) {
             setShowPwdReset(true);
           } else {
-            navigate(roleToDashboard[res.role] || '/dashboard', { replace: true });
+            navigate(roleToDashboard[res.user.role] || '/dashboard', { replace: true });
           }
         })
         .catch((err) => {

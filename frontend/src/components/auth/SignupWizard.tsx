@@ -23,7 +23,6 @@ const SignupWizard = ({ onToggleMode, onComplete }: SignupWizardProps) => {
     latitude: '', longitude: '', serviceRadius: '', operatingHours: ''
   });
   const [passwordStrength, setPasswordStrength] = useState(0);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const handleUserTypeSelect = (type: 'hotel' | 'recycler' | 'driver') => { setUserType(type); setStep(2); };
 

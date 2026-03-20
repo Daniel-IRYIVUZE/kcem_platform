@@ -46,11 +46,12 @@ export default function BusinessOverview() {
   }, []);
 
   const openListings  = listings.filter(l => l.status === 'open');
-  const totalRevenue  = transactions.reduce((s, t) => s + (t.gross_amount || 0), 0);
+  // Hotels receive net_amount (gross bid minus platform fee)
+  const totalRevenue  = transactions.reduce((s, t) => s + (t.net_amount || 0), 0);
   const unreadMsgs    = messages.filter(m => !m.is_read).length;
-  const activeCollect = collections.filter(c => c.status === 'scheduled' || c.status === 'en-route');
+  const activeCollect = collections.filter(c => c.status === 'scheduled' || c.status === 'en_route');
   const sparkRevenue = transactions.length > 0
-    ? transactions.slice(-8).map(t => t.gross_amount ?? 0)
+    ? transactions.slice(-8).map(t => t.net_amount ?? 0)
     : [0, 0, 0, 0, 0, 0, 0, 0];
   const displayName = getDashboardDisplayName(authUser, hotelProfile.name);
 
@@ -59,7 +60,7 @@ export default function BusinessOverview() {
     const monthMap: Record<string, number> = {};
     transactions.forEach(t => {
       const month = t.created_at?.slice(0, 7) ?? '';
-      if (month) monthMap[month] = (monthMap[month] || 0) + (t.gross_amount || 0);
+      if (month) monthMap[month] = (monthMap[month] || 0) + (t.net_amount || 0);
     });
     const sorted = Object.keys(monthMap).sort().slice(-6);
     if (sorted.length === 0) {

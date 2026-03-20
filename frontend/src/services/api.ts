@@ -300,7 +300,8 @@ export interface Collection {
   volume?: number;
   unit?: string;
   location?: string;
-  earnings?: number;
+  earnings?: number;      // net_amount: what hotel receives (from transaction)
+  gross_amount?: number;  // total bid amount: what recycler pays (from transaction)
   // Coordinates — destination + driver live position (populated by backend)
   listing_lat?: number;
   listing_lng?: number;

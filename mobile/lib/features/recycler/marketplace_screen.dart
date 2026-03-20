@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
@@ -20,15 +21,40 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
   bool _isMapView = false;
   WasteType? _selectedType;
   double _maxDistance = 50; // km — default show all
+  Position? _userPosition;
 
-  /// Deterministic pseudo-distance based on listing id hash (1–50 km)
-  double _simDistance(WasteListing l) =>
-      (l.id.hashCode.abs() % 50 + 1).toDouble();
+  @override
+  void initState() {
+    super.initState();
+    _loadUserPosition();
+  }
+
+  Future<void> _loadUserPosition() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        await Geolocator.requestPermission();
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      );
+      if (mounted) setState(() => _userPosition = pos);
+    } catch (_) {}
+  }
+
+  double? _realDistance(WasteListing l) {
+    if (_userPosition == null || l.latitude == null || l.longitude == null) return null;
+    return Geolocator.distanceBetween(
+      _userPosition!.latitude, _userPosition!.longitude,
+      l.latitude!, l.longitude!,
+    ) / 1000; // convert to km
+  }
 
   List<WasteListing> _filtered(List<WasteListing> listings) {
     return listings.where((l) {
       final typeOk = _selectedType == null || l.wasteType == _selectedType;
-      final distOk = _simDistance(l) <= _maxDistance;
+      final dist = _realDistance(l);
+      final distOk = dist == null || dist <= _maxDistance;
       return typeOk && distOk;
     }).toList();
   }
@@ -244,7 +270,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                       itemBuilder: (context, index) {
                         return _ListingCard(
                           listing: filtered[index],
-                          distanceKm: _simDistance(filtered[index]).toInt(),
+                          distanceKm: _realDistance(filtered[index])?.toInt(),
                           onBid: () => _showBidModal(context, filtered[index]),
                         ).animate().slideY(begin: 0.15, duration: 300.ms, delay: (index * 60).ms).fadeIn();
                       },
@@ -337,9 +363,9 @@ class _FilterChip extends StatelessWidget {
 class _ListingCard extends StatelessWidget {
   final WasteListing listing;
   final VoidCallback onBid;
-  final int distanceKm;
+  final int? distanceKm;
 
-  const _ListingCard({required this.listing, required this.onBid, required this.distanceKm});
+  const _ListingCard({required this.listing, required this.onBid, this.distanceKm});
 
   @override
   Widget build(BuildContext context) {
@@ -378,7 +404,7 @@ class _ListingCard extends StatelessWidget {
               const SizedBox(width: 8),
               _Tag(icon: Icons.stars_outlined, label: listing.quality.label),
               const SizedBox(width: 8),
-              _Tag(icon: Icons.near_me_outlined, label: '$distanceKm km'),
+              _Tag(icon: Icons.near_me_outlined, label: distanceKm != null ? '$distanceKm km' : '—'),
               const Spacer(),
               _Tag(icon: Icons.gavel_outlined, label: '${listing.activeBidCount} bids'),
             ],

@@ -146,6 +146,19 @@ class ApiService {
     throw ApiException(errorMessage, statusCode: response.statusCode);
   }
   
+  // ── Generic Public Helpers (used by OfflineSyncService) ─────────────────────
+
+  static Future<dynamic> post(String path, {Map<String, dynamic>? body}) =>
+      _request('POST', path, body: body);
+
+  static Future<dynamic> patch(String path, {Map<String, dynamic>? body}) =>
+      _request('PATCH', path, body: body);
+
+  static Future<dynamic> put(String path, {Map<String, dynamic>? body}) =>
+      _request('PUT', path, body: body);
+
+  static Future<dynamic> delete(String path) => _request('DELETE', path);
+
   // ── Auth Endpoints ──────────────────────────────────────────────────────────
   
   static Future<Map<String, dynamic>> register(Map<String, dynamic> userData) async {

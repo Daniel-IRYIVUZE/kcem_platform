@@ -7,6 +7,7 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/local_storage_service.dart';
+import 'core/services/offline_sync_service.dart';
 import 'core/providers/app_providers.dart';
 
 void main() async {
@@ -14,6 +15,9 @@ void main() async {
 
   // Initialize Hive for offline storage
   await Hive.initFlutter();
+
+  // Initialize offline sync queue (must be after Hive.initFlutter)
+  await OfflineSyncService.init();
 
   // Initialize local (shared_preferences) storage — must be before runApp
   // so ThemeNotifier and AuthNotifier can read persisted values synchronously.

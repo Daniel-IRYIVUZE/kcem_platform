@@ -24,7 +24,7 @@ export default function RecyclerOverview() {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const [recyclerProfile, setRecyclerProfile] = useState<RecyclerProfile | null>(null);
-  const [liveBids, setLiveBids] = useState<(Bid & { hotel: string; type: string; quantity: string; myBid: string })[]>([]);
+  const [liveBids, setLiveBids] = useState<(Omit<Bid, 'quantity'> & { hotel: string; type: string; quantity: string; myBid: string })[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
@@ -58,8 +58,9 @@ export default function RecyclerOverview() {
   const completedKg = completedCollections.reduce((s, c) => s + (c.actual_volume ?? c.volume ?? 0), 0);
   const liveGreenScore = computeGreenScore(recyclerProfile?.green_score, completedKg, completedCollections.length);
 
-  // Monthly revenue: sum of net_amount for completed transactions in the current month
-  const monthlyRevenue = useMemo(() => {
+  // Monthly spending: sum of gross_amount for completed transactions in the current month
+  // (recyclers pay gross_amount — the full bid amount — to acquire waste)
+  const monthlySpent = useMemo(() => {
     const now = new Date();
     return transactions
       .filter(t => {
@@ -67,7 +68,7 @@ export default function RecyclerOverview() {
         const d = new Date(t.created_at);
         return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
       })
-      .reduce((sum, t) => sum + (t.net_amount ?? 0), 0);
+      .reduce((sum, t) => sum + (t.gross_amount ?? 0), 0);
   }, [transactions]);
 
   // Total collected volume across all completed collections
@@ -101,7 +102,7 @@ export default function RecyclerOverview() {
     : totalCollected;
   const effectiveCo2Kg = co2SavedKg > 0 ? co2SavedKg : effectiveTotalKg * 0.5;
 
-  // ── Revenue Trend (last 6 months) ─────────────────────────────────────────
+  // ── Spending Trend (last 6 months) ────────────────────────────────────────
   const revenueTrend = useMemo(() => {
     const months: string[] = [];
     const totals: number[] = [];
@@ -115,12 +116,12 @@ export default function RecyclerOverview() {
           const td = new Date(t.created_at);
           return td.getFullYear() === d.getFullYear() && td.getMonth() === d.getMonth();
         })
-        .reduce((sum, t) => sum + (t.net_amount ?? 0), 0);
+        .reduce((sum, t) => sum + (t.gross_amount ?? 0), 0);
       totals.push(total);
     }
     return {
       labels: months,
-      datasets: [{ label: 'Revenue (RWF)', data: totals, borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,0.15)', fill: true }],
+      datasets: [{ label: 'Spending (RWF)', data: totals, borderColor: '#06b6d4', backgroundColor: 'rgba(6,182,212,0.15)', fill: true }],
     };
   }, [transactions]);
 
@@ -214,8 +215,8 @@ export default function RecyclerOverview() {
           sparkline={liveBids.slice(-7).map((_, i) => i + 1)}
         />
         <StatCard
-          title="Monthly Revenue"
-          value={monthlyRevenue > 0 ? `RWF ${(monthlyRevenue / 1000).toFixed(0)}K` : 'RWF 0'}
+          title="Monthly Spent"
+          value={monthlySpent > 0 ? `RWF ${(monthlySpent / 1000).toFixed(0)}K` : 'RWF 0'}
           icon={<DollarSign size={22}/>}
           color="cyan"
           sparkline={sparkRevenue}
@@ -232,7 +233,7 @@ export default function RecyclerOverview() {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Widget title="Revenue Trend" icon={<TrendingUp size={18} className="text-cyan-600"/>}>
+        <Widget title="Spending Trend" icon={<TrendingUp size={18} className="text-cyan-600"/>}>
           <ChartComponent type="area" data={revenueTrend} height={260} />
         </Widget>
         <Widget title="Collections by Type" icon={<BarChart3 size={18} className="text-purple-600 dark:text-purple-400"/>}>

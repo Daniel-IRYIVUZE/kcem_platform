@@ -70,7 +70,8 @@ class CollectionRead(BaseModel):
     volume:        Optional[float] = None
     unit:          Optional[str] = None
     location:      Optional[str] = None
-    earnings:      Optional[float] = None
+    earnings:      Optional[float] = None   # net_amount: what hotel receives
+    gross_amount:  Optional[float] = None   # total bid amount: what recycler pays
     # Coordinates (destination + driver live position)
     listing_lat:   Optional[float] = None
     listing_lng:   Optional[float] = None
@@ -111,7 +112,8 @@ class CollectionRead(BaseModel):
                     data.__dict__.setdefault('hotel_lat', listing.hotel.latitude)
                     data.__dict__.setdefault('hotel_lng', listing.hotel.longitude)
             if data.transaction:
-                data.__dict__.setdefault('earnings', data.transaction.net_amount or 0.0)
+                data.__dict__.setdefault('earnings',     data.transaction.net_amount  or 0.0)
+                data.__dict__.setdefault('gross_amount', data.transaction.gross_amount or 0.0)
         except Exception:
             pass
         return data

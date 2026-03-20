@@ -10,10 +10,11 @@ function exportCSV(name: string, cols: string[], rows: (string|number)[][]) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv])); a.download = `${name}.csv`; a.click();
 }
 
-function fmtDate(d: string | null | undefined) {
-  if (!d) return '—';
-  const parsed = new Date(d);
-  if (isNaN(parsed.getTime())) return d;
+function fmtDate(d: string | null | undefined, fallback?: string | null) {
+  const raw = d || fallback;
+  if (!raw) return '—';
+  const parsed = new Date(raw);
+  if (isNaN(parsed.getTime())) return raw;
   return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
@@ -40,7 +41,7 @@ export default function RecyclerActiveCollections() {
 
   const handleExport = () => exportCSV('collections',
     ['ID','Hotel','Recycler','Driver','Type','Volume','Status','Date','Earnings'],
-    filtered.map(c => [c.id, c.hotel_name||'N/A', c.recycler_name||'', c.driver_name||'', c.waste_type||'', c.volume||0, c.status, c.scheduled_date||'', c.earnings||0]));
+    filtered.map(c => [c.id, c.hotel_name||'N/A', c.recycler_name||'', c.driver_name||'', c.waste_type||'', c.volume||0, c.status, c.scheduled_date ? new Date(c.scheduled_date).toLocaleDateString() : '', (c as any).gross_amount || c.earnings||0]));
 
   return (
     <div className="space-y-6">
@@ -74,8 +75,8 @@ export default function RecyclerActiveCollections() {
               { key: 'waste_type',     label: 'Type',     render: (v: string) => <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium">{v}</span> },
               { key: 'volume',         label: 'Volume',   render: (v: number, r: Collection) => <span>{v ?? 0} {r.waste_type === 'UCO' ? 'L' : 'kg'}</span> },
               { key: 'status',         label: 'Status',   render: (v: string) => <StatusBadge status={v} /> },
-              { key: 'scheduled_date', label: 'Date', render: (v: string) => fmtDate(v) },
-              { key: 'earnings',       label: 'Earnings', render: (v: number) => <span className="font-semibold text-green-600 dark:text-green-400">RWF {(v||0).toLocaleString()}</span> },
+              { key: 'scheduled_date', label: 'Scheduled', render: (v: string, r: Collection) => fmtDate(v, r.created_at) },
+              { key: 'gross_amount',   label: 'Amount Paid', render: (v: number, r: Collection) => <span className="font-semibold text-orange-600 dark:text-orange-400">RWF {((v || r.earnings || 0)).toLocaleString()}</span> },
             ]}
             data={filtered}
             pageSize={6}
