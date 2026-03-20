@@ -1,15 +1,15 @@
 // pages/dashboard/admin/Settings.tsx
 import { useEffect, useState } from 'react';
-import { Save, Settings, Bell, Shield, CreditCard, Globe, Mail, CheckCircle, XCircle, Loader, Check } from 'lucide-react';
+import { Save, Settings, Shield, Globe, Check } from 'lucide-react';
 import { adminAPI, type AdminPlatformSettings } from '../../../services/api';
 
-interface SmtpStatus {
-  configured: boolean;
-  smtp_host: string | null;
-  smtp_user: string | null;
-  email_from: string | null;
-  admin_email: string | null;
-}
+// interface SmtpStatus {
+//   configured: boolean;
+//   smtp_host: string | null;
+//   smtp_user: string | null;
+//   email_from: string | null;
+//   admin_email: string | null;
+// }
 
 const defaults: AdminPlatformSettings = {
   platformName: 'EcoTrade Rwanda',
@@ -33,19 +33,19 @@ export default function AdminSettings() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
-  const [smtp, setSmtp] = useState<SmtpStatus | null>(null);
-  const [smtpTesting, setSmtpTesting] = useState(false);
-  const [smtpTestResult, setSmtpTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  // const [smtp, setSmtp] = useState<SmtpStatus | null>(null);
+  // const [smtpTesting, setSmtpTesting] = useState(false);
+  // const [smtpTestResult, setSmtpTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   useEffect(() => {
     let mounted = true;
     Promise.all([
       adminAPI.getSettings(),
       adminAPI.getSmtpStatus(),
-    ]).then(([data, smtpData]) => {
+    ]).then(([data,]) => {
       if (!mounted) return;
       setSettings({ ...defaults, ...data });
-      setSmtp(smtpData);
+      // setSmtp(smtpData);
       setError(null);
     }).catch((err: Error) => {
       if (!mounted) return;
@@ -57,18 +57,18 @@ export default function AdminSettings() {
     return () => { mounted = false; };
   }, []);
 
-  const testSmtp = async () => {
-    setSmtpTesting(true);
-    setSmtpTestResult(null);
-    try {
-      const res = await adminAPI.testSmtp();
-      setSmtpTestResult({ ok: true, msg: res.message });
-    } catch (e) {
-      setSmtpTestResult({ ok: false, msg: e instanceof Error ? e.message : 'SMTP test failed.' });
-    } finally {
-      setSmtpTesting(false);
-    }
-  };
+  // const testSmtp = async () => {
+  //   setSmtpTesting(true);
+  //   setSmtpTestResult(null);
+  //   try {
+  //     const res = await adminAPI.testSmtp();
+  //     setSmtpTestResult({ ok: true, msg: res.message });
+  //   } catch (e) {
+  //     setSmtpTestResult({ ok: false, msg: e instanceof Error ? e.message : 'SMTP test failed.' });
+  //   } finally {
+  //     setSmtpTesting(false);
+  //   }
+  // };
 
   const save = async () => {
     setIsSaving(true);
@@ -187,7 +187,7 @@ export default function AdminSettings() {
       </div>
 
       {/* Financial Settings */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
+      {/* <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
         <h3 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
           <CreditCard size={16} />
           Financial
@@ -221,10 +221,10 @@ export default function AdminSettings() {
             onChange={v => setSettings({...settings, currency: v})}
           />
         </div>
-      </div>
+      </div> */}
 
       {/* Notifications */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
+      {/* <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
         <h3 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 mb-3">
           <Bell size={16} />
           Notifications & Features
@@ -243,7 +243,7 @@ export default function AdminSettings() {
             onChange={v => setSettings({...settings, smsNotifications: v})}
           />
         </div>
-      </div>
+      </div> */}
 
       {/* Security */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
@@ -274,7 +274,7 @@ export default function AdminSettings() {
       </div>
 
       {/* SMTP Status Panel */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
+      {/* <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-5 space-y-4">
         <h3 className="font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
           <Mail size={16} />
           Email (SMTP) Configuration
@@ -337,7 +337,7 @@ export default function AdminSettings() {
         ) : (
           <p className="text-sm text-gray-400">Loading SMTP status…</p>
         )}
-      </div>
+      </div> */}
 
       {/* Maintenance Warning */}
       {settings.maintenanceMode && (

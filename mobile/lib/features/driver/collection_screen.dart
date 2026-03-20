@@ -1,10 +1,17 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../shared/live_tracking_screen.dart';
+import '../shared/widgets/offline_banner.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/api_service.dart';
+import '../../core/services/offline_sync_service.dart';
 
 class CollectionScreen extends ConsumerStatefulWidget {
   const CollectionScreen({super.key});
@@ -18,38 +25,75 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
   String _filter = 'started';
   bool _isLoading = false;
 
-  final List<String> _steps = ['Arrive', 'Weigh & Photo', 'PIN Verify', 'Complete'];
+  // 3 steps: Arrive & Photo → Weigh → Complete (no PIN)
+  final List<String> _steps = ['Arrive & Photo', 'Weigh', 'Complete'];
+
   final TextEditingController _weightCtrl = TextEditingController();
   String _unit = 'kg';
-  final List<String> _photos = [];
-  final TextEditingController _pinCtrl = TextEditingController();
-  bool _pinError = false;
+  final List<XFile> _arrivalPhotos = [];
+  final List<XFile> _weighPhotos = [];
+  final _imagePicker = ImagePicker();
 
-  // Actual weight captured in step 2, used for the API call in step 3
   double? _capturedWeight;
-  // Data returned from the last advance call (for the summary step)
   Map<String, dynamic> _lastAdvanceResult = {};
 
   @override
   void dispose() {
     _weightCtrl.dispose();
-    _pinCtrl.dispose();
     super.dispose();
   }
 
-  /// Calls the backend to advance this collection's status, then moves to the next step.
+  Future<bool> _isOnline() async {
+    final result = await Connectivity().checkConnectivity();
+    return result != ConnectivityResult.none;
+  }
+
+  /// Advance collection status — queues offline when no connectivity.
   Future<void> _advance(Collection? collection, {double? actualWeight, String? notes}) async {
     final collectionId = int.tryParse(collection?.id ?? '');
     if (collectionId == null) {
-      // No real collection, just advance UI (offline / no assignment yet)
       setState(() => _step++);
       return;
     }
+
     setState(() => _isLoading = true);
     try {
+      final online = await _isOnline();
+      if (!online) {
+        // Queue for later sync
+        await OfflineSyncService.queue(
+          'POST',
+          '/collections/$collectionId/advance',
+          {
+            if (actualWeight != null) 'actual_weight': actualWeight,
+            if (notes != null) 'notes': notes,
+          },
+        );
+        if (mounted) {
+          setState(() {
+            _lastAdvanceResult = {};
+            _step++;
+            _isLoading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Row(children: [
+                Icon(Icons.cloud_off, color: Colors.white, size: 16),
+                SizedBox(width: 8),
+                Text('Saved offline — will sync when connected'),
+              ]),
+              backgroundColor: AppColors.warning,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
+
       final result = await ref
           .read(collectionsNotifierProvider.notifier)
           .advanceStatus(collectionId, actualWeight: actualWeight, notes: notes);
+
       if (mounted) {
         setState(() {
           _lastAdvanceResult = result;
@@ -69,6 +113,89 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         );
       }
     }
+  }
+
+  /// Take arrival photo with camera — auto-advances to weigh step when done.
+  Future<void> _takeArrivalPhoto(Collection? collection) async {
+    try {
+      // On web use gallery (file picker); on mobile always open camera
+      final source = kIsWeb ? ImageSource.gallery : ImageSource.camera;
+      final image = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 75,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+      if (image == null) return;
+
+      setState(() {
+        _arrivalPhotos.add(image);
+        _isLoading = true;
+      });
+
+      // Upload proof photo to backend
+      final collectionId = int.tryParse(collection?.id ?? '');
+      if (collectionId != null) {
+        try {
+          final bytes = await image.readAsBytes();
+          await ApiService.uploadCollectionProof(collectionId, bytes, image.name);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(children: [
+                  Icon(Icons.cloud_done, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Text('Photo uploaded successfully'),
+                ]),
+                backgroundColor: AppColors.primary,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } catch (_) {
+          // Non-fatal — show warning but still advance
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Row(children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Text('Photo saved locally — upload failed'),
+                ]),
+                backgroundColor: AppColors.warning,
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      }
+
+      // Auto-advance to weigh step — no extra button click needed
+      await _advance(collection, notes: 'Driver arrived and confirmed with photo');
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open camera. Please try again.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _addWeighPhoto() async {
+    try {
+      final source = kIsWeb ? ImageSource.gallery : ImageSource.camera;
+      final image = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 75,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+      if (image != null) setState(() => _weighPhotos.add(image));
+    } catch (_) {}
   }
 
   @override
@@ -127,6 +254,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       ),
       body: Column(
         children: [
+          const OfflineBanner(),
           _StepBar(current: _step, steps: _steps),
           Expanded(
             child: SingleChildScrollView(
@@ -144,48 +272,47 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                     stop: currentStop,
                     currentCollection: currentCollection,
                     isLoading: _isLoading,
-                    onNext: () => _advance(currentCollection),
+                    arrivalPhotos: _arrivalPhotos,
+                    onTakePhoto: () => _takeArrivalPhoto(currentCollection),
                   ),
-                  _WeighPhotoStep(
+                  _WeighStep(
                     weightCtrl: _weightCtrl,
                     unit: _unit,
-                    photos: _photos,
+                    photos: _weighPhotos,
                     expectedVolume: currentCollection?.volume,
                     onUnitChange: (u) => setState(() => _unit = u),
-                    onAddPhoto: () =>
-                        setState(() => _photos.add('photo_${_photos.length}')),
+                    onAddPhoto: _addWeighPhoto,
                     isLoading: _isLoading,
-                    onNext: () {
+                    onConfirm: () {
                       _capturedWeight = double.tryParse(_weightCtrl.text);
-                      _advance(currentCollection, actualWeight: _capturedWeight);
-                    },
-                  ),
-                  _PinVerifyStep(
-                    pinCtrl: _pinCtrl,
-                    error: _pinError,
-                    isLoading: _isLoading,
-                    onNext: () {
-                      if (_pinCtrl.text.length >= 4) {
-                        setState(() => _pinError = false);
-                        _advance(
-                          currentCollection,
-                          actualWeight: _capturedWeight,
-                          notes: 'Verified by hotel staff',
+                      if (_capturedWeight == null || _capturedWeight! <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter the actual weight collected'),
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: AppColors.warning,
+                          ),
                         );
-                      } else {
-                        setState(() => _pinError = true);
+                        return;
                       }
+                      _advance(
+                        currentCollection,
+                        actualWeight: _capturedWeight,
+                        notes: 'Weight recorded: $_capturedWeight kg',
+                      );
                     },
                   ),
                   _CompleteStep(
                     collection: currentCollection,
                     actualWeight: _capturedWeight,
                     advanceResult: _lastAdvanceResult,
+                    arrivalPhotoCount: _arrivalPhotos.length,
+                    weighPhotoCount: _weighPhotos.length,
                     onDone: () => setState(() {
                       _step = 0;
                       _weightCtrl.clear();
-                      _pinCtrl.clear();
-                      _photos.clear();
+                      _arrivalPhotos.clear();
+                      _weighPhotos.clear();
                       _capturedWeight = null;
                       _lastAdvanceResult = {};
                     }),
@@ -272,19 +399,21 @@ class _StepBar extends StatelessWidget {
   }
 }
 
-// ─── Step 1 — Arrive ──────────────────────────────────────────────────────────
+// ─── Step 1 — Arrive & Confirm with Photo ─────────────────────────────────────
 
 class _ArriveStep extends StatelessWidget {
   final RouteStop? stop;
   final Collection? currentCollection;
   final bool isLoading;
-  final VoidCallback onNext;
+  final List<XFile> arrivalPhotos;
+  final VoidCallback onTakePhoto;
 
   const _ArriveStep({
-    required this.onNext,
+    required this.onTakePhoto,
     this.stop,
     this.currentCollection,
     this.isLoading = false,
+    this.arrivalPhotos = const [],
   });
 
   @override
@@ -296,6 +425,7 @@ class _ArriveStep extends StatelessWidget {
     final volume = currentCollection?.volume.toStringAsFixed(0) ?? stop?.volume.toStringAsFixed(0) ?? '—';
     final scheduledTime = currentCollection?.scheduledTime ?? stop?.eta ?? '';
     final notes = currentCollection?.notes;
+    final hasPhoto = arrivalPhotos.isNotEmpty;
 
     return Column(
       key: const ValueKey('arrive'),
@@ -320,7 +450,10 @@ class _ArriveStep extends StatelessWidget {
                       );
                     },
                     icon: const Icon(Icons.map, size: 16),
-                    label: const Text('Show Map'),
+                    label: const Text('Show Map & Navigate'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 42),
+                    ),
                   ),
                 ),
               Row(
@@ -369,9 +502,9 @@ class _ArriveStep extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        // Show real collection notes from the database if available
-        if (notes != null && notes.isNotEmpty)
+
+        if (notes != null && notes.isNotEmpty) ...[
+          const SizedBox(height: 12),
           _Card(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,10 +524,8 @@ class _ArriveStep extends StatelessWidget {
                       const Icon(Icons.info_outline, color: AppColors.warning, size: 18),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          notes,
-                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                        ),
+                        child: Text(notes,
+                            style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                       ),
                     ],
                   ),
@@ -402,43 +533,134 @@ class _ArriveStep extends StatelessWidget {
               ],
             ),
           ),
+        ],
+
+        const SizedBox(height: 20),
+
+        // Arrival photo confirmation section
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.camera_alt, color: AppColors.primary, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Confirm Arrival with Photo',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                        SizedBox(height: 2),
+                        Text(
+                          'Take a photo of the waste to auto-confirm your arrival',
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (hasPhoto) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 80,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: arrivalPhotos.length,
+                    itemBuilder: (ctx, i) => Container(
+                      width: 80,
+                      height: 80,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.4)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(9),
+                        child: kIsWeb
+                            ? Image.network(arrivalPhotos[i].path, fit: BoxFit.cover)
+                            : Image.file(File(arrivalPhotos[i].path), fit: BoxFit.cover),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle, color: AppColors.primary, size: 16),
+                      SizedBox(width: 6),
+                      Text('Photo captured — advancing to weighing...',
+                          style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
         const SizedBox(height: 24),
-        ElevatedButton(
-          onPressed: isLoading ? null : onNext,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-          child: isLoading
+
+        // Take arrival photo button — auto-advances when photo taken
+        ElevatedButton.icon(
+          onPressed: isLoading ? null : onTakePhoto,
+          icon: isLoading
               ? const SizedBox(
-                  height: 20, width: 20,
+                  width: 18, height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
-              : const Text('I Have Arrived',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              : const Icon(Icons.camera_alt, size: 20),
+          label: Text(
+            isLoading ? 'Confirming arrival...' : 'Take Arrival Photo',
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+          ),
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 56),
+            backgroundColor: AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Center(
+          child: Text(
+            'Your arrival will be confirmed automatically after the photo',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          ),
         ),
       ],
     ).animate().fadeIn(duration: 300.ms);
   }
 }
 
-// ─── Step 2 — Weigh & Photo ───────────────────────────────────────────────────
+// ─── Step 2 — Weigh & Log ─────────────────────────────────────────────────────
 
-class _WeighPhotoStep extends StatelessWidget {
+class _WeighStep extends StatelessWidget {
   final TextEditingController weightCtrl;
   final String unit;
-  final List<String> photos;
+  final List<XFile> photos;
   final double? expectedVolume;
   final ValueChanged<String> onUnitChange;
   final VoidCallback onAddPhoto;
-  final VoidCallback onNext;
+  final VoidCallback onConfirm;
   final bool isLoading;
 
-  const _WeighPhotoStep({
+  const _WeighStep({
     required this.weightCtrl,
     required this.unit,
     required this.photos,
     this.expectedVolume,
     required this.onUnitChange,
     required this.onAddPhoto,
-    required this.onNext,
+    required this.onConfirm,
     this.isLoading = false,
   });
 
@@ -448,11 +670,34 @@ class _WeighPhotoStep extends StatelessWidget {
       key: const ValueKey('weigh'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Info banner
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.primaryLight,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.check_circle, color: AppColors.primary, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Arrival confirmed! Now record the actual weight collected.',
+                  style: TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Weight entry
         _Card(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Actual Weight',
+              const Text('Actual Weight Collected',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
               const SizedBox(height: 14),
               Row(
@@ -460,8 +705,9 @@ class _WeighPhotoStep extends StatelessWidget {
                   Expanded(
                     child: TextField(
                       controller: weightCtrl,
-                      keyboardType: TextInputType.number,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      autofocus: true,
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
                       decoration: InputDecoration(
                         hintText: '0.0',
                         hintStyle: TextStyle(
@@ -497,6 +743,8 @@ class _WeighPhotoStep extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 14),
+
+        // Photos of waste collected
         _Card(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -504,27 +752,35 @@ class _WeighPhotoStep extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Photos',
+                  const Text('Additional Photos (Optional)',
                       style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                  Text('${photos.length}/5 photos',
+                  Text('${photos.length}/5',
                       style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                 ],
               ),
+              const SizedBox(height: 4),
+              const Text('Photos of the waste being collected',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
               const SizedBox(height: 12),
               SizedBox(
                 height: 90,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   children: [
-                    ...photos.map((p) => Container(
+                    ...photos.asMap().entries.map((e) => Container(
                           width: 80,
                           height: 80,
                           margin: const EdgeInsets.only(right: 8),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
                             borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.border),
                           ),
-                          child: const Icon(Icons.image, color: AppColors.primary),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(9),
+                            child: kIsWeb
+                              ? Image.network(e.value.path, fit: BoxFit.cover)
+                              : Image.file(File(e.value.path), fit: BoxFit.cover),
+                          ),
                         )),
                     if (photos.length < 5)
                       GestureDetector(
@@ -542,7 +798,7 @@ class _WeighPhotoStep extends StatelessWidget {
                             children: [
                               Icon(Icons.camera_alt, color: AppColors.primary, size: 24),
                               SizedBox(height: 4),
-                              Text('Add',
+                              Text('Photo',
                                   style: TextStyle(
                                       fontSize: 11,
                                       color: AppColors.primary,
@@ -557,100 +813,32 @@ class _WeighPhotoStep extends StatelessWidget {
             ],
           ),
         ),
+
         const SizedBox(height: 24),
         ElevatedButton(
-          onPressed: isLoading ? null : onNext,
+          onPressed: isLoading ? null : onConfirm,
           style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
           child: isLoading
               ? const SizedBox(
                   height: 20, width: 20,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
-              : const Text('Continue to Verification',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
+              : const Text('Confirm Collection',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
         ),
       ],
     ).animate().fadeIn(duration: 300.ms);
   }
 }
 
-// ─── Step 3 — PIN Verify ──────────────────────────────────────────────────────
-
-class _PinVerifyStep extends StatelessWidget {
-  final TextEditingController pinCtrl;
-  final bool error;
-  final bool isLoading;
-  final VoidCallback onNext;
-
-  const _PinVerifyStep({
-    required this.pinCtrl,
-    required this.error,
-    required this.onNext,
-    this.isLoading = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      key: const ValueKey('pin'),
-      children: [
-        const SizedBox(height: 12),
-        Container(
-          width: 80, height: 80,
-          decoration: const BoxDecoration(
-            color: AppColors.primaryLight,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.verified_user, color: AppColors.primary, size: 40),
-        ),
-        const SizedBox(height: 16),
-        const Text('Hotel Staff Verification',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 20)),
-        const SizedBox(height: 6),
-        const Text(
-          'Ask the hotel staff to enter their\n4-digit collection PIN',
-          textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-        ),
-        const SizedBox(height: 28),
-        _Card(
-          child: TextField(
-            controller: pinCtrl,
-            keyboardType: TextInputType.number,
-            obscureText: true,
-            maxLength: 6,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: 12),
-            decoration: InputDecoration(
-              counterText: '',
-              hintText: '• • • •',
-              errorText: error ? 'Incorrect PIN. Please try again.' : null,
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-        ElevatedButton(
-          onPressed: isLoading ? null : onNext,
-          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-          child: isLoading
-              ? const SizedBox(
-                  height: 20, width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                )
-              : const Text('Verify & Complete',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-        ),
-      ],
-    ).animate().fadeIn(duration: 300.ms);
-  }
-}
-
-// ─── Step 4 — Complete ────────────────────────────────────────────────────────
+// ─── Step 3 — Complete ────────────────────────────────────────────────────────
 
 class _CompleteStep extends StatelessWidget {
   final Collection? collection;
   final double? actualWeight;
   final Map<String, dynamic> advanceResult;
+  final int arrivalPhotoCount;
+  final int weighPhotoCount;
   final VoidCallback onDone;
 
   const _CompleteStep({
@@ -658,6 +846,8 @@ class _CompleteStep extends StatelessWidget {
     this.collection,
     this.actualWeight,
     this.advanceResult = const {},
+    this.arrivalPhotoCount = 0,
+    this.weighPhotoCount = 0,
   });
 
   @override
@@ -670,6 +860,7 @@ class _CompleteStep extends StatelessWidget {
     final now = TimeOfDay.now();
     final timeStr = '${now.hourOfPeriod}:${now.minute.toString().padLeft(2, '0')} '
         '${now.period == DayPeriod.am ? 'AM' : 'PM'}';
+    final totalPhotos = arrivalPhotoCount + weighPhotoCount;
 
     return Column(
       key: const ValueKey('complete'),
@@ -701,6 +892,7 @@ class _CompleteStep extends StatelessWidget {
               _SummaryRow(label: 'Business', value: hotelName),
               _SummaryRow(label: 'Waste Type', value: wasteLabel),
               _SummaryRow(label: 'Actual Weight', value: weightStr),
+              _SummaryRow(label: 'Photos Taken', value: '$totalPhotos photo(s)'),
               _SummaryRow(label: 'Collection Time', value: timeStr),
             ],
           ),
@@ -814,8 +1006,11 @@ class _DetailRow extends StatelessWidget {
         const SizedBox(width: 8),
         Text('$label: ',
             style: TextStyle(color: AppColors.textSecondary, fontSize: small ? 12 : 13)),
-        Text(value,
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: small ? 12 : 13)),
+        Expanded(
+          child: Text(value,
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: small ? 12 : 13),
+              overflow: TextOverflow.ellipsis),
+        ),
       ],
     );
   }

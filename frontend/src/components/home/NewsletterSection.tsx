@@ -71,7 +71,7 @@ const NewsletterSection = () => {
           </form>
 
           {/* Social Proof */}
-          <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-700">
+          {/* <div className="mt-8 pt-8 border-t border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-center space-x-8">
               <div className="text-center">
                 <div className="text-sm font-semibold text-gray-900 dark:text-white">1,200+</div>
@@ -86,7 +86,7 @@ const NewsletterSection = () => {
                 <div className="text-xs text-gray-600 dark:text-gray-400">E-books</div>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </section>

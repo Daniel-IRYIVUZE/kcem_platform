@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import '../../core/services/api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/router/app_router.dart';
@@ -18,6 +21,71 @@ class DriverProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _DriverProfileScreenState extends ConsumerState<DriverProfileScreen> {
+  String? _liveAddress;
+  bool _locationLoading = false;
+  String? _locationError;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchLiveLocation();
+  }
+
+  Future<void> _fetchLiveLocation() async {
+    if (!mounted) return;
+    setState(() { _locationLoading = true; _locationError = null; });
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) setState(() { _locationError = 'Location services disabled'; _locationLoading = false; });
+        return;
+      }
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever || permission == LocationPermission.denied) {
+        if (mounted) setState(() { _locationError = 'Location permission denied'; _locationLoading = false; });
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      );
+      // Push GPS to backend so recycler can track driver
+      ApiService.updateDriverLocation(pos.latitude, pos.longitude).catchError((_) => <String, dynamic>{});
+      // Reverse geocode via Nominatim (free, no API key)
+      final address = await _reverseGeocode(pos.latitude, pos.longitude);
+      if (mounted) setState(() { _liveAddress = address; _locationLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _locationError = 'Could not get location'; _locationLoading = false; });
+    }
+  }
+
+  Future<String> _reverseGeocode(double lat, double lng) async {
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json',
+      );
+      final response = await http.get(uri, headers: {'User-Agent': 'EcoTradeRwanda/1.0'})
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final address = data['address'] as Map<String, dynamic>? ?? {};
+        final parts = <String>[
+          if (address['road'] != null) address['road'] as String,
+          if (address['suburb'] != null) address['suburb'] as String,
+          if (address['city'] != null) address['city'] as String
+          else if (address['town'] != null) address['town'] as String
+          else if (address['village'] != null) address['village'] as String,
+        ];
+        if (parts.isNotEmpty) return parts.join(', ');
+        return data['display_name'] as String? ?? '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
+      }
+    } catch (_) {}
+    return '${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)}';
+  }
+
   String _scoreLevel(int score) {
     if (score >= 90) return 'Eco Master';
     if (score >= 75) return 'Eco Champion';
@@ -29,172 +97,280 @@ class _DriverProfileScreenState extends ConsumerState<DriverProfileScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
     final driverAsync = ref.watch(driverProfileProvider);
+    final stats = ref.watch(driverStatsProvider);
+    final initials = (user?.displayName ?? 'D')
+        .trim()
+        .split(' ')
+        .take(2)
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
+        .join();
 
     return Scaffold(
       backgroundColor: context.cBg,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile header
-            Container(
-              decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+      body: CustomScrollView(
+        slivers: [
+          // ── Full-bleed gradient header ──────────────────────────────
+          SliverToBoxAdapter(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0D47A1), Color(0xFF1976D2), Color(0xFF26C6DA)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
+              ),
               child: SafeArea(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 20),
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(50),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white.withAlpha(120), width: 2),
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+                  child: Column(
+                    children: [
+                      // Top row — edit button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'My Profile',
+                            style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
+                          ),
+                          Material(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () => _showEditProfileSheet(context),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                  Icon(Icons.edit_outlined, color: Colors.white, size: 15),
+                                  SizedBox(width: 6),
+                                  Text('Edit', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                                ]),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: const Center(
-                        child: Icon(Icons.drive_eta, size: 38, color: Colors.white),
+                      const SizedBox(height: 20),
+                      // Avatar
+                      Container(
+                        width: 88,
+                        height: 88,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 12, offset: const Offset(0, 4))],
+                        ),
+                        child: Center(
+                          child: Text(
+                            initials,
+                            style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: 1),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      user?.displayName ?? 'Driver',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 20,
+                      const SizedBox(height: 12),
+                      // Name
+                      Text(
+                        user?.displayName ?? 'Driver',
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                      ).animate().fadeIn(duration: 300.ms),
+                      const SizedBox(height: 4),
+                      // Role badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.drive_eta, color: Colors.white70, size: 13),
+                          SizedBox(width: 5),
+                          Text('Driver', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                        ]),
                       ),
-                    ).animate().slideY(begin: 0.2, duration: 300.ms).fadeIn(),
-                    const SizedBox(height: 20),
-                    driverAsync.when(
-                      data: (d) {
-                        final loc = d['location'] as String? ?? d['address'] as String? ?? '';
-                        return loc.isNotEmpty
-                            ? Text(
-                                loc,
-                                style: TextStyle(
-                                  color: Colors.white.withAlpha(200),
-                                  fontSize: 13,
-                                ),
-                              )
-                            : const SizedBox.shrink();
-                      },
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
-                    ),
-                    const SizedBox(height: 16),
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                      onPressed: () => _showEditProfileSheet(context),
-                    ),
-                  ],
+                      const SizedBox(height: 6),
+                      // Live location pill
+                      if (_locationLoading)
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white70)),
+                          const SizedBox(width: 6),
+                          Text('Getting location...', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
+                        ])
+                      else if (_liveAddress != null)
+                        Row(mainAxisSize: MainAxisSize.min, children: [
+                          const Icon(Icons.location_on, color: Colors.white70, size: 13),
+                          const SizedBox(width: 4),
+                          Flexible(child: Text(_liveAddress!, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                        ])
+                      else if (_locationError != null)
+                        GestureDetector(
+                          onTap: _fetchLiveLocation,
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.location_off, color: Colors.orange, size: 13),
+                            const SizedBox(width: 4),
+                            Text('Tap to get location', style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12)),
+                          ]),
+                        ),
+                      const SizedBox(height: 24),
+                      // Stats strip
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            _HeaderStat(label: 'Total Trips', value: '${stats["totalCollections"] ?? 0}', icon: Icons.local_shipping_outlined),
+                            _StatDivider(),
+                            _HeaderStat(label: 'Completed', value: '${stats["completedCollections"] ?? 0}', icon: Icons.check_circle_outline),
+                            _StatDivider(),
+                            _HeaderStat(
+                              label: 'Kg Collected',
+                              value: ((stats["totalVolume"] as double?) ?? 0.0).toStringAsFixed(0),
+                              icon: Icons.scale_outlined,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            // Green Score
-            GreenScoreCard(
-              score: (user?.greenScore ?? 0).toDouble(),
-              level: _scoreLevel(user?.greenScore ?? 0),
-            ).animate().slideY(begin: 0.2, duration: 300.ms).fadeIn(),
-            const SizedBox(height: 20),
-            // Driver Details
-            driverAsync.when(
-              data: (d) {
-                final plate = d['plate_number'] as String? ?? d['vehicle_plate'] as String? ?? '—';
-                final location = d['location'] as String? ?? d['address'] as String? ?? '—';
-                return _ProfileSection(
-                  title: 'Driver Details',
-                  children: [
-                    _ProfileRow(icon: Icons.drive_eta, label: 'Driver Name', value: user?.displayName ?? 'N/A'),
-                    _ProfileRow(icon: Icons.directions_car_outlined, label: 'Plate Number', value: plate),
-                    _ProfileRow(icon: Icons.location_on_outlined, label: 'Location', value: location),
-                    _ProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
-                    _ProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
-                  ],
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => _ProfileSection(
-                title: 'Driver Details',
-                children: [
-                  _ProfileRow(icon: Icons.drive_eta, label: 'Driver Name', value: user?.displayName ?? 'N/A'),
-                  _ProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
-                  _ProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
-                ],
-              ),
-            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 80.ms).fadeIn(),
-            const SizedBox(height: 16),
-            // QR Code Identity Card
-            _DriverQrSection(
-              userId: user?.id ?? '',
-              displayName: user?.displayName ?? 'Driver',
-            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 120.ms).fadeIn(),
-            const SizedBox(height: 16),
-            // Settings
-            _ProfileSection(
-              title: 'Settings',
-              children: [
-                _SettingRow(icon: Icons.notifications_outlined, label: 'Notifications', onTap: () => context.push(AppRoutes.notifications)),
-                _SettingRow(
-                  icon: Icons.language_outlined,
-                  label: 'Language',
-                  trailing: const Text('English'),
-                  onTap: () => _showLanguageSheet(context),
-                ),
-                Consumer(
-                  builder: (context, ref, _) {
-                    final isDark = ref.watch(themeProvider) == ThemeMode.dark;
-                    return SwitchListTile(
-                      secondary: Icon(
-                        isDark ? Icons.dark_mode : Icons.light_mode,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
-                      title: const Text('Dark Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                      value: isDark,
-                      onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
-                      activeThumbColor: AppColors.primary,
-                      dense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            ).animate().fadeIn(duration: 400.ms),
+          ),
+
+          // ── Scrollable content ──────────────────────────────────────
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                // Green Score
+                GreenScoreCard(
+                  score: (user?.greenScore ?? 0).toDouble(),
+                  level: _scoreLevel(user?.greenScore ?? 0),
+                ).animate().slideY(begin: 0.15, duration: 300.ms).fadeIn(),
+                const SizedBox(height: 16),
+                // Driver Details
+                driverAsync.when(
+                  data: (d) {
+                    final plate = d['plate_number'] as String? ?? d['vehicle_plate'] as String? ?? '—';
+                    return _ProfileSection(
+                      title: 'Driver Details',
+                      icon: Icons.badge_outlined,
+                      children: [
+                        _ProfileRow(icon: Icons.drive_eta, label: 'Driver Name', value: user?.displayName ?? 'N/A'),
+                        _ProfileRow(icon: Icons.directions_car_outlined, label: 'Plate Number', value: plate),
+                        _LiveLocationRow(
+                          address: _liveAddress,
+                          isLoading: _locationLoading,
+                          error: _locationError,
+                          onRefresh: _fetchLiveLocation,
+                        ),
+                        _ProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
+                        _ProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
+                      ],
                     );
                   },
-                ),
-                _SettingRow(
-                  icon: Icons.lock_outline,
-                  label: 'Change Password',
-                  onTap: () => _showChangePasswordSheet(context),
-                ),
-              ],
-            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 240.ms).fadeIn(),
-            const SizedBox(height: 16),
-            // Support
-            _ProfileSection(
-              title: 'Support',
-              children: [
-                _SettingRow(icon: Icons.help_outline, label: 'Help & FAQ', onTap: () => context.push(AppRoutes.support)),
-                _SettingRow(icon: Icons.support_agent_outlined, label: 'Contact Support', onTap: () => context.push(AppRoutes.support)),
-                _SettingRow(icon: Icons.privacy_tip_outlined, label: 'Privacy Policy', onTap: () => _showLegalModal(context, TermsTab.privacy)),
-                _SettingRow(icon: Icons.description_outlined, label: 'Terms of Service', onTap: () => _showLegalModal(context, TermsTab.terms)),
-              ],
-            ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 320.ms).fadeIn(),
-            const SizedBox(height: 16),
-            // Logout
-            OutlinedButton.icon(
-              onPressed: () {
-                ref.read(authProvider.notifier).logout();
-              },
-              icon: const Icon(Icons.logout, color: AppColors.error),
-              label: const Text('Sign Out', style: TextStyle(color: AppColors.error)),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.error),
-                minimumSize: const Size(double.infinity, 52),
-              ),
-            ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
-            const SizedBox(height: 32),
-          ],
-        ),
+                  loading: () => const Center(child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  )),
+                  error: (_, __) => _ProfileSection(
+                    title: 'Driver Details',
+                    icon: Icons.badge_outlined,
+                    children: [
+                      _ProfileRow(icon: Icons.drive_eta, label: 'Driver Name', value: user?.displayName ?? 'N/A'),
+                      _LiveLocationRow(
+                        address: _liveAddress,
+                        isLoading: _locationLoading,
+                        error: _locationError,
+                        onRefresh: _fetchLiveLocation,
+                      ),
+                      _ProfileRow(icon: Icons.phone_outlined, label: 'Phone', value: user?.phone ?? 'N/A'),
+                      _ProfileRow(icon: Icons.email_outlined, label: 'Email', value: user?.email ?? 'N/A'),
+                    ],
+                  ),
+                ).animate().slideY(begin: 0.15, duration: 300.ms, delay: 80.ms).fadeIn(),
+                const SizedBox(height: 16),
+                // QR Code Identity Card
+                _DriverQrSection(
+                  userId: user?.id ?? '',
+                  displayName: user?.displayName ?? 'Driver',
+                ).animate().slideY(begin: 0.15, duration: 300.ms, delay: 120.ms).fadeIn(),
+                const SizedBox(height: 16),
+                // Settings
+                _ProfileSection(
+                  title: 'Settings',
+                  icon: Icons.tune_outlined,
+                  children: [
+                    _SettingRow(icon: Icons.notifications_outlined, label: 'Notifications', onTap: () => context.push(AppRoutes.notifications)),
+                    _SettingRow(
+                      icon: Icons.language_outlined,
+                      label: 'Language',
+                      trailing: const Text('English', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                      onTap: () => _showLanguageSheet(context),
+                    ),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final isDark = ref.watch(themeProvider) == ThemeMode.dark;
+                        return SwitchListTile(
+                          secondary: Icon(
+                            isDark ? Icons.dark_mode : Icons.light_mode,
+                            color: AppColors.textSecondary,
+                            size: 20,
+                          ),
+                          title: const Text('Dark Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                          value: isDark,
+                          onChanged: (_) => ref.read(themeProvider.notifier).toggle(),
+                          activeThumbColor: AppColors.primary,
+                          dense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        );
+                      },
+                    ),
+                    _SettingRow(
+                      icon: Icons.lock_outline,
+                      label: 'Change Password',
+                      onTap: () => _showChangePasswordSheet(context),
+                    ),
+                  ],
+                ).animate().slideY(begin: 0.15, duration: 300.ms, delay: 200.ms).fadeIn(),
+                const SizedBox(height: 16),
+                // Support
+                _ProfileSection(
+                  title: 'Support',
+                  icon: Icons.help_outline,
+                  children: [
+                    _SettingRow(icon: Icons.help_outline, label: 'Help & FAQ', onTap: () => context.push(AppRoutes.support)),
+                    _SettingRow(icon: Icons.support_agent_outlined, label: 'Contact Support', onTap: () => context.push(AppRoutes.support)),
+                    _SettingRow(icon: Icons.privacy_tip_outlined, label: 'Privacy Policy', onTap: () => _showLegalModal(context, TermsTab.privacy)),
+                    _SettingRow(icon: Icons.description_outlined, label: 'Terms of Service', onTap: () => _showLegalModal(context, TermsTab.terms)),
+                  ],
+                ).animate().slideY(begin: 0.15, duration: 300.ms, delay: 260.ms).fadeIn(),
+                const SizedBox(height: 20),
+                // Logout
+                OutlinedButton.icon(
+                  onPressed: () => ref.read(authProvider.notifier).logout(),
+                  icon: const Icon(Icons.logout, color: AppColors.error),
+                  label: const Text('Sign Out', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w700)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.error),
+                    minimumSize: const Size(double.infinity, 52),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ).animate().fadeIn(duration: 400.ms, delay: 320.ms),
+                const SizedBox(height: 32),
+              ]),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -558,17 +734,50 @@ class _DriverProfileScreenState extends ConsumerState<DriverProfileScreen> {
 }
 
 // ─────────────────────────────────────────────
+// Header stat widgets
+// ─────────────────────────────────────────────
+class _HeaderStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  const _HeaderStat({required this.label, required this.value, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white70, size: 18),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 11)),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatDivider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => Container(width: 1, height: 36, color: Colors.white.withValues(alpha: 0.2));
+}
+
+// ─────────────────────────────────────────────
 // Profile Section
 // ─────────────────────────────────────────────
 class _ProfileSection extends StatelessWidget {
   final String title;
   final List<Widget> children;
   final Widget? trailing;
+  final IconData? icon;
 
   const _ProfileSection({
     required this.title,
     required this.children,
     this.trailing,
+    this.icon,
   });
 
   @override
@@ -578,20 +787,28 @@ class _ProfileSection extends StatelessWidget {
         color: context.cSurf,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.cBorder),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
             child: Row(
               children: [
+                if (icon != null) ...[
+                  Container(
+                    width: 28, height: 28,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(icon, size: 16, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 10),
+                ],
                 Text(
                   title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: context.cText,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: context.cText),
                 ),
                 const Spacer(),
                 if (trailing != null) trailing!,
@@ -634,6 +851,80 @@ class _ProfileRow extends StatelessWidget {
                 Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.cText)),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────
+// Live Location Row
+// ─────────────────────────────────────────────
+class _LiveLocationRow extends StatelessWidget {
+  final String? address;
+  final bool isLoading;
+  final String? error;
+  final VoidCallback onRefresh;
+
+  const _LiveLocationRow({
+    this.address,
+    this.isLoading = false,
+    this.error,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.location_on, color: isLoading ? AppColors.textSecondary : AppColors.primary, size: 18),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('Live Location', style: TextStyle(fontSize: 11, color: context.cTextTer)),
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('GPS', style: TextStyle(fontSize: 9, color: AppColors.primary, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                if (isLoading)
+                  Row(children: [
+                    const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5)),
+                    const SizedBox(width: 6),
+                    Text('Fetching location...', style: TextStyle(fontSize: 13, color: context.cTextSec)),
+                  ])
+                else if (error != null)
+                  Text(error!, style: const TextStyle(fontSize: 13, color: AppColors.error))
+                else
+                  Text(
+                    address ?? '—',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.cText),
+                  ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh, size: 18),
+            color: AppColors.primary,
+            tooltip: 'Refresh location',
+            onPressed: isLoading ? null : onRefresh,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
           ),
         ],
       ),

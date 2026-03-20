@@ -73,7 +73,7 @@ const CTASection = () => {
         </div>
 
         {/* Stats Preview */}
-        <div className="mt-12 pt-12 border-t border-cyan-600/30">
+        {/* <div className="mt-12 pt-12 border-t border-cyan-600/30">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
               <div className="text-3xl text-white font-bold">4+</div>
@@ -92,7 +92,7 @@ const CTASection = () => {
               <div className="text-sm text-cyan-200">Waste Diverted</div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </section>
   );

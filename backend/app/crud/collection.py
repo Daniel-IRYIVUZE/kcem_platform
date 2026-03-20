@@ -26,23 +26,26 @@ class CRUDCollection(CRUDBase[Collection, CollectionCreate, CollectionUpdate]):
                 .order_by(Collection.scheduled_date.asc())
                 .offset(skip).limit(limit).all())
 
-    def advance_status(self, db: Session, *, collection_id: int = None, collection: Collection = None, 
-                      new_status: CollectionStatus = None, notes: str = None) -> Collection | None:
+    def advance_status(self, db: Session, *, collection_id: int = None, collection: Collection = None,
+                      new_status: CollectionStatus = None, notes: str = None,
+                      actual_volume: float = None) -> Collection | None:
         """Advance collection status and update related timestamps."""
         # Get collection if only ID provided
         if collection_id and not collection:
             collection = self.get(db, collection_id)
             if not collection:
                 return None
-        
+
         if not collection:
             return None
-        
+
         now = datetime.now(timezone.utc)
         collection.status = new_status
         if notes:
             collection.notes = notes
-        
+        if actual_volume is not None:
+            collection.actual_volume = actual_volume
+
         if new_status == CollectionStatus.en_route:
             collection.started_at = now
         elif new_status == CollectionStatus.arrived:
@@ -53,7 +56,7 @@ class CRUDCollection(CRUDBase[Collection, CollectionCreate, CollectionUpdate]):
             pass  # verified is intermediate state
         elif new_status == CollectionStatus.completed:
             collection.completed_at = now
-        
+
         db.commit()
         db.refresh(collection)
         return collection

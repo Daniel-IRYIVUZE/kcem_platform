@@ -107,8 +107,10 @@ def advance_status(collection_id: int, payload: dict, db: Session = Depends(get_
     if not col:
         raise HTTPException(404, "Collection not found.")
     new_status = payload.get("status")
+    actual_weight = payload.get("actual_weight") or payload.get("actual_volume")
     col = crud_collection.advance_status(db, collection_id=collection_id, new_status=new_status,
-                                         notes=payload.get("notes"))
+                                         notes=payload.get("notes"),
+                                         actual_volume=float(actual_weight) if actual_weight is not None else None)
     # Notify hotel owner
     notify_collection_status(db, user_id=col.listing.hotel.user_id,
                              status=new_status, collection_id=col.id)

@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/models.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import '../services/local_storage_service.dart';
+import '../services/offline_sync_service.dart';
 
 // ── Theme Provider ─────────────────────────────────────────────────────────
 
@@ -433,11 +436,27 @@ String _wasteTypeToApi(WasteType type) {
 // ── Private API FutureProviders ───────────────────────────────────────────
 
 final _apiOpenListingsProvider = FutureProvider<List<WasteListing>>((ref) async {
+  const cacheKey = 'cached_open_listings';
   try {
     final resp = await ApiService.getListings(status: 'open', limit: 50);
     final items = resp['items'] as List<dynamic>? ?? [];
-    return items.map((j) => _listingFromApi(j as Map<String, dynamic>)).toList();
+    final mapped = items.map((j) => _listingFromApi(j as Map<String, dynamic>)).toList();
+    // Persist to Hive cache for offline access
+    try {
+      final box = await Hive.openBox<String>('app_cache');
+      await box.put(cacheKey, jsonEncode(items));
+    } catch (_) {}
+    return mapped;
   } catch (_) {
+    // Return cached listings when offline
+    try {
+      final box = await Hive.openBox<String>('app_cache');
+      final raw = box.get(cacheKey);
+      if (raw != null) {
+        final items = jsonDecode(raw) as List;
+        return items.map((j) => _listingFromApi(j as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
     return <WasteListing>[];
   }
 });
@@ -507,10 +526,26 @@ final _apiMyBidsProvider = FutureProvider<List<Bid>>((ref) async {
 });
 
 final _apiMyCollectionsProvider = FutureProvider<List<Collection>>((ref) async {
+  const cacheKey = 'cached_collections';
   try {
     final items = await ApiService.getMyCollections();
-    return items.map((j) => _collectionFromApi(j as Map<String, dynamic>)).toList();
+    final mapped = items.map((j) => _collectionFromApi(j as Map<String, dynamic>)).toList();
+    // Persist to Hive cache so we can read offline
+    try {
+      final box = await Hive.openBox<String>('app_cache');
+      await box.put(cacheKey, jsonEncode(items));
+    } catch (_) {}
+    return mapped;
   } catch (_) {
+    // Try returning cached data when offline
+    try {
+      final box = await Hive.openBox<String>('app_cache');
+      final raw = box.get(cacheKey);
+      if (raw != null) {
+        final items = jsonDecode(raw) as List;
+        return items.map((j) => _collectionFromApi(j as Map<String, dynamic>)).toList();
+      }
+    } catch (_) {}
     return <Collection>[];
   }
 });
@@ -889,14 +924,23 @@ final driverStatsProvider = Provider<Map<String, dynamic>>((ref) {
   if (user == null) return {};
   final apiCollections = ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d);
   if (apiCollections != null) {
+    final today = DateTime.now();
+    final todayCollections = apiCollections.where((c) {
+      final d = c.scheduledDate;
+      return d.year == today.year && d.month == today.month && d.day == today.day;
+    }).toList();
     final completed = apiCollections.where((c) => c.status == CollectionStatus.completed).length;
+    final todayCompleted = todayCollections.where((c) => c.status == CollectionStatus.completed).length;
+    final totalVolume = apiCollections.fold<double>(
+      0, (s, c) => s + (c.actualWeight ?? c.volume));
     return {
-      'todayStops': apiCollections.length,
-      'completedStops': completed,
+      'todayStops': todayCollections.length,
+      'completedStops': todayCompleted,
       'totalCollections': apiCollections.length,
       'completedCollections': completed,
+      'totalVolume': totalVolume,
       'totalEarnings': apiCollections.fold<double>(0, (s, c) => s + c.earnings),
-      'todayEarnings': 0.0,
+      'todayEarnings': todayCollections.fold<double>(0, (s, c) => s + c.earnings),
       'rating': user.rating,
     };
   }
@@ -905,6 +949,7 @@ final driverStatsProvider = Provider<Map<String, dynamic>>((ref) {
     'completedStops': 0,
     'totalCollections': 0,
     'completedCollections': 0,
+    'totalVolume': 0.0,
     'totalEarnings': 0.0,
     'todayEarnings': 0.0,
     'rating': user.rating,
@@ -1097,19 +1142,38 @@ class CollectionsNotifier extends StateNotifier<List<Collection>> {
   }
 
   /// Advances the collection to the next status in the backend workflow.
-  /// Refreshes collections data after success.
+  /// Queues offline when there is no connectivity; refreshes data after success.
   Future<Map<String, dynamic>> advanceStatus(
     int collectionId, {
     double? actualWeight,
     String? notes,
   }) async {
-    final result = await ApiService.advanceCollectionStatus(
-      collectionId,
-      actualWeight: actualWeight,
-      notes: notes,
-    );
-    ref.invalidate(_apiMyCollectionsProvider);
-    return result;
+    try {
+      final result = await ApiService.advanceCollectionStatus(
+        collectionId,
+        actualWeight: actualWeight,
+        notes: notes,
+      );
+      ref.invalidate(_apiMyCollectionsProvider);
+      return result;
+    } catch (e) {
+      // Queue for offline sync if it looks like a network error
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('socket') || msg.contains('connection') ||
+          msg.contains('network') || msg.contains('timeout') ||
+          msg.contains('unreachable')) {
+        await OfflineSyncService.queue(
+          'POST',
+          '/collections/$collectionId/advance',
+          {
+            if (actualWeight != null) 'actual_weight': actualWeight,
+            if (notes != null) 'notes': notes,
+          },
+        );
+        return {};
+      }
+      rethrow;
+    }
   }
 }
 

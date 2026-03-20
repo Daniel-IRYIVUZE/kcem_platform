@@ -8,6 +8,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../shared/widgets/shared_cards.dart';
 import '../shared/widgets/eco_button.dart';
+import '../shared/widgets/offline_banner.dart';
 import 'driver_tracking_screen.dart';
 import 'recycler_collections_screen.dart';
 
@@ -76,6 +77,7 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
 
           return Column(
             children: [
+              const OfflineBanner(),
               // Fleet summary
               Container(
                 margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),

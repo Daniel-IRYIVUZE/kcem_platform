@@ -105,161 +105,173 @@ class _DriverHomeTab extends ConsumerWidget {
     final greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
     final doneCount = route.stops.where((s) => s.status == RouteStopStatus.completed).length;
     final totalCount = route.stops.length;
-    final nextStop = route.stops.where((s) => s.status == RouteStopStatus.pending || s.status == RouteStopStatus.collecting).firstOrNull;
+    final nextStop = route.stops
+        .where((s) => s.status == RouteStopStatus.pending || s.status == RouteStopStatus.collecting)
+        .firstOrNull;
+    final initials = (user?.displayName ?? 'D').trim().split(' ').take(2)
+        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '').join();
+    final totalVolume = (stats["totalVolume"] as double?) ?? 0.0;
+    final totalEarnings = (stats["totalEarnings"] as double?) ?? 0.0;
+
     return Scaffold(
       backgroundColor: context.cBg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
+      body: CustomScrollView(
+        slivers: [
+          // ── Gradient header ─────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF0D47A1), Color(0xFF1565C0), Color(0xFF1E88E5)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(greeting, style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  user?.displayName ?? 'Driver',
+                                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800),
+                                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          // Online pill
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                            ),
+                            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                              Icon(Icons.circle, color: Color(0xFF69F0AE), size: 8),
+                              SizedBox(width: 5),
+                              Text('Online', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
+                            ]),
+                          ),
+                          const SizedBox(width: 10),
+                          // Avatar with popup
+                          PopupMenuButton<String>(
+                            onSelected: (val) {
+                              if (val == 'profile') onGoToProfile?.call();
+                              if (val == 'logout') ref.read(authProvider.notifier).logout();
+                            },
+                            offset: const Offset(0, 48),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            tooltip: 'Account',
+                            itemBuilder: (_) => [
+                              const PopupMenuItem(value: 'profile', child: Row(children: [
+                                Icon(Icons.settings_outlined, size: 18),
+                                SizedBox(width: 10), Text('Settings & Profile'),
+                              ])),
+                              const PopupMenuDivider(),
+                              const PopupMenuItem(value: 'logout', child: Row(children: [
+                                Icon(Icons.logout, color: Colors.red, size: 18),
+                                SizedBox(width: 10), Text('Sign Out', style: TextStyle(color: Colors.red)),
+                              ])),
+                            ],
+                            child: CircleAvatar(
+                              radius: 22,
+                              backgroundColor: Colors.white.withValues(alpha: 0.2),
+                              child: Text(initials, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      // Route progress card inside header
+                      _RouteSummaryCard(route: route, doneCount: doneCount, totalCount: totalCount),
+                    ],
+                  ),
+                ),
+              ),
+            ).animate().fadeIn(duration: 350.ms),
+          ),
+
+          // ── Body content ─────────────────────────────────────────────
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
+            sliver: SliverList(delegate: SliverChildListDelegate([
+              const OfflineBanner(),
+
+              // Stat cards row
               Row(
                 children: [
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          greeting,
-                          style: TextStyle(fontSize: 13, color: context.cTextSec),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          user?.displayName ?? 'Driver',
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: context.cText),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Spacer(),
-                  // Online toggle
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.circle, color: AppColors.primary, size: 10),
-                        SizedBox(width: 6),
-                        Text(
-                          'Online',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
+                  _StatMiniCard(
+                    label: 'Stops Done',
+                    value: '$doneCount / $totalCount',
+                    icon: Icons.check_circle_outline,
+                    color: AppColors.primary,
                   ),
                   const SizedBox(width: 10),
-                  // Profile avatar popup
-                  PopupMenuButton<String>(
-                    onSelected: (val) {
-                      if (val == 'profile') onGoToProfile?.call();
-                      if (val == 'logout') ref.read(authProvider.notifier).logout();
-                    },
-                    offset: const Offset(0, 44),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    tooltip: 'Account',
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(
-                        value: 'profile',
-                        child: Row(children: [
-                          Icon(Icons.settings_outlined, size: 18),
-                          SizedBox(width: 10),
-                          Text('Settings & Profile'),
-                        ]),
-                      ),
-                      const PopupMenuDivider(),
-                      const PopupMenuItem(
-                        value: 'logout',
-                        child: Row(children: [
-                          Icon(Icons.logout, color: Colors.red, size: 18),
-                          SizedBox(width: 10),
-                          Text('Sign Out', style: TextStyle(color: Colors.red)),
-                        ]),
-                      ),
-                    ],
-                    child: CircleAvatar(
-                      radius: 20,
-                      backgroundColor: AppColors.primaryLight,
-                      child: Text(
-                        (user?.displayName ?? 'D').substring(0, 1).toUpperCase(),
-                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 13),
-                      ),
-                    ),
+                  _StatMiniCard(
+                    label: 'Kg Collected',
+                    value: '${totalVolume.toStringAsFixed(1)} kg',
+                    icon: Icons.scale_outlined,
+                    color: const Color(0xFF00ACC1),
                   ),
+                  const SizedBox(width: 10),
+                  _StatMiniCard(
+                    label: 'Earnings',
+                    value: 'RWF ${totalEarnings.toStringAsFixed(0)}',
+                    icon: Icons.payments_outlined,
+                    color: const Color(0xFF43A047),
+                  ),
+                ],
+              ).animate().slideY(begin: 0.2, duration: 350.ms, delay: 80.ms).fadeIn(),
+
+              const SizedBox(height: 20),
+
+              // Next stop
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Next Stop', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.cText)),
+                  if (totalCount > 0)
+                    Text('$totalCount stop${totalCount != 1 ? "s" : ""} today',
+                        style: TextStyle(fontSize: 12, color: context.cTextSec)),
                 ],
               ),
-
-              const SizedBox(height: 4),
-              const OfflineBanner(),
-              const SizedBox(height: 20),
-
-              // Route summary card
-              _RouteSummaryCard(route: route, doneCount: doneCount, totalCount: totalCount).animate().slideY(begin: 0.2, duration: 400.ms).fadeIn(),
-
-              const SizedBox(height: 20),
-
-              // Today's stats
-              Row(
-                children: [
-                  Expanded(
-                    child: StatCard(
-                      title: 'Stops Done',
-                      value: '$doneCount / $totalCount',
-                      icon: Icons.check_circle_outline,
-                      iconColor: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: StatCard(
-                      title: 'Kg Collected',
-                      value: '${stats["totalVolume"] ?? 0} kg',
-                      icon: Icons.scale_outlined,
-                      iconColor: AppColors.accent,
-                      iconBg: AppColors.accentLight,
-                    ),
-                  ),
-                ],
-              ).animate().slideY(begin: 0.2, duration: 400.ms, delay: 100.ms).fadeIn(),
-
-              const SizedBox(height: 20),
-
-              // Next stop highlighted
-              const SectionHeader(title: 'Next Stop'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               if (nextStop != null)
-                _NextStopCard(stop: nextStop).animate().slideY(begin: 0.2, duration: 400.ms, delay: 200.ms).fadeIn()
+                _NextStopCard(stop: nextStop).animate().slideY(begin: 0.2, duration: 350.ms, delay: 160.ms).fadeIn()
               else
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-                  child: const Center(child: Text('All stops completed!', style: TextStyle(color: AppColors.textSecondary))),
-                ).animate().fadeIn(),
+                _EmptyStopsCard(allDone: totalCount > 0 && doneCount == totalCount)
+                    .animate().fadeIn(duration: 300.ms, delay: 160.ms),
 
               const SizedBox(height: 20),
 
-              // Stops progress
-              const SectionHeader(title: "Today's Route"),
-              const SizedBox(height: 12),
-
-              if (route.stops.isNotEmpty)
-                  Container(padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: context.cSurf,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: context.cBorder),
+              // Today's route list
+              if (route.stops.isNotEmpty) ...[
+                Text("Today's Route", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: context.cText)),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: context.cSurf,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: context.cBorder),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8)],
                   ),
                   child: Column(
                     children: route.stops.asMap().entries.map((e) {
@@ -279,29 +291,34 @@ class _DriverHomeTab extends ConsumerWidget {
                       );
                     }).toList(),
                   ),
-                ).animate().slideY(begin: 0.2, duration: 400.ms, delay: 300.ms).fadeIn(),
+                ).animate().slideY(begin: 0.2, duration: 350.ms, delay: 240.ms).fadeIn(),
+                const SizedBox(height: 20),
+              ],
 
-              const SizedBox(height: 20),
-
-              // Start route button
+              // Start navigation button
               ElevatedButton.icon(
                 onPressed: () => context.push(AppRoutes.driverNavigation),
-                icon: const Icon(Icons.navigation, size: 20),
+                icon: const Icon(Icons.navigation_rounded, size: 20),
                 label: const Text('Start Navigation'),
                 style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 58),
-                  textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                  minimumSize: const Size(double.infinity, 56),
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  elevation: 2,
                 ),
-              ).animate().slideY(begin: 0.2, duration: 400.ms, delay: 400.ms).fadeIn(),
-            ],
+              ).animate().slideY(begin: 0.2, duration: 350.ms, delay: 300.ms).fadeIn(),
+            ])),
           ),
-        ),
+        ],
       ),
     );
   }
 
 }
 
+// ─── Route Summary (embedded inside header gradient) ────────────────────────
 class _RouteSummaryCard extends StatelessWidget {
   final DriverRoute? route;
   final int doneCount;
@@ -313,57 +330,137 @@ class _RouteSummaryCard extends StatelessWidget {
     final stops = route?.stops.length ?? 0;
     final progress = stops > 0 ? doneCount / stops : 0.0;
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(Icons.route, color: Colors.white70, size: 16),
-              SizedBox(width: 6),
-              Text(
-                "Today's Route",
-                style: TextStyle(color: Colors.white70, fontSize: 13),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '$stops Stops',
-            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${stops > 0 ? "$stops stops assigned today" : "No stops assigned today"}',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
-          ),
-          const SizedBox(height: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$doneCount of $stops completed',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 12),
-              ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress.toDouble(),
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                  minHeight: 8,
+              Row(children: [
+                const Icon(Icons.route_outlined, color: Colors.white70, size: 15),
+                const SizedBox(width: 6),
+                Text("Today's Route", style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
+              ]),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  stops > 0 ? '$doneCount/$stops done' : 'No stops',
+                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            stops > 0 ? '$stops Stop${stops != 1 ? "s" : ""} Assigned' : 'No stops assigned today',
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progress,
+              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+              minHeight: 7,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$doneCount of $stops completed',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Compact stat mini-card ──────────────────────────────────────────────────
+class _StatMiniCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  const _StatMiniCard({required this.label, required this.value, required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+        decoration: BoxDecoration(
+          color: context.cSurf,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: context.cBorder),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6)],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 34, height: 34,
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+              child: Icon(icon, size: 17, color: color),
+            ),
+            const SizedBox(height: 8),
+            Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: context.cText), maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(fontSize: 10, color: context.cTextSec), textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Empty stops state ───────────────────────────────────────────────────────
+class _EmptyStopsCard extends StatelessWidget {
+  final bool allDone;
+  const _EmptyStopsCard({this.allDone = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      decoration: BoxDecoration(
+        color: context.cSurf,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.cBorder),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            allDone ? Icons.task_alt : Icons.inbox_outlined,
+            size: 40,
+            color: allDone ? AppColors.primary : AppColors.textTertiary,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            allDone ? 'All stops completed!' : 'No stops assigned today',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: allDone ? AppColors.primary : AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            allDone ? 'Great work! Check back tomorrow.' : 'Your recycler will assign stops here.',
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -388,6 +485,7 @@ class _NextStopCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -405,15 +503,21 @@ class _NextStopCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const Spacer(),
-              const Icon(Icons.location_on, color: AppColors.primary, size: 16),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  stop.location,
-                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13),
-                  overflow: TextOverflow.ellipsis,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.location_on, color: AppColors.primary, size: 16),
+                  const SizedBox(width: 4),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 140),
+                    child: Text(
+                      stop.location,
+                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

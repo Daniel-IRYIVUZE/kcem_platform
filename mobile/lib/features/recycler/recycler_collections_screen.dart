@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/services/api_service.dart';
+import '../shared/widgets/offline_banner.dart';
 import 'driver_tracking_screen.dart';
 
 class RecyclerCollectionsScreen extends ConsumerStatefulWidget {
@@ -112,6 +113,7 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
       ),
       body: Column(
         children: [
+          const OfflineBanner(),
           // Summary row
           Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
