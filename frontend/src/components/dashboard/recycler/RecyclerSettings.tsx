@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usersAPI, recyclersAPI, resolveMediaUrl } from '../../../services/api';
 import type { RecyclerProfile, UserDocument } from '../../../services/api';
-import { CheckCircle, AlertCircle, Loader2, Check, Upload, FileText, Clock, XCircle } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Check, Upload, FileText } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
 const WASTE_TYPES = [
@@ -16,20 +16,10 @@ const WASTE_TYPES = [
   { key: 'Mixed', label: 'Mixed Waste' },
 ];
 
-function DocStatusBadge({ status }: { status: string }) {
-  if (status === 'approved') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-      <CheckCircle size={11} /> Approved
-    </span>
-  );
-  if (status === 'rejected') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-      <XCircle size={11} /> Rejected
-    </span>
-  );
+function DocStatusBadge() {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
-      <Clock size={11} /> Pending Review
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+      <CheckCircle size={11} /> Confirmed
     </span>
   );
 }
@@ -253,6 +243,7 @@ export default function RecyclerSettings() {
               placeholder="e.g. 123456789"
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             />
+            <span className="mt-1 text-xs text-green-600 dark:text-green-400 font-semibold">Confirmed</span>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Rwanda Revenue Authority Tax Identification Number</p>
           </div>
         </div>
@@ -305,7 +296,7 @@ export default function RecyclerSettings() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-2">
-                  <DocStatusBadge status={doc.status} />
+                  <DocStatusBadge />
                   {doc.file_url && (
                     <a href={resolveMediaUrl(doc.file_url)} target="_blank" rel="noreferrer" className="text-xs text-cyan-600 hover:underline">View</a>
                   )}

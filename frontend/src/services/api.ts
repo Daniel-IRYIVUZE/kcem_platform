@@ -563,6 +563,8 @@ export interface UserDocument {
 }
 
 export const usersAPI = {
+    deleteDocument: (id: number) =>
+      request<void>(`/users/me/documents/${id}`, { method: 'DELETE' }),
   list: (params?: { role?: string; status?: string; skip?: number; limit?: number }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
     return request<APIUser[]>(`/users${q ? `?${q}` : ''}`);

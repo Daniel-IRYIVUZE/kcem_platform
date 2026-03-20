@@ -161,6 +161,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             file_url=getattr(obj_in, 'file_url', ''),
             file_name=getattr(obj_in, 'file_name', None),
             notes=obj_in.notes,
+            status=DocumentStatus.approved if obj_in.doc_type == "rdb_certificate" else DocumentStatus.pending
         )
         db.add(doc)
         db.commit()

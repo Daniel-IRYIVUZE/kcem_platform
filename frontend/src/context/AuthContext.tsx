@@ -130,9 +130,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(freshUser);
         // Update cache with fresh data
         localStorage.setItem('ecotrade_user', JSON.stringify(freshUser));
-        
-        // Sync data from backend when restoring session
-        await syncFromAPI(freshUser.role);
+        // Sync data in the background — do NOT await so the dashboard shows immediately
+        syncFromAPI(freshUser.role).catch(() => {});
       } catch (error) {
         // Token invalid or expired - clear session
         console.error('Session expired or invalid:', error);
@@ -188,7 +187,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       const res = await authAPI.login(email, password);
-      
+
       // Store token
       localStorage.setItem('ecotrade_token', res.access_token);
       if (res.refresh_token) {
@@ -198,29 +197,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Set user state
       const mappedUser = await enrichUserWithRoleProfile(apiUserToUser(res.user));
       setUser(mappedUser);
-      
+
       // Flag first-login password change requirement
       if (res.must_change_password) {
         setMustChangePassword(true);
       }
-      
+
       // Persist user data for quick restoration
       localStorage.setItem('ecotrade_user', JSON.stringify(mappedUser));
-      
-      // Sync all backend data to localStorage dataStore
-      // This ensures dashboards have real data from backend
-      await syncFromAPI(mappedUser.role);
-      
+
+      // Sync backend data in the background — do NOT await so login is instant
+      syncFromAPI(mappedUser.role).catch(() => {});
+
       window.dispatchEvent(new Event('authChange'));
     } catch (error) {
       const msg = (error as Error).message;
       console.error('Login error:', error);
-      setLoading(false);
       throw new Error(
         msg.includes('Incorrect') || msg.includes('401') || msg.includes('suspended')
           ? msg
           : 'Login failed. Please check your credentials.'
       );
+    } finally {
+      setLoading(false);
     }
   };
 

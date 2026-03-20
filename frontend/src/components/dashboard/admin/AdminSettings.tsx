@@ -39,20 +39,17 @@ export default function AdminSettings() {
 
   useEffect(() => {
     let mounted = true;
-    Promise.all([
-      adminAPI.getSettings(),
-      adminAPI.getSmtpStatus(),
-    ]).then(([data,]) => {
-      if (!mounted) return;
-      setSettings({ ...defaults, ...data });
-      // setSmtp(smtpData);
-      setError(null);
-    }).catch((err: Error) => {
-      if (!mounted) return;
-      setError(err.message || 'Failed to load settings.');
-    }).finally(() => {
-      if (mounted) setLoading(false);
-    });
+    adminAPI.getSettings()
+      .then((data) => {
+        if (!mounted) return;
+        setSettings({ ...defaults, ...data });
+        setError(null);
+      }).catch((err: Error) => {
+        if (!mounted) return;
+        setError(err.message || 'Failed to load settings.');
+      }).finally(() => {
+        if (mounted) setLoading(false);
+      });
 
     return () => { mounted = false; };
   }, []);
@@ -78,8 +75,12 @@ export default function AdminSettings() {
       setSettings({ ...defaults, ...persisted });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      // Diagnostic: log success
+      console.log('Settings saved:', persisted);
     } catch (err) {
       setError((err as Error).message || 'Failed to save settings.');
+      // Diagnostic: log error
+      console.error('Settings save error:', err);
     } finally {
       setIsSaving(false);
     }

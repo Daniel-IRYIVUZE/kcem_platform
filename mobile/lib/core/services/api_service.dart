@@ -1,3 +1,10 @@
+  // ── Platform Settings (Admin) ─────────────────────────────────────────────
+  static Future<Map<String, dynamic>> getPlatformSettings() async {
+    return await _request('GET', '/admin/settings');
+  }
+  static Future<Map<String, dynamic>> savePlatformSettings(Map<String, dynamic> data) async {
+    return await _request('PUT', '/admin/settings', body: data);
+  }
 // lib/core/services/api_service.dart
 // Comprehensive API service for EcoTrade Rwanda backend
 import 'dart:async';

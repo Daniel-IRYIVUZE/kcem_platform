@@ -5,7 +5,7 @@ import {
   Home, Users, Package, Truck, Settings, BarChart3,
   Calendar, Map, FileText, ShoppingCart, LogOut, ChevronLeft,
   ChevronRight, Menu, X, ClipboardList, Trophy, Star, Eye,
-  CheckCircle, Route, Warehouse, DollarSign,
+  CheckCircle, Route, Warehouse, DollarSign, Leaf,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -79,7 +79,19 @@ const roleConfigs: Record<string, {
       { path: '/dashboard/driver/completed', label: 'Completed Jobs', icon: <CheckCircle size={20} /> },
       { path: '/dashboard/driver/settings', label: 'Settings', icon: <Settings size={20} /> },
     ]
-  }
+  },
+  individual: {
+    label: 'My Dashboard',
+    accent: '#00aac4',
+    navItems: [
+      { path: '/dashboard/individual', label: 'Overview', icon: <BarChart3 size={20} /> },
+      { path: '/dashboard/individual/marketplace', label: 'Marketplace', icon: <ShoppingCart size={20} /> },
+      { path: '/dashboard/individual/impact', label: 'My Impact', icon: <Leaf size={20} /> },
+      { path: '/dashboard/individual/orders', label: 'My Orders', icon: <Package size={20} /> },
+      { path: '/dashboard/individual/financial', label: 'Financial', icon: <DollarSign size={20} /> },
+      { path: '/dashboard/individual/settings', label: 'Settings', icon: <Settings size={20} /> },
+    ]
+  },
 };
 
 const Sidebar = ({ userRole }: SidebarProps) => {

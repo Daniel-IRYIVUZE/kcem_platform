@@ -53,9 +53,9 @@ def send_email(*, to_email: str, subject: str, html_body: str, text_body: str = 
         return True
 
     except Exception as exc:
-      logger.error(
-        "Failed to send email to %s | subject: %s | error: %s", to_email, subject, exc, exc_info=True
-      )
+        logger.error(
+            "Failed to send email to %s | subject: %s | error: %s", to_email, subject, exc, exc_info=True
+        )
         return False
 
 

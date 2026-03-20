@@ -153,16 +153,24 @@ def get_platform_settings(db: Session = Depends(get_db)):
 
 @router.put("/settings")
 def save_platform_settings(payload: dict[str, Any], db: Session = Depends(get_db)):
+    import logging
+    logger = logging.getLogger("settings_update")
+    updated_keys = []
     for key, value in payload.items():
         if key not in DEFAULT_SETTINGS:
+            logger.warning(f"Ignored unknown setting: {key}")
             continue
         row = db.query(SystemSettings).filter(SystemSettings.key == key).first()
         encoded = json.dumps(value)
         if row:
             row.value = encoded
+            logger.info(f"Updated setting: {key} -> {value}")
         else:
             db.add(SystemSettings(key=key, value=encoded, is_public=False))
+            logger.info(f"Created setting: {key} -> {value}")
+        updated_keys.append(key)
     db.commit()
+    logger.info(f"Settings update committed. Keys: {updated_keys}")
     return get_platform_settings(db)
 
 

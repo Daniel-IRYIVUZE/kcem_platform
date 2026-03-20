@@ -6,7 +6,7 @@ from app.crud import crud_user
 from app.auth.dependencies import get_current_active_user, require_admin
 from app.schemas.user import UserRead, UserUpdate, DocumentUpload, DocumentRead
 from app.utils.file_upload import save_upload, save_document_upload
-from app.models.user import User, UserRole, UserStatus, DocumentType
+from app.models.user import User, UserRole, UserStatus, DocumentType, UserDocument
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -61,9 +61,32 @@ def upload_document_file(
         doc_type=dtype,
         file_url=file_url,
         file_name=file.filename,
+        notes=None
     )
     doc = crud_user.add_document(db, user_id=current_user.id, obj_in=payload)
+    # Auto-approve RDB certificate uploads
+    if dtype == "rdb_certificate":
+        doc.status = "approved"
+        db.commit()
+        db.refresh(doc)
     return doc
+
+
+@router.delete("/me/documents/{doc_id}", status_code=204)
+def delete_my_document(
+    doc_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """Delete one of the authenticated user's own documents."""
+    doc = db.query(UserDocument).filter(
+        UserDocument.id == doc_id,
+        UserDocument.user_id == current_user.id,
+    ).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    db.delete(doc)
+    db.commit()
 
 
 # ── Admin endpoints ────────────────────────────────────────────────────────────

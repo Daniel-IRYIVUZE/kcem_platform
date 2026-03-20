@@ -2,24 +2,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usersAPI, hotelsAPI } from '../../../services/api';
 import type { UserDocument } from '../../../services/api';
-import { CheckCircle, Upload, FileText, Clock, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Upload, FileText, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { resolveMediaUrl } from '../../../services/api';
 
-function DocStatusBadge({ status }: { status: string }) {
-  if (status === 'approved') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-      <CheckCircle size={11} /> Approved
-    </span>
-  );
-  if (status === 'rejected') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">
-      <XCircle size={11} /> Rejected
-    </span>
-  );
+function DocStatusBadge() {
+  // Always show 'Confirmed' for RDB docs
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
-      <Clock size={11} /> Pending Review
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+      <CheckCircle size={11} /> Confirmed
     </span>
   );
 }
@@ -84,7 +75,7 @@ export default function BusinessSettings() {
 
     loadData();
     loadDocuments();
-  }, [updateUser, loadDocuments]);
+  }, []);
 
   const handleSave = useCallback(async () => {
     setLoading(true);
@@ -132,6 +123,12 @@ export default function BusinessSettings() {
   const handleDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.type !== 'application/pdf') {
+      setUploadError('Only PDF files are allowed for RDB Certificate.');
+      setUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
     setUploadingDoc(true);
     setUploadError(null);
     setUploadSuccess(false);
@@ -197,6 +194,7 @@ export default function BusinessSettings() {
               placeholder="e.g. 123456789"
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             />
+            <span className="mt-1 text-xs text-green-600 dark:text-green-400 font-semibold">Confirmed</span>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Rwanda Revenue Authority Tax Identification Number</p>
           </div>
         </div>
@@ -223,7 +221,7 @@ export default function BusinessSettings() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <DocStatusBadge status={doc.status} />
+                    <DocStatusBadge />
                     {doc.file_url && (
                       <a
                         href={resolveMediaUrl(doc.file_url)}
@@ -234,6 +232,23 @@ export default function BusinessSettings() {
                         View
                       </a>
                     )}
+                    <button
+                      onClick={async () => {
+                        if (documents.length === 1) {
+                          setUploadError('RDB Certificate is required. Please upload a new PDF before removing.');
+                          return;
+                        }
+                        try {
+                          await usersAPI.deleteDocument(doc.id);
+                          await loadDocuments();
+                        } catch (err) {
+                          setUploadError('Failed to delete document.');
+                        }
+                      }}
+                      className="ml-2 px-2 py-1 text-xs bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800 transition"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
               ))}
@@ -252,7 +267,7 @@ export default function BusinessSettings() {
           )}
 
           {documents.length === 0 && (
-            <p className="text-sm text-gray-400 dark:text-gray-500 italic">No certificate uploaded yet.</p>
+            <p className="text-sm text-red-600 dark:text-red-400 font-semibold">RDB Certificate is required. Please upload a PDF document.</p>
           )}
 
           {/* Upload button */}
@@ -260,7 +275,7 @@ export default function BusinessSettings() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              accept=".pdf"
               className="hidden"
               onChange={handleDocumentUpload}
             />
@@ -272,7 +287,7 @@ export default function BusinessSettings() {
               {uploadingDoc ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
               {uploadingDoc ? 'Uploading…' : 'Upload Certificate'}
             </button>
-            <p className="mt-1 text-xs text-gray-400">Accepted: PDF, JPEG, PNG (max 10 MB)</p>
+            <p className="mt-1 text-xs text-gray-400">Accepted: PDF only (max 10 MB)</p>
           </div>
 
           {uploadError && (

@@ -16,7 +16,11 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from app.models import user, hotel, recycler
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
+from app.models import *
+from app.models import SystemSettings
 from app.database import Base
 
 target_metadata = Base.metadata
