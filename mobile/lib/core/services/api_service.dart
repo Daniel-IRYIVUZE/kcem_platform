@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiException implements Exception {
@@ -389,19 +390,49 @@ class ApiService {
     });
   }
   
-  static Future<Map<String, dynamic>> uploadListingImage(int listingId, List<int> bytes, String filename) async {
+  static Future<Map<String, dynamic>> uploadListingImage(
+    int listingId,
+    List<int> bytes,
+    String filename, {
+    String? mimeType,
+  }) async {
     final uri = Uri.parse('$baseUrl/listings/$listingId/images');
     final request = http.MultipartRequest('POST', uri);
     if (_accessToken != null) {
       request.headers['Authorization'] = 'Bearer $_accessToken';
     }
-    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+
+    // Determine MIME type — backend rejects anything outside allowed image types.
+    final resolvedMime = mimeType ?? _mimeFromFilename(filename);
+
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      bytes,
+      filename: filename,
+      contentType: MediaType.parse(resolvedMime),
+    ));
+
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(response.body);
     }
-    throw ApiException('Failed to upload image', statusCode: response.statusCode);
+    throw ApiException(
+      'Image upload failed (${response.statusCode}): ${response.body}',
+      statusCode: response.statusCode,
+    );
+  }
+
+  static String _mimeFromFilename(String filename) {
+    final ext = filename.split('.').last.toLowerCase();
+    const map = {
+      'jpg':  'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png':  'image/png',
+      'webp': 'image/webp',
+      'gif':  'image/gif',
+    };
+    return map[ext] ?? 'image/jpeg';
   }
 
   static Future<Map<String, dynamic>> assignDriverToCollection(int collectionId, int driverId) async {
@@ -438,12 +469,17 @@ class ApiService {
   static Future<Map<String, dynamic>> uploadCollectionProof(int id, List<int> bytes, String filename) async {
     final uri = Uri.parse('$baseUrl/collections/$id/proofs');
     final request = http.MultipartRequest('POST', uri);
-    
+
     if (_accessToken != null) {
       request.headers['Authorization'] = 'Bearer $_accessToken';
     }
-    
-    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      bytes,
+      filename: filename,
+      contentType: MediaType.parse(_mimeFromFilename(filename)),
+    ));
     
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);

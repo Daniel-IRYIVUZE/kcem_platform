@@ -637,6 +637,7 @@ class _BidNotificationCard extends StatelessWidget {
 }
 
 // ─── List Waste Tab (Manage Listings CRUD) ───────────────────────────────────
+
 class _ListWasteTab extends ConsumerStatefulWidget {
   const _ListWasteTab();
 
@@ -672,160 +673,624 @@ class _ListWasteTabState extends ConsumerState<_ListWasteTab> {
   }
 }
 
-class _ManageListingsView extends ConsumerWidget {
+// ─── Redesigned My Listings View ─────────────────────────────────────────────
+
+class _ManageListingsView extends ConsumerStatefulWidget {
   final VoidCallback onAdd;
   final ValueChanged<WasteListing> onEdit;
   const _ManageListingsView({required this.onAdd, required this.onEdit});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final listings = ref.watch(businessListingsProvider);
+  ConsumerState<_ManageListingsView> createState() => _ManageListingsViewState();
+}
+
+class _ManageListingsViewState extends ConsumerState<_ManageListingsView> {
+  String _activeFilter = 'All';
+  static const _filters = ['All', 'Open', 'Assigned', 'Completed', 'Expired'];
+
+  Future<void> _onRefresh() async {
+    ref.read(listingsNotifierProvider.notifier).refresh();
+    await Future.delayed(const Duration(milliseconds: 600));
+  }
+
+  List<WasteListing> _applyFilter(List<WasteListing> all) {
+    if (_activeFilter == 'All') return all;
+    return all.where((l) {
+      switch (_activeFilter) {
+        case 'Open':      return l.status == ListingStatus.open;
+        case 'Assigned':  return l.status == ListingStatus.assigned;
+        case 'Completed': return l.status == ListingStatus.completed;
+        case 'Expired':   return l.status == ListingStatus.expired;
+        default:          return true;
+      }
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final all = ref.watch(businessListingsProvider);
+    final listings = _applyFilter(all);
+
+    final counts = {
+      'All':       all.length,
+      'Open':      all.where((l) => l.status == ListingStatus.open).length,
+      'Assigned':  all.where((l) => l.status == ListingStatus.assigned).length,
+      'Completed': all.where((l) => l.status == ListingStatus.completed).length,
+      'Expired':   all.where((l) => l.status == ListingStatus.expired).length,
+    };
+
     return Scaffold(
       backgroundColor: context.cBg,
-      appBar: AppBar(
-        backgroundColor: context.cSurf,
-        elevation: 0,
-        title: Text(
-          'My Listings',
-          style: TextStyle(color: context.cText, fontWeight: FontWeight.w700),
-        ),
-        centerTitle: true,
-      ),
-      body: listings.isEmpty
-          ? _EmptyManageState(onAdd: onAdd)
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-              itemCount: listings.length,
-              itemBuilder: (context, index) {
-                final l = listings[index];
-                return _ManageListingCard(
-                  listing: l,
-                  onEdit: () => onEdit(l),
-                  onDelete: () => _confirmDelete(context, ref, l),
-                )
-                    .animate()
-                    .slideY(begin: 0.15, duration: 300.ms, delay: (index * 60).ms)
-                    .fadeIn();
-              },
+      body: NestedScrollView(
+        headerSliverBuilder: (ctx, _) => [
+          SliverAppBar(
+            backgroundColor: context.cSurf,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            floating: true,
+            snap: true,
+            titleSpacing: 20,
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0E7490), Color(0xFF06B6D4)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.inventory_2_outlined, color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'My Listings',
+                  style: TextStyle(
+                    color: context.cText,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${all.length}',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: FilledButton.icon(
+                  onPressed: widget.onAdd,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('New', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(52),
+              child: _FilterBar(
+                activeFilter: _activeFilter,
+                filters: _filters,
+                counts: counts,
+                onChanged: (f) => setState(() => _activeFilter = f),
+              ),
+            ),
+          ),
+        ],
+        body: RefreshIndicator(
+          onRefresh: _onRefresh,
+          color: AppColors.primary,
+          child: listings.isEmpty
+              ? _EmptyManageState(onAdd: widget.onAdd, filter: _activeFilter)
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 110),
+                  itemCount: listings.length,
+                  itemBuilder: (context, i) => _ManageListingCard(
+                    key: ValueKey(listings[i].id),
+                    listing: listings[i],
+                    onEdit: () => widget.onEdit(listings[i]),
+                    onDelete: () => _confirmDelete(context, listings[i]),
+                  )
+                      .animate()
+                      .slideY(begin: 0.1, duration: 280.ms, delay: (i * 50).ms)
+                      .fadeIn(),
+                ),
+        ),
+      ),
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref, WasteListing listing) {
+  void _confirmDelete(BuildContext context, WasteListing listing) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Listing?'),
+        title: const Row(children: [
+          Icon(Icons.warning_amber_rounded, color: AppColors.error, size: 22),
+          SizedBox(width: 8),
+          Text('Delete Listing?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        ]),
         content: Text(
-            'Permanently remove the "${listing.wasteType.label}" listing? This cannot be undone.'),
+          'Remove "${listing.wasteType.label}" (${listing.volume.toStringAsFixed(0)} ${listing.unit}) permanently?\n\nThis cannot be undone.',
+          style: const TextStyle(height: 1.5),
+        ),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              ref.read(listingsNotifierProvider.notifier).delete(listing.id);
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Row(children: [
-                    Icon(Icons.delete_outline, color: Colors.white, size: 18),
-                    SizedBox(width: 10),
-                    Text('Listing deleted'),
-                  ]),
-                  backgroundColor: AppColors.error,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              try {
+                await ref.read(listingsNotifierProvider.notifier).delete(listing.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: const Row(children: [
+                      Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                      SizedBox(width: 10),
+                      Text('Listing deleted successfully'),
+                    ]),
+                    backgroundColor: AppColors.success,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ));
+                }
+              } catch (_) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: const Text('Failed to delete listing'),
+                    backgroundColor: AppColors.error,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ));
+                }
+              }
             },
-            style:
-                ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Delete',
-                style: TextStyle(color: Colors.white)),
+            icon: const Icon(Icons.delete_outline, size: 16),
+            label: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w700)),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+// ─── Filter Bar ───────────────────────────────────────────────────────────────
+
+class _FilterBar extends StatelessWidget {
+  final String activeFilter;
+  final List<String> filters;
+  final Map<String, int> counts;
+  final ValueChanged<String> onChanged;
+
+  const _FilterBar({
+    required this.activeFilter,
+    required this.filters,
+    required this.counts,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 52,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        itemCount: filters.length,
+        itemBuilder: (context, i) {
+          final f = filters[i];
+          final active = f == activeFilter;
+          final count = counts[f] ?? 0;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => onChanged(f),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: active ? AppColors.primary : context.cSurf,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: active ? AppColors.primary : context.cBorder),
+                  boxShadow: active
+                      ? [BoxShadow(color: AppColors.primary.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2))]
+                      : [],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      f,
+                      style: TextStyle(
+                        color: active ? Colors.white : context.cTextSec,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (count > 0) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: active
+                              ? Colors.white.withValues(alpha: 0.25)
+                              : AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: TextStyle(
+                            color: active ? Colors.white : AppColors.primary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ─── Listing Card ─────────────────────────────────────────────────────────────
 
 class _ManageListingCard extends StatelessWidget {
   final WasteListing listing;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  const _ManageListingCard(
-      {required this.listing,
-      required this.onEdit,
-      required this.onDelete});
+
+  const _ManageListingCard({
+    super.key,
+    required this.listing,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  Color get _statusColor {
+    switch (listing.status) {
+      case ListingStatus.open:      return AppColors.primary;
+      case ListingStatus.assigned:  return AppColors.accent;
+      case ListingStatus.completed: return AppColors.success;
+      case ListingStatus.collected: return AppColors.success;
+      case ListingStatus.cancelled: return AppColors.error;
+      case ListingStatus.expired:   return AppColors.textTertiary;
+      default:                      return AppColors.textSecondary;
+    }
+  }
+
+  String get _statusLabel {
+    switch (listing.status) {
+      case ListingStatus.open:      return 'Open';
+      case ListingStatus.assigned:  return 'Assigned';
+      case ListingStatus.collected: return 'Collected';
+      case ListingStatus.completed: return 'Completed';
+      case ListingStatus.cancelled: return 'Cancelled';
+      case ListingStatus.expired:   return 'Expired';
+      default:                      return 'Draft';
+    }
+  }
+
+  IconData get _wasteIcon {
+    switch (listing.wasteType) {
+      case WasteType.uco:            return Icons.water_drop_outlined;
+      case WasteType.glass:          return Icons.wine_bar_outlined;
+      case WasteType.paperCardboard: return Icons.article_outlined;
+      case WasteType.plastic:        return Icons.recycling;
+      case WasteType.metal:          return Icons.hardware_outlined;
+      case WasteType.organic:        return Icons.eco_outlined;
+      case WasteType.electronic:     return Icons.devices_outlined;
+      case WasteType.textile:        return Icons.checkroom_outlined;
+      default:                       return Icons.category_outlined;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = listing.status == ListingStatus.open
-        ? AppColors.primary
-        : listing.status == ListingStatus.assigned
-            ? AppColors.accent
-            : AppColors.textTertiary;
-    final statusLabel = listing.status == ListingStatus.open
-        ? 'Open'
-        : listing.status == ListingStatus.assigned
-            ? 'Assigned'
-            : listing.status.name[0].toUpperCase() +
-                listing.status.name.substring(1);
+    final imageUrls = getAbsoluteImageUrls(listing.photos);
+    final hasImage = imageUrls.isNotEmpty;
+    final canEdit = listing.status == ListingStatus.open ||
+        listing.status == ListingStatus.draft;
+    final pickup = listing.collectionDate;
+    final pickupText = pickup != null
+        ? '${pickup.day}/${pickup.month}/${pickup.year}'
+        : null;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: context.cSurf,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: context.cBorder),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Hero image ────────────────────────────────────────────
+            Stack(
+              children: [
+                hasImage
+                    ? Image.network(
+                        imageUrls.first,
+                        height: 170,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _ImagePlaceholder(icon: _wasteIcon),
+                      )
+                    : _ImagePlaceholder(icon: _wasteIcon),
+                // Status badge
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _statusColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _statusColor.withValues(alpha: 0.45),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      _statusLabel,
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                // Photo count badge
+                if (imageUrls.length > 1)
+                  Positioned(
+                    bottom: 10,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        const Icon(Icons.photo_library_outlined, color: Colors.white, size: 13),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${imageUrls.length}',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                      ]),
+                    ),
+                  ),
+              ],
+            ),
+
+            // ── Card body ─────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Type + volume row
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: context.cPrimaryLight,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(_wasteIcon, color: AppColors.primary, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              listing.wasteType.label,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                                color: context.cText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${listing.volume.toStringAsFixed(0)} ${listing.unit}  ·  ${listing.quality.label}',
+                              style: TextStyle(fontSize: 13, color: context.cTextSec),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Min bid pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'RWF ${listing.minBid.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const Text(
+                              'min bid',
+                              style: TextStyle(color: AppColors.primary, fontSize: 10),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Stats strip
+                  Row(
+                    children: [
+                      _InfoPill(
+                        icon: Icons.gavel,
+                        label: '${listing.activeBidCount} bid${listing.activeBidCount == 1 ? '' : 's'}',
+                        color: listing.activeBidCount > 0 ? AppColors.success : AppColors.textTertiary,
+                      ),
+                      if (pickupText != null) ...[
+                        const SizedBox(width: 8),
+                        _InfoPill(
+                          icon: Icons.calendar_today_outlined,
+                          label: pickupText,
+                          color: AppColors.accent,
+                        ),
+                      ],
+                      if (listing.location.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: _InfoPill(
+                            icon: Icons.location_on_outlined,
+                            label: listing.location,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+
+                  if (listing.description != null && listing.description!.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      listing.description!,
+                      style: TextStyle(fontSize: 13, color: context.cTextSec, height: 1.4),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+
+                  const SizedBox(height: 14),
+
+                  // Action row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: canEdit ? onEdit : null,
+                          icon: const Icon(Icons.edit_outlined, size: 15),
+                          label: Text(
+                            canEdit ? 'Edit' : 'View',
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.primary,
+                            side: BorderSide(
+                              color: canEdit ? AppColors.primary : context.cBorder,
+                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: onDelete,
+                          icon: const Icon(Icons.delete_outline, size: 15),
+                          label: const Text(
+                            'Delete',
+                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ImagePlaceholder extends StatelessWidget {
+  final IconData icon;
+  const _ImagePlaceholder({required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 170,
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFCFFAFE), Color(0xFFE0F2FE)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ListingThumb(listing: listing),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(statusLabel, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            listing.wasteType.label,
-            style: TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 15,
-                color: context.cText),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '${listing.volume.toStringAsFixed(0)} ${listing.unit}  ·  ${listing.quality.label}',
-            style:
-                TextStyle(fontSize: 13, color: context.cTextSec),
-          ),
+          Icon(icon, size: 52, color: AppColors.primary.withValues(alpha: 0.45)),
           const SizedBox(height: 6),
-          Row(
-            children: [
-              const Icon(Icons.gavel, size: 12, color: AppColors.primary),
-              const SizedBox(width: 4),
-              Text(
-                '${listing.activeBidCount} bids',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          Text(
+            'No photo',
+            style: TextStyle(color: AppColors.primary.withValues(alpha: 0.55), fontSize: 12),
           ),
         ],
       ),
@@ -833,59 +1298,104 @@ class _ManageListingCard extends StatelessWidget {
   }
 }
 
-class _EmptyManageState extends StatelessWidget {
-  final VoidCallback onAdd;
-  const _EmptyManageState({required this.onAdd});
+class _InfoPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _InfoPill({required this.icon, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: context.cPrimaryLight,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.inventory_2_outlined,
-                  size: 40, color: AppColors.primary),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 20),
-            Text(
-              'No listings yet',
-              style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: context.cText),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+
+class _EmptyManageState extends StatelessWidget {
+  final VoidCallback onAdd;
+  final String filter;
+  const _EmptyManageState({required this.onAdd, this.filter = 'All'});
+
+  @override
+  Widget build(BuildContext context) {
+    final isFiltered = filter != 'All';
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.65,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(40),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 90,
+                  height: 90,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary.withValues(alpha: 0.15), AppColors.primaryLight],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isFiltered ? Icons.filter_list_off : Icons.inventory_2_outlined,
+                    size: 44,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  isFiltered ? 'No $filter listings' : 'No listings yet',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: context.cText),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isFiltered
+                      ? 'You have no $filter listings. Try selecting a different filter.'
+                      : 'Create your first waste listing\nto start receiving bids from recyclers.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: context.cTextSec, height: 1.55),
+                ),
+                const SizedBox(height: 28),
+                if (!isFiltered)
+                  ElevatedButton.icon(
+                    onPressed: onAdd,
+                    icon: const Icon(Icons.add, size: 20),
+                    label: const Text('Create First Listing', style: TextStyle(fontWeight: FontWeight.w700)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    ),
+                  ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Create your first waste listing to start receiving bids from recyclers.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 14, color: context.cTextSec, height: 1.5),
-            ),
-            const SizedBox(height: 28),
-            ElevatedButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add),
-              label: const Text('Create First Listing',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

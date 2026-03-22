@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find 'd:\\\\Final Capstone\\\\EcoTrade_Rwanda' -name *.dart -o -name pubspec.yaml -o -name ios -o -name android)"
+      "Bash(find 'd:\\\\Final Capstone\\\\EcoTrade_Rwanda' -name *.dart -o -name pubspec.yaml -o -name ios -o -name android)",
+      "Bash(grep -l \"My Listing\\\\|my_listing\\\\|getMyListings\\\\|_apiMyListingsProvider\" \"d:/Final Capstone/EcoTrade_Rwanda/mobile/lib/features/hotel/\"*.dart)"
     ]
   }
 }

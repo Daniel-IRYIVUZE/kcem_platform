@@ -1157,6 +1157,14 @@ class ListingsNotifier extends StateNotifier<List<WasteListing>> {
     ref.invalidate(_apiOpenListingsProvider);
   }
 
+  /// Re-fetches all listing providers — call after image uploads complete
+  /// so photos appear without requiring a manual pull-to-refresh.
+  void refresh() {
+    ref.invalidate(_apiMyListingsProvider);
+    ref.invalidate(_apiMyListingsWithBidsProvider);
+    ref.invalidate(_apiOpenListingsProvider);
+  }
+
   Future<void> addBidToListing(Bid bid) async {
     if (bid.id.isEmpty) return;
     ref.invalidate(_apiMyListingsWithBidsProvider);

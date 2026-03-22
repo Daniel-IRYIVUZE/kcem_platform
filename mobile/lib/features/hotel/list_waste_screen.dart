@@ -253,11 +253,19 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
     for (final img in _images) {
       try {
         final bytes = await img.readAsBytes();
-        await ApiService.uploadListingImage(listingId, bytes, img.name);
-      } catch (_) {
-        // Non-fatal: listing still created even if image upload fails
+        await ApiService.uploadListingImage(
+          listingId,
+          bytes,
+          img.name,
+          mimeType: img.mimeType, // let XFile supply the MIME; falls back to extension
+        );
+      } catch (e) {
+        // Log but continue — listing exists even if one image fails
+        debugPrint('[uploadImages] failed for ${img.name}: $e');
       }
     }
+    // Refresh listing providers so newly uploaded photos appear immediately
+    ref.read(listingsNotifierProvider.notifier).refresh();
   }
 
   void _showSnack(String msg, {required bool isError}) {
