@@ -1,5 +1,5 @@
 // App.tsx
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -8,28 +8,28 @@ import ScrollToTop from './components/common/ScrollToTop';
 import { authAPI } from './services/api';
 import { Lock } from 'lucide-react';
 
-// Import Layout Components
+// Import Layout Components (loaded eagerly - required immediately)
 import Sidebar from './components/layout/Sidebar';
 import TopNav from './components/layout/TopNav';
-
-// Public Pages
-import HomePage from './pages/Home/HomePage';
-import AboutPage from './pages/About/AboutPage';
-import ServicesPage from './pages/Services/ServicesPage';
-import BlogPage from './pages/Blog/BlogPage';
-import ContactPage from './pages/Contact/ContactPage';
-import MarketplacePage from './pages/Marketplace/MarketplacePage';
-import LoginPage from './pages/Login/LoginPage';
-import TermsPrivacyPage from './pages/TermsPrivacy/TermsPrivacy';
-import NotFoundPage from './pages/NotFound/NotFoundPage';
 import ToastContainer from './components/common/Toast/ToastContainer';
 
-// Dashboard Pages
-import AdminDashboard from './pages/Dashboard/AdminDashboard';
-import BusinessDashboard from './pages/Dashboard/BusinessDashboard';
-import RecyclerDashboard from './pages/Dashboard/RecyclerDashboard';
-import DriverPage from './pages/Dashboard/DriverPage';
-import UserDashboard from './pages/Dashboard/UserDashboard';
+// Public Pages — lazy loaded for code splitting
+const HomePage = lazy(() => import('./pages/Home/HomePage'));
+const AboutPage = lazy(() => import('./pages/About/AboutPage'));
+const ServicesPage = lazy(() => import('./pages/Services/ServicesPage'));
+const BlogPage = lazy(() => import('./pages/Blog/BlogPage'));
+const ContactPage = lazy(() => import('./pages/Contact/ContactPage'));
+const MarketplacePage = lazy(() => import('./pages/Marketplace/MarketplacePage'));
+const LoginPage = lazy(() => import('./pages/Login/LoginPage'));
+const TermsPrivacyPage = lazy(() => import('./pages/TermsPrivacy/TermsPrivacy'));
+const NotFoundPage = lazy(() => import('./pages/NotFound/NotFoundPage'));
+
+// Dashboard Pages — lazy loaded for code splitting
+const AdminDashboard = lazy(() => import('./pages/Dashboard/AdminDashboard'));
+const BusinessDashboard = lazy(() => import('./pages/Dashboard/BusinessDashboard'));
+const RecyclerDashboard = lazy(() => import('./pages/Dashboard/RecyclerDashboard'));
+const DriverPage = lazy(() => import('./pages/Dashboard/DriverPage'));
+const UserDashboard = lazy(() => import('./pages/Dashboard/UserDashboard'));
 
 // Loading Component
 const LoadingSpinner = () => (
@@ -184,6 +184,7 @@ function App() {
           <ScrollToTop />
           <ToastContainer />
           <div className="min-h-screen bg-gray-50 dark:bg-gray-950 font-sans antialiased transition-colors duration-300">
+            <Suspense fallback={<LoadingSpinner />}>
             <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
@@ -193,7 +194,7 @@ function App() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/marketplace" element={<MarketplacePage />} />
             <Route path="/terms-privacy" element={<TermsPrivacyPage />} />
-            
+
             {/* Authentication Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<Navigate to="/login" replace />} />
@@ -251,6 +252,7 @@ function App() {
             {/* 404 Not Found */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
+          </Suspense>
           </div>
         </Router>
         </NotificationProvider>

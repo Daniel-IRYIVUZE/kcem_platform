@@ -126,23 +126,24 @@ const Navbar = () => {
     <nav
       className={`fixed w-full z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-white dark:bg-gray-800/95 dark:bg-gray-900/95 shadow-lg backdrop-blur-md border-b border-gray-200 dark:border-gray-700/80'
-          : 'bg-white dark:bg-gray-800/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-800'
+          ? 'bg-white dark:bg-gray-900 shadow-lg backdrop-blur-md border-b border-gray-200 dark:border-gray-700/80'
+          : 'bg-white dark:bg-gray-900 backdrop-blur-md border-b border-gray-200 dark:border-gray-800'
       }`}
     >
-      <div className="lg:w-11/12 max-w-11/12 mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20 items-center">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16 sm:h-18 md:h-20 items-center">
+          {/* Logo — responsive height, auto width to preserve aspect ratio */}
+          <Link to="/" className="flex items-center flex-shrink-0 group">
             <img
               src="/images/EcoTrade.png"
               alt="EcoTrade Rwanda"
-              className="h-14 group-hover:scale-105 transition-transform"
+              className="h-9 sm:h-11 md:h-14 w-auto object-contain group-hover:opacity-90 transition-opacity duration-200"
+              fetchPriority="high"
             />
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6 font-medium text-gray-600 dark:text-gray-300">
+          <div className="hidden md:flex items-center gap-4 lg:gap-6 font-medium text-gray-600 dark:text-gray-300">
             {navLinks.map((link) => (
               <Link
                 key={link.path}

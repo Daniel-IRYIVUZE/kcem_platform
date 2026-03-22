@@ -199,21 +199,15 @@
     @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100;
   }
 
-  /* Smooth transitions on theme switch — exclude animations */
-  *,
-  *::before,
-  *::after {
+  /* Smooth transitions on theme switch — only active while toggling via JS */
+  html.theme-transitioning,
+  html.theme-transitioning *,
+  html.theme-transitioning *::before,
+  html.theme-transitioning *::after {
     transition-property: background-color, border-color, color, fill, stroke, box-shadow;
     transition-duration: 200ms;
     transition-timing-function: ease;
-  }
-
-  .animate-spin,
-  .animate-ping,
-  .animate-pulse,
-  .animate-bounce,
-  [class*="animate-"] {
-    transition: none !important;
+    transition-delay: 0ms;
   }
 
   /* ---- Typography ---- */

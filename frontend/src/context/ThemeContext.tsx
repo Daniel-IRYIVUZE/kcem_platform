@@ -30,7 +30,11 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, [theme]);
 
   const toggleTheme = () => {
+    const root = document.documentElement;
+    root.classList.add('theme-transitioning');
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    // Remove after transition completes (200ms + small buffer)
+    setTimeout(() => root.classList.remove('theme-transitioning'), 250);
   };
 
   return (

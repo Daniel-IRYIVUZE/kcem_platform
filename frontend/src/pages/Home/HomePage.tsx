@@ -1,36 +1,41 @@
 // pages/HomePage.tsx
+import { lazy, Suspense } from 'react';
 import Navbar from '../../components/common/Navbar/Navbar';
-import Footer from '../../components/common/Footer/Footer';
 import HeroSection from '../../components/home/HeroSection';
-import HowItWorks from '../../components/home/HowItWorks';
-import KeyFeatures from '../../components/home/KeyFeatures';
-// import LiveImpactTicker from '../../components/home/LiveImpactTicker';
-// import InteractiveMap from '../../components/home/InteractiveMap';
-// import SuccessStories from '../../components/home/SuccessStories';
-// import StatsCounter from '../../components/home/StatsCounter';
-// import MarketplacePreview from '../../components/home/MarketplacePreview';
-import CTASection from '../../components/home/CTASection';
-import NewsletterSection from '../../components/home/NewsletterSection';
-// import PartnersCarousel from '../../components/home/PartnersCarousel';
+
+// Below-fold sections — lazy loaded so they don't block initial render
+const HowItWorks = lazy(() => import('../../components/home/HowItWorks'));
+const KeyFeatures = lazy(() => import('../../components/home/KeyFeatures'));
+const CTASection = lazy(() => import('../../components/home/CTASection'));
+const NewsletterSection = lazy(() => import('../../components/home/NewsletterSection'));
+const Footer = lazy(() => import('../../components/common/Footer/Footer'));
+
+const SectionFallback = () => (
+  <div className="h-40 bg-white dark:bg-gray-950" aria-hidden="true" />
+);
 
 const HomePage = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
       <Navbar />
-      <main className="pt-16">
+      <main className="pt-16 sm:pt-[72px] md:pt-20">
         <HeroSection />
-        {/* <StatsCounter /> */}
-        <HowItWorks />
-        <KeyFeatures />
-        {/* <LiveImpactTicker /> */}
-        {/* <InteractiveMap /> */}
-        {/* <SuccessStories /> */}
-        {/* <MarketplacePreview /> */}
-        {/* <PartnersCarousel /> */}
-        <CTASection />
-        <NewsletterSection />
+        <Suspense fallback={<SectionFallback />}>
+          <HowItWorks />
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <KeyFeatures />
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <CTASection />
+        </Suspense>
+        <Suspense fallback={<SectionFallback />}>
+          <NewsletterSection />
+        </Suspense>
       </main>
-      <Footer />
+      <Suspense fallback={<div className="h-64 bg-gray-900" />}>
+        <Footer />
+      </Suspense>
     </div>
   );
 };

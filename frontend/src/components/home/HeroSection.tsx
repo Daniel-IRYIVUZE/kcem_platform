@@ -1,13 +1,9 @@
 // components/home/HeroSection.tsx
-import {  useEffect } from 'react';
 import { ArrowRight, Award, LayoutDashboard } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-// const TARGETS = { waste: 16.1, co2: 24, revenue: 125.1 };
-
 const HeroSection = () => {
-  // const [counts, setCounts] = useState({ waste: 0, co2: 0, revenue: 0 });
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -19,37 +15,17 @@ const HeroSection = () => {
     return map[user?.role || ''] || '/dashboard';
   };
 
-  useEffect(() => {
-    let frame: number;
-    let start: number | null = null;
-    const duration = 2200;
-
-    const step = (timestamp: number) => {
-      if (!start) start = timestamp;
-      const progress = Math.min((timestamp - start) / duration, 1);
-      // const ease = 1 - Math.pow(1 - progress, 3);
-      // setCounts({
-      //   waste: Math.round(TARGETS.waste * ease),
-      //   co2: Math.round(TARGETS.co2 * ease),
-      //   revenue: Math.round(TARGETS.revenue * 10 * ease) / 10,
-      // });
-      if (progress < 1) frame = requestAnimationFrame(step);
-    };
-
-    frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
-  }, []);
-
   return (
     <section className="relative overflow-hidden" style={{ background: '#0f89ab' }}>
-      {/* Background image overlay */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=1920&q=80)',
-            filter: 'brightness(0.18)',
-          }}
+      {/* Background photo — <img> lets the browser preload-scan and prioritize this for LCP */}
+      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+        <img
+          src="https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=1920&q=75"
+          alt=""
+          fetchPriority="high"
+          decoding="sync"
+          className="w-full h-full object-cover object-center"
+          style={{ filter: 'brightness(0.18)' }}
         />
       </div>
 
