@@ -1,10 +1,11 @@
 // context/AuthContext.tsx — EcoTrade Rwanda
-// Backend-only authentication (no fallback users)
+// Backend-first auth with offline cache fallback.
 
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { authAPI, usersAPI, hotelsAPI, recyclersAPI, driversAPI } from '../services/api';
+import { authAPI, usersAPI, hotelsAPI, recyclersAPI, driversAPI, API_BASE_URL } from '../services/api';
 import { syncFromAPI } from '../utils/apiSync';
+import { replayQueue, getQueueCount } from '../utils/offlineQueue';
 
 export type UserRole = 'admin' | 'business' | 'recycler' | 'driver' | 'individual';
 
@@ -28,6 +29,8 @@ type AuthContextType = {
   user: User | null;
   loading: boolean;
   mustChangePassword: boolean;
+  isOnline: boolean;
+  pendingQueueCount: number;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   verify2FA: (code: string) => Promise<boolean>;
@@ -103,13 +106,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [mustChangePassword, setMustChangePassword] = useState(false);
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  const [pendingQueueCount, setPendingQueueCount] = useState(() => getQueueCount());
+
+  // ── Online / offline tracking ───────────────────────────────────────────────
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      // Replay any queued offline actions
+      const currentUser = localStorage.getItem('ecotrade_user');
+      if (currentUser) {
+        try {
+          const { synced } = await replayQueue(API_BASE_URL);
+          if (synced > 0) {
+            setPendingQueueCount(getQueueCount());
+            // Re-sync fresh data from backend after replaying queue
+            const u: User = JSON.parse(currentUser);
+            syncFromAPI(u.role).catch(() => {});
+          }
+        } catch { /* ignore replay errors */ }
+      }
+      setPendingQueueCount(getQueueCount());
+    };
+    const handleOffline = () => setIsOnline(false);
+    const handleQueueChange = () => setPendingQueueCount(getQueueCount());
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('ecotrade_queue_change', handleQueueChange);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('ecotrade_queue_change', handleQueueChange);
+    };
+  }, []);
 
   // Restore session on mount from localStorage and verify token
   useEffect(() => {
     const restoreSession = async () => {
       const token = localStorage.getItem('ecotrade_token');
       const storedUser = localStorage.getItem('ecotrade_user');
-      
+
       // No token = not logged in
       if (!token) {
         setLoading(false);
@@ -126,7 +164,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // Verify token is still valid by calling /me endpoint
+      if (!navigator.onLine) {
+        // Offline: trust the cached session, skip /me verification
+        setLoading(false);
+        return;
+      }
+
+      // Online: verify token is still valid by calling /me endpoint
       try {
         const apiUser = await usersAPI.me();
         const freshUser = await enrichUserWithRoleProfile(apiUserToUser(apiUser));
@@ -136,6 +180,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Sync data in the background — do NOT await so the dashboard shows immediately
         syncFromAPI(freshUser.role).catch(() => {});
       } catch (error) {
+        if (!navigator.onLine) {
+          // Network failed because we went offline — keep cached session
+          setLoading(false);
+          return;
+        }
         // Token invalid or expired - clear session
         console.error('Session expired or invalid:', error);
         localStorage.removeItem('ecotrade_token');
@@ -164,12 +213,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => window.removeEventListener('auth:expired', handleAuthExpired);
   }, []);
 
-  // Auto-refresh token before expiration (optional but recommended)
+  // Auto-refresh token before expiration (online only)
   useEffect(() => {
     if (!user) return;
 
-    // Refresh token every 50 minutes (tokens expire in 60 minutes)
     const refreshInterval = setInterval(() => {
+      // Skip silently when offline — cached session stays valid
+      if (!navigator.onLine) return;
+
       usersAPI.me()
         .then(async (apiUser) => {
           const freshUser = await enrichUserWithRoleProfile(apiUserToUser(apiUser));
@@ -177,9 +228,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           localStorage.setItem('ecotrade_user', JSON.stringify(freshUser));
         })
         .catch((error) => {
-          console.error('Token refresh failed:', error);
-          // If refresh fails, log out
-          logout();
+          // Only force logout for auth errors (401/403), not network failures
+          const msg = (error as Error).message || '';
+          const isAuthError = msg.includes('401') || msg.includes('403') || msg.includes('expired');
+          if (isAuthError && navigator.onLine) {
+            console.error('Token refresh failed (auth error):', error);
+            logout();
+          }
         });
     }, 50 * 60 * 1000); // 50 minutes
 
@@ -188,6 +243,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     setLoading(true);
+
+    // ── Offline login: restore cached session if email matches ──────────────
+    if (!navigator.onLine) {
+      const storedRaw = localStorage.getItem('ecotrade_user');
+      const token = localStorage.getItem('ecotrade_token');
+      if (storedRaw && token) {
+        try {
+          const cached: User = JSON.parse(storedRaw);
+          if (cached.email.toLowerCase() === email.toLowerCase()) {
+            setUser(cached);
+            setLoading(false);
+            window.dispatchEvent(new Event('authChange'));
+            return; // success — user is in offline mode
+          }
+        } catch { /* fall through to error */ }
+      }
+      setLoading(false);
+      throw new Error(
+        'You are offline. Please connect to the internet to sign in for the first time, ' +
+        'or use the same account that was previously logged in on this device.'
+      );
+    }
+
+    // ── Online login: authenticate against backend ───────────────────────────
     try {
       const res = await authAPI.login(email, password);
 
@@ -251,7 +330,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const clearMustChangePassword = () => setMustChangePassword(false);
 
   return (
-    <AuthContext.Provider value={{ user, loading, mustChangePassword, login, logout, verify2FA, updateUser, clearMustChangePassword }}>
+    <AuthContext.Provider value={{ user, loading, mustChangePassword, isOnline, pendingQueueCount, login, logout, verify2FA, updateUser, clearMustChangePassword }}>
       {children}
     </AuthContext.Provider>
   );

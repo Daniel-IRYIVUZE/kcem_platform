@@ -1,6 +1,7 @@
 // components/auth/LoginForm.tsx
 import { useState } from 'react';
-import { Eye, EyeOff, Mail, Lock, ArrowRight} from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Wifi, WifiOff } from 'lucide-react';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 interface LoginFormProps {
   onToggleMode: () => void;
@@ -16,6 +17,7 @@ const LoginForm = ({ onToggleMode, onForgotPassword, onLogin }: LoginFormProps) 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading]     = useState(false);
   const [error, setError]             = useState('');
+  const isOnline = useOnlineStatus();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +25,14 @@ const LoginForm = ({ onToggleMode, onForgotPassword, onLogin }: LoginFormProps) 
     setIsLoading(true);
     try {
       await onLogin(email, password);
-    } catch {
-      setError('Invalid email or password. Please try again or use a demo account below.');
+    } catch (err) {
+      const msg = (err as Error).message || '';
+      // Preserve offline / suspension messages verbatim; fall back to generic text
+      if (msg.includes('offline') || msg.includes('suspended') || msg.includes('Incorrect')) {
+        setError(msg);
+      } else {
+        setError('Invalid email or password. Please try again or use a demo account below.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -32,6 +40,18 @@ const LoginForm = ({ onToggleMode, onForgotPassword, onLogin }: LoginFormProps) 
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-4 sm:p-6">
+
+      {/* ── Network status badge ── */}
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium mb-3 w-fit transition-all duration-300 ${
+        isOnline
+          ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-700'
+          : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-700'
+      }`}>
+        {isOnline
+          ? <><Wifi className="w-3.5 h-3.5" /> Online</>
+          : <><WifiOff className="w-3.5 h-3.5" /> Offline — using cached session</>
+        }
+      </div>
 
       {/* ── Header ── */}
       <div className="mb-3 sm:mb-4">

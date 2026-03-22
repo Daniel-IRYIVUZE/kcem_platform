@@ -1,5 +1,5 @@
 // utils/apiSync.ts — Syncs real backend data into localStorage dataStore
-// Called on login when the backend is online. Falls back gracefully if offline.
+// Called on login (online) and on reconnect. Falls back gracefully if offline.
 import { listingsAPI, collectionsAPI, transactionsAPI, usersAPI, bidsAPI, inventoryAPI } from '../services/api';
 import { saveAll } from './dataStore';
 import type {
@@ -8,6 +8,21 @@ import type {
   Transaction as DSTx,
   PlatformUser as DSUser,
 } from './dataStore';
+
+const SYNC_TS_KEY = 'ecotrade_last_sync';
+const SYNC_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+/** Returns true if cached data is still fresh (< 24 hours old). */
+export function isCacheValid(): boolean {
+  const ts = localStorage.getItem(SYNC_TS_KEY);
+  if (!ts) return false;
+  return Date.now() - Number(ts) < SYNC_TTL;
+}
+
+/** Marks the cache as fresh right now. */
+function markSynced(): void {
+  localStorage.setItem(SYNC_TS_KEY, String(Date.now()));
+}
 
 function toRole(r: string): DSUser['role'] {
   if (r === 'hotel') return 'business';
@@ -140,5 +155,6 @@ export async function syncFromAPI(userRole: string): Promise<void> {
     saveAll('recycler_inventory', invResult.value);
   }
 
+  markSynced();
   window.dispatchEvent(new Event('ecotrade_data_change'));
 }

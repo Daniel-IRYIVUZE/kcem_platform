@@ -5,15 +5,21 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'api_service.dart';
 
 /// Queues write operations when offline and replays them on reconnect.
+/// Queued actions expire after [_ttl] (24 hours) and are purged automatically.
 class OfflineSyncService {
   static const _boxName = 'sync_queue';
+  static const _ttl = Duration(hours: 24);
   static Box? _box;
   static StreamSubscription? _connectivitySub;
   static bool _isSyncing = false;
 
+  // Callback to notify UI when sync state changes (set by OfflineBanner)
+  static void Function()? onSyncStateChanged;
+
   /// Call once at app startup (after Hive.initFlutter)
   static Future<void> init() async {
     _box = await Hive.openBox(_boxName);
+    _purgeExpired(); // clean up stale entries from previous sessions
     _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {
       if (result != ConnectivityResult.none) {
         _replayQueue();
@@ -33,18 +39,67 @@ class OfflineSyncService {
   static Future<void> queue(String method, String path, [Map<String, dynamic>? body]) async {
     final box = _box;
     if (box == null) return;
-    final op = jsonEncode({'method': method, 'path': path, 'body': body, 'ts': DateTime.now().toIso8601String()});
+    final op = jsonEncode({
+      'method': method,
+      'path': path,
+      'body': body,
+      'ts': DateTime.now().toIso8601String(),
+    });
     await box.add(op);
   }
 
-  static int get pendingCount => _box?.length ?? 0;
+  /// Number of pending operations not yet synced to the backend.
+  static int get pendingCount {
+    final box = _box;
+    if (box == null) return 0;
+    // Count only non-expired entries
+    int count = 0;
+    for (final key in box.keys) {
+      final raw = box.get(key);
+      if (raw == null) continue;
+      try {
+        final op = jsonDecode(raw as String) as Map<String, dynamic>;
+        final ts = DateTime.tryParse(op['ts'] as String? ?? '');
+        if (ts != null && DateTime.now().difference(ts) < _ttl) count++;
+      } catch (_) {}
+    }
+    return count;
+  }
 
-  /// Replay all queued operations in order.
+  /// Remove queued operations that are older than 24 hours.
+  static Future<void> _purgeExpired() async {
+    final box = _box;
+    if (box == null) return;
+    final keysToDelete = <dynamic>[];
+    for (final key in box.keys) {
+      final raw = box.get(key);
+      if (raw == null) {
+        keysToDelete.add(key);
+        continue;
+      }
+      try {
+        final op = jsonDecode(raw as String) as Map<String, dynamic>;
+        final ts = DateTime.tryParse(op['ts'] as String? ?? '');
+        if (ts == null || DateTime.now().difference(ts) >= _ttl) {
+          keysToDelete.add(key);
+        }
+      } catch (_) {
+        keysToDelete.add(key);
+      }
+    }
+    for (final key in keysToDelete) {
+      await box.delete(key);
+    }
+  }
+
+  /// Replay all queued operations in order. Expired entries are dropped first.
   static Future<void> _replayQueue() async {
     final box = _box;
     if (box == null || _isSyncing || box.isEmpty) return;
     _isSyncing = true;
+    onSyncStateChanged?.call();
     try {
+      await _purgeExpired();
       final keys = box.keys.toList();
       for (final key in keys) {
         final raw = box.get(key);
@@ -75,9 +130,13 @@ class OfflineSyncService {
       }
     } finally {
       _isSyncing = false;
+      onSyncStateChanged?.call();
     }
   }
 
   /// Force a sync attempt (call when coming online or after login)
   static Future<void> syncNow() => _replayQueue();
+
+  /// Returns true if a sync is currently in progress.
+  static bool get isSyncing => _isSyncing;
 }

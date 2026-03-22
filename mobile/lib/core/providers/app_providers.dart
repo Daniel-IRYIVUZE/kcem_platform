@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -60,8 +61,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, clearError: true);
+
+    // ── Check connectivity before attempting API call ────────────────────────
+    final connectivity = await Connectivity().checkConnectivity();
+    final isOffline = connectivity == ConnectivityResult.none;
+
+    if (isOffline) {
+      // Offline login: restore cached session if the email matches
+      final cached = LocalStorageService.instance.loadUser();
+      if (cached != null && cached.email.toLowerCase() == email.toLowerCase()) {
+        state = AuthState(user: cached);
+        return true;
+      }
+      state = const AuthState(
+        error: 'You are offline. Please connect to the internet to sign in '
+            'for the first time, or use the same account previously logged in '
+            'on this device.',
+      );
+      return false;
+    }
+
+    // ── Online: authenticate against the backend ─────────────────────────────
     try {
-      // Try real backend API first
       final response = await ApiService.login(email, password);
       Map<String, dynamic> userMap;
       if (response['user'] is Map<String, dynamic>) {
@@ -79,7 +100,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         verified: userMap['is_verified'] as bool? ?? false,
         greenScore: 0,
       );
-      
+
       // Enrich user with role-specific profile data
       try {
         if (user.role == UserRole.business) {
@@ -94,11 +115,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
           );
         }
       } catch (_) {
-        // Profile fetch failed, continue with basic user data
+        // Profile fetch failed — continue with basic user data
       }
-      
-      // Only persist user session locally, never from database
+
+      // Persist session and mark cache as fresh (24-hour validity)
       await LocalStorageService.instance.saveUser(user);
+      await LocalStorageService.instance.markSynced();
+
+      // Replay any pending offline actions now that we are authenticated
+      OfflineSyncService.syncNow();
+
       state = AuthState(user: user);
       return true;
     } on ApiException catch (e) {
@@ -1011,6 +1037,10 @@ class ListingsNotifier extends StateNotifier<List<WasteListing>> {
     required WasteQuality quality,
     required double minBid,
     required String location,
+    String? description,
+    String? collectionDate,
+    String? collectionTime,
+    String? specialInstructions,
     double? reservePrice,
     int auctionDuration = 24,
   }) async {
@@ -1021,8 +1051,11 @@ class ListingsNotifier extends StateNotifier<List<WasteListing>> {
       'unit': unit,
       'min_bid': minBid,
       'address': location,
-      'description': '${quality.label} quality listing by $businessName ($businessId)',
-      if (reservePrice != null) 'notes': 'reserve_price=$reservePrice',
+      'description': description ?? '${quality.label} quality listing by $businessName',
+      if (collectionDate != null && collectionDate.isNotEmpty) 'collection_date': collectionDate,
+      if (collectionTime != null && collectionTime.isNotEmpty) 'collection_time': collectionTime,
+      if (specialInstructions != null && specialInstructions.isNotEmpty) 'special_instructions': specialInstructions,
+      if (reservePrice != null) 'reserve_price': reservePrice,
       'is_urgent': auctionDuration <= 12,
     });
     final listing = _listingFromApi(response);

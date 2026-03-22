@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authAPI } from '../../services/api';
-import { Home } from 'lucide-react';
+import { Home, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
+import { getQueueCount } from '../../utils/offlineQueue';
 import LoginForm from '../../components/auth/LoginForm';
 import ForgotPasswordModal from '../../components/auth/ForgotPasswordModal';
 import TermsPrivacyModal from '../../components/auth/TermsPrivacyModal';
@@ -21,6 +23,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, clearMustChangePassword } = useAuth();
+  const isOnline = useOnlineStatus();
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
@@ -28,6 +31,14 @@ const LoginPage = () => {
   const [tokenLoginLoading, setTokenLoginLoading] = useState(false);
   const [tokenLoginError, setTokenLoginError] = useState('');
   const [showPwdReset, setShowPwdReset] = useState(false);
+  const [pendingCount, setPendingCount] = useState(() => getQueueCount());
+
+  // Keep pending count in sync with queue events
+  useEffect(() => {
+    const handler = () => setPendingCount(getQueueCount());
+    window.addEventListener('ecotrade_queue_change', handler);
+    return () => window.removeEventListener('ecotrade_queue_change', handler);
+  }, []);
 
   const demoCredentials = [
     { role: 'Admin',      email: 'admin@ecotrade.rw',       password: 'Password123!' },
@@ -133,6 +144,28 @@ const LoginPage = () => {
         </header>
         <div className="flex-1 flex items-center justify-center px-4 sm:px-8 lg:px-6 xl:px-10 py-6 lg:py-4 lg:overflow-y-auto bg-gray-50 dark:bg-gray-950">
           <div className="w-full max-w-md">
+            {/* ── Global network status banner ── */}
+            {!isOnline && (
+              <div className="mb-4 flex items-start gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl text-sm text-amber-800 dark:text-amber-300">
+                <span className="mt-0.5 shrink-0 text-lg leading-none">📵</span>
+                <div>
+                  <p className="font-semibold">You are offline</p>
+                  <p className="text-xs mt-0.5 text-amber-700 dark:text-amber-400">
+                    You can still sign in with your previously used account. Any actions you
+                    take will be saved locally and synced automatically when you reconnect.
+                  </p>
+                </div>
+              </div>
+            )}
+            {isOnline && pendingCount > 0 && (
+              <div className="mb-4 flex items-center gap-3 px-4 py-3 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-700 rounded-xl text-sm text-cyan-800 dark:text-cyan-300">
+                <RefreshCw className="w-4 h-4 animate-spin shrink-0" />
+                <p>
+                  Back online — syncing <strong>{pendingCount}</strong> pending action
+                  {pendingCount !== 1 ? 's' : ''} with the server…
+                </p>
+              </div>
+            )}
             {tokenLoginLoading && (
               <div className="mb-4 px-4 py-3 bg-cyan-50 border border-cyan-200 rounded-xl text-sm text-cyan-700">
                 Logging in with secure link...

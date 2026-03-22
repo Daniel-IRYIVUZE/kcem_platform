@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/offline_sync_service.dart';
 
 import '../shared/widgets/app_text_field.dart';
 import '../shared/widgets/eco_button.dart';
@@ -88,7 +89,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isLoading = false);
     if (success) {
       final role = ref.read(authProvider).role!;
-      _showMessage(context, 'Welcome back!', isError: false);
+      // Check if this was an offline login (cached session restored)
+      final pendingCount = OfflineSyncService.pendingCount;
+      final msg = pendingCount > 0
+          ? 'Welcome back! ($pendingCount action(s) will sync when online)'
+          : 'Welcome back!';
+      _showMessage(context, msg, isError: false);
       context.go(AppRoutes.homeForRole(role));
     } else {
       final error = ref.read(authProvider).error ?? 'Invalid email or password';
@@ -109,25 +115,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                const OfflineBanner(),
+                // Always show the network badge (online or offline)
+                const OfflineBanner(showOnlineState: true),
                 const SizedBox(height: 8),
+                // Backend server indicator (dev vs production)
                 Row(
                   children: [
                     Text(
                       '●',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: _isLocalBackend ? AppColors.success : AppColors.warning,
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _backendIndicatorText,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: _isLocalBackend ? AppColors.success : AppColors.warning,
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        _backendIndicatorText,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _isLocalBackend ? AppColors.success : AppColors.warning,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
