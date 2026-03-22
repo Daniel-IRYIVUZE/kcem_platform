@@ -260,6 +260,18 @@ WasteType _mapWasteType(String s) {
     case 'paper_cardboard':
     case 'paper':
       return WasteType.paperCardboard;
+    case 'plastic':
+      return WasteType.plastic;
+    case 'metal':
+      return WasteType.metal;
+    case 'organic':
+      return WasteType.organic;
+    case 'electronic':
+      return WasteType.electronic;
+    case 'textile':
+      return WasteType.textile;
+    case 'other':
+      return WasteType.other;
     default:
       return WasteType.mixed;
   }
@@ -348,6 +360,11 @@ WasteListing _listingFromApi(Map<String, dynamic> j) {
     createdAt: j['created_at'] != null
         ? DateTime.tryParse(j['created_at'] as String) ?? DateTime.now()
         : DateTime.now(),
+    collectionDate: j['collection_window_start'] != null
+        ? DateTime.tryParse(j['collection_window_start'] as String)
+        : null,
+    description: j['description'] as String?,
+    notes: j['notes'] as String?,
   );
 }
 
@@ -488,13 +505,25 @@ AppNotification _notificationFromApi(Map<String, dynamic> j) {
 String _wasteTypeToApi(WasteType type) {
   switch (type) {
     case WasteType.uco:
-      return 'uco';
+      return 'UCO';
     case WasteType.glass:
-      return 'glass';
+      return 'Glass';
     case WasteType.paperCardboard:
-      return 'paper_cardboard';
+      return 'Paper/Cardboard';
+    case WasteType.plastic:
+      return 'Plastic';
+    case WasteType.metal:
+      return 'Metal';
+    case WasteType.organic:
+      return 'Organic';
+    case WasteType.electronic:
+      return 'Electronic';
+    case WasteType.textile:
+      return 'Textile';
     case WasteType.mixed:
-      return 'mixed';
+      return 'Mixed';
+    case WasteType.other:
+      return 'Other';
   }
 }
 
@@ -1044,6 +1073,24 @@ class ListingsNotifier extends StateNotifier<List<WasteListing>> {
     double? reservePrice,
     int auctionDuration = 24,
   }) async {
+    // Build collection window datetimes matching web frontend logic:
+    // start = pickup date+time, end = start + 2 hours
+    String? collectionWindowStart;
+    String? collectionWindowEnd;
+    if (collectionDate != null && collectionDate.isNotEmpty) {
+      final timeStr = (collectionTime != null && collectionTime.isNotEmpty)
+          ? collectionTime
+          : '09:00';
+      final start = DateTime.tryParse('${collectionDate}T$timeStr:00');
+      if (start != null) {
+        collectionWindowStart = start.toUtc().toIso8601String();
+        collectionWindowEnd = start.add(const Duration(hours: 2)).toUtc().toIso8601String();
+      }
+    }
+
+    // expires_at = 30 days from now (matching web frontend)
+    final expiresAt = DateTime.now().add(const Duration(days: 30)).toUtc().toIso8601String();
+
     final response = await ApiService.createListing({
       'title': '${wasteType.label} ${volume.toStringAsFixed(0)}$unit from $businessName',
       'waste_type': _wasteTypeToApi(wasteType),
@@ -1052,10 +1099,10 @@ class ListingsNotifier extends StateNotifier<List<WasteListing>> {
       'min_bid': minBid,
       'address': location,
       'description': description ?? '${quality.label} quality listing by $businessName',
-      if (collectionDate != null && collectionDate.isNotEmpty) 'collection_date': collectionDate,
-      if (collectionTime != null && collectionTime.isNotEmpty) 'collection_time': collectionTime,
-      if (specialInstructions != null && specialInstructions.isNotEmpty) 'special_instructions': specialInstructions,
-      if (reservePrice != null) 'reserve_price': reservePrice,
+      if (collectionWindowStart != null) 'collection_window_start': collectionWindowStart,
+      if (collectionWindowEnd != null) 'collection_window_end': collectionWindowEnd,
+      if (specialInstructions != null && specialInstructions.isNotEmpty) 'notes': specialInstructions,
+      'expires_at': expiresAt,
       'is_urgent': auctionDuration <= 12,
     });
     final listing = _listingFromApi(response);
@@ -1070,6 +1117,17 @@ class ListingsNotifier extends StateNotifier<List<WasteListing>> {
     if (listingId == null) {
       throw Exception('Invalid listing id');
     }
+    // Build collection window from collectionDate if present
+    String? collectionWindowStart;
+    String? collectionWindowEnd;
+    if (updated.collectionDate != null) {
+      collectionWindowStart = updated.collectionDate!.toUtc().toIso8601String();
+      collectionWindowEnd = updated.collectionDate!
+          .add(const Duration(hours: 2))
+          .toUtc()
+          .toIso8601String();
+    }
+
     await ApiService.updateListing(listingId, {
       'waste_type': _wasteTypeToApi(updated.wasteType),
       'volume': updated.volume,
@@ -1078,6 +1136,10 @@ class ListingsNotifier extends StateNotifier<List<WasteListing>> {
       'address': updated.location,
       'status': updated.status.name,
       'title': '${updated.wasteType.label} ${updated.volume.toStringAsFixed(0)}${updated.unit}',
+      if (updated.description != null) 'description': updated.description,
+      if (updated.notes != null) 'notes': updated.notes,
+      if (collectionWindowStart != null) 'collection_window_start': collectionWindowStart,
+      if (collectionWindowEnd != null) 'collection_window_end': collectionWindowEnd,
     });
     ref.invalidate(_apiMyListingsProvider);
     ref.invalidate(_apiMyListingsWithBidsProvider);

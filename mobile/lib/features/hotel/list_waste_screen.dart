@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -13,12 +15,18 @@ import '../../core/services/api_service.dart';
 // ─── Constants ──────────────────────────────────────────────────────────────
 const _maxImages = 5;
 
-// Waste types that match the backend exactly
+// Waste types that match the backend exactly (all 10 supported types)
 const _wasteTypeOptions = <WasteType>[
   WasteType.uco,
   WasteType.glass,
   WasteType.paperCardboard,
+  WasteType.plastic,
+  WasteType.metal,
+  WasteType.organic,
+  WasteType.electronic,
+  WasteType.textile,
   WasteType.mixed,
+  WasteType.other,
 ];
 
 // ─── Screen ─────────────────────────────────────────────────────────────────
@@ -72,6 +80,12 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
       _unitPriceCtrl.text = e.minBid > 0 && e.volume > 0
           ? (e.minBid / e.volume).toStringAsFixed(0)
           : e.minBid.toStringAsFixed(0);
+      if (e.description != null) _descriptionCtrl.text = e.description!;
+      if (e.notes != null) _instructionsCtrl.text = e.notes!;
+      if (e.collectionDate != null) {
+        _pickupDate = e.collectionDate;
+        _pickupTime = TimeOfDay.fromDateTime(e.collectionDate!);
+      }
     }
   }
 
@@ -148,6 +162,15 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
       if (widget.existingListing != null) {
         // ── Update existing listing ──────────────────────────────────────────
         final e = widget.existingListing!;
+        // Build collectionDate combining picked date + time
+        DateTime? collectionDateTime;
+        if (_pickupDate != null) {
+          final t = _pickupTime ?? const TimeOfDay(hour: 9, minute: 0);
+          collectionDateTime = DateTime(
+            _pickupDate!.year, _pickupDate!.month, _pickupDate!.day,
+            t.hour, t.minute,
+          );
+        }
         final updated = WasteListing(
           id: e.id,
           businessId: e.businessId,
@@ -165,9 +188,15 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
           bids: e.bids,
           assignedRecycler: e.assignedRecycler,
           assignedDriver: e.assignedDriver,
-          collectionDate: _pickupDate,
+          collectionDate: collectionDateTime,
           location: e.location,
           createdAt: e.createdAt,
+          description: _descriptionCtrl.text.trim().isNotEmpty
+              ? _descriptionCtrl.text.trim()
+              : e.description,
+          notes: _instructionsCtrl.text.trim().isNotEmpty
+              ? _instructionsCtrl.text.trim()
+              : e.notes,
         );
         await ref.read(listingsNotifierProvider.notifier).update(updated);
 
@@ -1179,6 +1208,7 @@ class _ImagePickBtn extends StatelessWidget {
   }
 }
 
+
 class _ImagePreviewTile extends StatelessWidget {
   final XFile file;
   final bool isPrimary;
@@ -1192,20 +1222,33 @@ class _ImagePreviewTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Widget imageWidget;
+    if (kIsWeb) {
+      imageWidget = FutureBuilder<Uint8List>(
+        future: file.readAsBytes(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return Image.memory(snapshot.data!, fit: BoxFit.cover);
+          }
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+    } else {
+      imageWidget = Image.file(
+        File(file.path),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          color: AppColors.primaryLight,
+          child: const Icon(Icons.image_not_supported_outlined, color: AppColors.primary),
+        ),
+      );
+    }
     return Stack(
       fit: StackFit.expand,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
-          child: Image.file(
-            File(file.path),
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Container(
-              color: AppColors.primaryLight,
-              child: const Icon(Icons.image_not_supported_outlined,
-                  color: AppColors.primary),
-            ),
-          ),
+          child: imageWidget,
         ),
         // Filename overlay
         Positioned(

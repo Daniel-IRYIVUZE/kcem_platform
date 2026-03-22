@@ -2,7 +2,7 @@
 
 enum UserRole { admin, business, recycler, driver, individual }
 
-enum WasteType { uco, glass, paperCardboard, mixed }
+enum WasteType { uco, glass, paperCardboard, plastic, metal, organic, electronic, textile, mixed, other }
 
 enum WasteQuality { a, b, c }
 
@@ -43,9 +43,21 @@ extension WasteTypeLabel on WasteType {
       case WasteType.glass:
         return 'Glass';
       case WasteType.paperCardboard:
-        return 'Paper-Cardboard';
+        return 'Paper/Cardboard';
+      case WasteType.plastic:
+        return 'Plastic';
+      case WasteType.metal:
+        return 'Metal';
+      case WasteType.organic:
+        return 'Organic';
+      case WasteType.electronic:
+        return 'Electronic';
+      case WasteType.textile:
+        return 'Textile';
       case WasteType.mixed:
         return 'Mixed';
+      case WasteType.other:
+        return 'Other';
     }
   }
 }
@@ -191,6 +203,8 @@ class WasteListing {
   final double? latitude;
   final double? longitude;
   final DateTime createdAt;
+  final String? description;
+  final String? notes;
 
   const WasteListing({
     required this.id,
@@ -214,6 +228,8 @@ class WasteListing {
     this.latitude,
     this.longitude,
     required this.createdAt,
+    this.description,
+    this.notes,
   });
 
   double get bestBid =>
@@ -244,6 +260,8 @@ class WasteListing {
         'latitude': latitude,
         'longitude': longitude,
         'createdAt': createdAt.toIso8601String(),
+        'description': description,
+        'notes': notes,
       };
 
   factory WasteListing.fromJson(Map<String, dynamic> j) => WasteListing(
@@ -285,6 +303,8 @@ class WasteListing {
         latitude: (j['latitude'] as num?)?.toDouble(),
         longitude: (j['longitude'] as num?)?.toDouble(),
         createdAt: DateTime.parse(j['createdAt'] as String),
+        description: j['description'] as String?,
+        notes: j['notes'] as String?,
       );
 }
 

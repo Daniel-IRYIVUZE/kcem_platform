@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -580,7 +581,15 @@ class _ArriveStep extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(9),
                         child: kIsWeb
-                            ? Image.network(arrivalPhotos[i].path, fit: BoxFit.cover)
+                            ? FutureBuilder<Uint8List>(
+                                future: arrivalPhotos[i].readAsBytes(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    return Image.memory(snapshot.data!, fit: BoxFit.cover);
+                                  }
+                                  return const Center(child: CircularProgressIndicator());
+                                },
+                              )
                             : Image.file(File(arrivalPhotos[i].path), fit: BoxFit.cover),
                       ),
                     ),
@@ -778,7 +787,15 @@ class _WeighStep extends StatelessWidget {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(9),
                             child: kIsWeb
-                              ? Image.network(e.value.path, fit: BoxFit.cover)
+                              ? FutureBuilder<Uint8List>(
+                                  future: e.value.readAsBytes(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasData) {
+                                      return Image.memory(snapshot.data!, fit: BoxFit.cover);
+                                    }
+                                    return const Center(child: CircularProgressIndicator());
+                                  },
+                                )
                               : Image.file(File(e.value.path), fit: BoxFit.cover),
                           ),
                         )),

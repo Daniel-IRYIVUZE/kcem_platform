@@ -111,7 +111,14 @@ async function request<T>(
     let detail = `HTTP ${res.status}`;
     try {
       const body = await res.json();
-      detail = body.detail || detail;
+      if (Array.isArray(body.detail)) {
+        // Pydantic v2 returns an array of error objects; extract the human-readable msg from each
+        detail = (body.detail as Array<{ msg?: string; loc?: unknown[]; input?: unknown }>)
+          .map((e) => e.msg ?? JSON.stringify(e))
+          .join('; ');
+      } else if (typeof body.detail === 'string') {
+        detail = body.detail;
+      }
     } catch {
       // ignore parse errors
     }
