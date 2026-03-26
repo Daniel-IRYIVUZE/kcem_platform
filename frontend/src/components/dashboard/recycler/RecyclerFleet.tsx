@@ -60,7 +60,7 @@ export default function RecyclerFleet() {
   const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [trackingByCollectionId, setTrackingByCollectionId] = useState<Record<number, { hotel_lat: number | null; hotel_lng: number | null; driver_lat: number | null; driver_lng: number | null }>>({});
-  const [recycler, setRecycler] = useState<RecyclerProfile | null>(null);
+  const [_recycler, setRecycler] = useState<RecyclerProfile | null>(null);
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [vehicleForm, setVehicleForm] = useState<VehicleForm>(EMPTY_VF);
   const [vehicleSaving, setVehicleSaving] = useState(false);
