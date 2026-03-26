@@ -1,53 +1,45 @@
 // pages/dashboard/admin/Reports.tsx
 import { useState, useEffect } from 'react';
-import { FileText, Download, BarChart2, Users, Leaf, DollarSign } from 'lucide-react';
+import { FileText, Download, BarChart2, Users, Leaf } from 'lucide-react';
 import { downloadCSV, downloadPDF } from '../../../utils/dataStore';
-import { usersAPI, listingsAPI, transactionsAPI, collectionsAPI,
-  type APIUser, type WasteListing, type Transaction, type Collection } from '../../../services/api';
+import { usersAPI, listingsAPI, collectionsAPI,
+  type APIUser, type WasteListing, type Collection } from '../../../services/api';
 
 const REPORT_TYPES = [
-  { 
-    id: 'users', 
-    label: 'User Report', 
-    icon: <Users size={18}/>, 
-    color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400' 
+  {
+    id: 'users',
+    label: 'User Report',
+    icon: <Users size={18}/>,
+    color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400',
   },
-  { 
-    id: 'listings', 
-    label: 'Listings Report', 
-    icon: <FileText size={18}/>, 
-    color: 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400' 
+  {
+    id: 'listings',
+    label: 'Listings Report',
+    icon: <FileText size={18}/>,
+    color: 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400',
   },
-  { 
-    id: 'transactions', 
-    label: 'Financial Report', 
-    icon: <DollarSign size={18}/>, 
-    color: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400' 
+  {
+    id: 'environmental',
+    label: 'Environmental Impact',
+    icon: <Leaf size={18}/>,
+    color: 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-400',
   },
-  { 
-    id: 'environmental', 
-    label: 'Environmental Impact', 
-    icon: <Leaf size={18}/>, 
-    color: 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-400' 
-  },
-  { 
-    id: 'collections', 
-    label: 'Collections Report', 
-    icon: <BarChart2 size={18}/>, 
-    color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400' 
+  {
+    id: 'collections',
+    label: 'Collections Report',
+    icon: <BarChart2 size={18}/>,
+    color: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-400',
   },
 ];
 
 export default function AdminReports() {
   const [generating, setGenerating] = useState<string | null>(null);
   const [format, setFormat] = useState<'csv' | 'pdf'>('csv');
-  const [users, setUsers]             = useState<APIUser[]>([]);
-  const [listings, setListings]       = useState<WasteListing[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [users, setUsers]           = useState<APIUser[]>([]);
+  const [listings, setListings]     = useState<WasteListing[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [dateFrom, setDateFrom] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
+    const d = new Date(); d.setMonth(d.getMonth() - 1);
     return d.toISOString().split('T')[0];
   });
   const [dateTo, setDateTo] = useState(() => new Date().toISOString().split('T')[0]);
@@ -56,19 +48,18 @@ export default function AdminReports() {
     Promise.all([
       usersAPI.list({ limit: 500 }).catch(() => [] as APIUser[]),
       listingsAPI.list({ limit: 500 }).catch(() => [] as WasteListing[]),
-      transactionsAPI.list({ limit: 500 }).catch(() => [] as Transaction[]),
       collectionsAPI.all({ limit: 500 }).catch(() => [] as Collection[]),
-    ]).then(([us, ls, ts, cs]) => {
-      setUsers(us); setListings(ls); setTransactions(ts); setCollections(cs);
+    ]).then(([us, ls, cs]) => {
+      setUsers(us); setListings(ls); setCollections(cs);
     });
   }, []);
 
-  const completedTransactions = transactions.filter(t => t.status === 'completed');
+  const co2Saved = collections.reduce((s, c) => s + (c.actual_volume || c.volume || 0) * 0.5, 0);
   const stats = {
-    totalUsers: users.length,
+    totalUsers:     users.length,
     activeListings: listings.filter(l => l.status === 'open').length,
-    totalRevenue: completedTransactions.reduce((s, t) => s + (t.gross_amount || 0), 0),
-    co2Saved: collections.reduce((s, c) => s + (c.actual_volume || c.volume || 0) * 0.5, 0),
+    co2Saved,
+    totalCollections: collections.length,
   };
 
   const tableHTML = (headers: string[], rows: string[][]) => `
@@ -95,18 +86,10 @@ export default function AdminReports() {
             break;
           case 'listings':
             body = tableHTML(
-              ['ID', 'Hotel', 'Waste Type', 'Volume', 'Unit', 'Min Bid (RWF)', 'Status', 'Date'],
-              listings.map(l => [String(l.id), l.hotel_name || 'N/A', l.waste_type, String(l.volume),
-                l.unit, String(l.min_bid ?? 0), l.status,
+              ['ID', 'Hotel', 'Waste Type', 'Volume', 'Unit', 'Status', 'Date'],
+              listings.map(l => [String(l.id), l.hotel_name || 'N/A', l.waste_type,
+                String(l.volume), l.unit, l.status,
                 l.created_at ? new Date(l.created_at).toLocaleDateString() : ''])
-            );
-            break;
-          case 'transactions':
-            body = tableHTML(
-              ['ID', 'Reference', 'Hotel', 'Recycler', 'Gross (RWF)', 'Fee (RWF)', 'Net (RWF)', 'Status', 'Date'],
-              transactions.map(t => [String(t.id), t.reference || '', t.hotel_name || '', t.recycler_name || '',
-                String(t.gross_amount ?? 0), String(t.platform_fee ?? 0), String(t.net_amount ?? 0), t.status,
-                t.created_at ? new Date(t.created_at).toLocaleDateString() : ''])
             );
             break;
           case 'environmental':
@@ -146,30 +129,22 @@ export default function AdminReports() {
           break;
         case 'listings':
           downloadCSV('listings_report',
-            ['ID', 'Hotel', 'Waste Type', 'Volume', 'Unit', 'Min Bid', 'Status', 'Date'],
+            ['ID', 'Hotel', 'Waste Type', 'Volume', 'Unit', 'Status', 'Date'],
             listings.map(l => [
-              String(l.id), l.hotel_name || 'N/A', l.waste_type, String(l.volume),
-              l.unit, String(l.min_bid ?? 0), l.status,
+              String(l.id), l.hotel_name || 'N/A', l.waste_type,
+              String(l.volume), l.unit, l.status,
               l.created_at ? new Date(l.created_at).toLocaleDateString() : ''
-            ])
-          );
-          break;
-        case 'transactions':
-          downloadCSV('financial_report',
-            ['ID', 'Reference', 'Hotel', 'Recycler', 'Gross Amount', 'Platform Fee', 'Net Amount', 'Status', 'Date'],
-            transactions.map(t => [
-              String(t.id), t.reference || '', t.hotel_name || '', t.recycler_name || '',
-              String(t.gross_amount ?? 0), String(t.platform_fee ?? 0), String(t.net_amount ?? 0), t.status,
-              t.created_at ? new Date(t.created_at).toLocaleDateString() : ''
             ])
           );
           break;
         case 'environmental':
           downloadCSV('environmental_report',
-            ['ID', 'Hotel', 'Driver', 'Waste Type', 'Volume (kg/L)', 'Date'],
+            ['ID', 'Hotel', 'Driver', 'Waste Type', 'Volume (kg/L)', 'CO₂ Saved (kg)', 'Date'],
             collections.map(c => [
               String(c.id), c.hotel_name || 'N/A', c.driver_name || '', c.waste_type || '',
-              String(c.volume), c.scheduled_date ? new Date(c.scheduled_date).toLocaleDateString() : ''
+              String(c.actual_volume || c.volume || 0),
+              ((c.actual_volume || c.volume || 0) * 0.5).toFixed(2),
+              c.scheduled_date ? new Date(c.scheduled_date).toLocaleDateString() : ''
             ])
           );
           break;
@@ -200,10 +175,10 @@ export default function AdminReports() {
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          ['Total Users', stats.totalUsers, 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'],
-          ['Active Listings', stats.activeListings, 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800'],
-          ['Revenue (RWF)', `${(stats.totalRevenue / 1000).toFixed(0)}K`, 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'],
-          ['CO₂ Saved (kg)', stats.co2Saved.toFixed(0), 'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800']
+          ['Total Users',       stats.totalUsers,           'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'],
+          ['Active Listings',   stats.activeListings,       'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-800'],
+          ['CO₂ Saved (kg)',    stats.co2Saved.toFixed(0),  'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-800'],
+          ['Total Collections', stats.totalCollections,     'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800'],
         ].map(([label, value, bgColor]) => (
           <div key={label as string} className={`${bgColor} rounded-xl p-4 border`}>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</p>
@@ -220,15 +195,12 @@ export default function AdminReports() {
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Format</label>
             <div className="flex gap-2">
               {(['csv', 'pdf'] as const).map(f => (
-                <button
-                  key={f}
-                  onClick={() => setFormat(f)}
+                <button key={f} onClick={() => setFormat(f)}
                   className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                    format === f 
-                      ? 'bg-cyan-600 text-white border-cyan-600' 
+                    format === f
+                      ? 'bg-cyan-600 text-white border-cyan-600'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'
-                  }`}
-                >
+                  }`}>
                   {f.toUpperCase()}
                 </button>
               ))}
@@ -236,32 +208,21 @@ export default function AdminReports() {
           </div>
           <div>
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date From</label>
-            <input 
-              type="date" 
-              value={dateFrom} 
-              onChange={e => setDateFrom(e.target.value)} 
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            />
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" />
           </div>
           <div>
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Date To</label>
-            <input 
-              type="date" 
-              value={dateTo} 
-              onChange={e => setDateTo(e.target.value)} 
-              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            />
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" />
           </div>
         </div>
       </div>
 
       {/* Report Types */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-4">
         {REPORT_TYPES.map(rt => (
-          <div 
-            key={rt.id} 
-            className={`border rounded-xl p-5 ${rt.color} flex flex-col gap-4`}
-          >
+          <div key={rt.id} className={`border rounded-xl p-5 ${rt.color} flex flex-col gap-4`}>
             <div className="flex items-center gap-3">
               {rt.icon}
               <div>
@@ -269,12 +230,12 @@ export default function AdminReports() {
                 <p className="text-xs opacity-75">Full export as {format.toUpperCase()}</p>
               </div>
             </div>
-            <button 
-              onClick={() => generateReport(rt.id)} 
-              disabled={generating === rt.id} 
+            <button
+              onClick={() => generateReport(rt.id)}
+              disabled={generating === rt.id}
               className="mt-auto flex items-center justify-center gap-2 bg-white dark:bg-gray-800/70 border border-current rounded-lg py-2 text-sm font-medium hover:bg-white dark:hover:bg-gray-800/90 disabled:opacity-50 transition-colors"
             >
-              <Download size={15} /> 
+              <Download size={15} />
               {generating === rt.id ? 'Generating...' : `Download ${format.toUpperCase()}`}
             </button>
           </div>

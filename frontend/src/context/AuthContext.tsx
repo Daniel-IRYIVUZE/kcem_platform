@@ -38,7 +38,20 @@ type AuthContextType = {
   clearMustChangePassword: () => void;
 };
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Default context prevents crashes during React 18 Strict Mode double-renders and Vite HMR reloads.
+// Components will see loading:true / user:null until the real AuthProvider hydrates.
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  mustChangePassword: false,
+  isOnline: true,
+  pendingQueueCount: 0,
+  login: async () => { throw new Error('AuthProvider not initialized'); },
+  logout: () => {},
+  verify2FA: async () => false,
+  updateUser: () => {},
+  clearMustChangePassword: () => {},
+});
 
 // ─── Role mapping: backend "hotel" → frontend "business" ────────────────────
 function mapRole(backendRole: string): UserRole {
@@ -336,8 +349,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
-  return ctx;
-};
+export const useAuth = () => useContext(AuthContext);

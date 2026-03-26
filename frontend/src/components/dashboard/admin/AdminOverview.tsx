@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import {
-  Users, Building2, Recycle, Truck, Package, TrendingUp,
-  DollarSign, Clock, AlertTriangle, Activity, UserPlus,
+  Users, Building2, Recycle, Truck, Package,
+  Clock, AlertTriangle, Activity, UserPlus,
   FileText, Bell, BarChart3, Leaf, Shield, RefreshCw,
   MapPin, CheckCircle, ArrowRight,
 } from 'lucide-react';
@@ -12,39 +12,32 @@ import StatCard from '../StatCard';
 import ChartComponent from '../ChartComponent';
 import DashboardWidget from '../Widget';
 import ActivityFeed, { type ActivityItem } from '../../ui/ActivityFeed';
-import EcoImpactPanel from '../../ui/EcoImpactPanel';
 import StatusBadge from '../../ui/StatusBadge';
 import PageHeader from '../../ui/PageHeader';
 import { downloadCSV } from '../../../utils/dataStore';
 import {
-  usersAPI, listingsAPI, transactionsAPI, collectionsAPI,
-  type APIUser, type WasteListing, type Transaction, type Collection,
+  usersAPI, listingsAPI, collectionsAPI,
+  type APIUser, type WasteListing, type Collection,
 } from '../../../services/api';
 
-const sparkUp   = [40, 55, 48, 70, 65, 80, 88];
-const sparkFlat = [60, 62, 58, 63, 61, 65, 62];
-const sparkDown = [90, 80, 85, 70, 65, 60, 55];
 
 export default function AdminOverview() {
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const [users, setUsers] = useState<APIUser[]>([]);
   const [listings, setListings] = useState<WasteListing[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const load = async () => {
     try {
-      const [us, ls, ts, cs] = await Promise.all([
+      const [us, ls, cs] = await Promise.all([
         usersAPI.list({ limit: 500 }).catch(() => [] as APIUser[]),
         listingsAPI.list({ limit: 500 }).catch(() => [] as WasteListing[]),
-        transactionsAPI.list({ limit: 500 }).catch(() => [] as Transaction[]),
         collectionsAPI.all({ limit: 500 }).catch(() => [] as Collection[]),
       ]);
       setUsers(us);
       setListings(ls);
-      setTransactions(ts);
       setCollections(cs);
       setLastRefresh(new Date());
     } catch { /* silently ignore */ }
@@ -60,7 +53,6 @@ export default function AdminOverview() {
   const recyclers    = users.filter(u => u.role === 'recycler');
   const drivers      = users.filter(u => u.role === 'driver');
   const pendingUsers = users.filter(u => u.status === 'pending');
-  const totalRevenue = transactions.filter(t => t.status === 'completed').reduce((s, t) => s + (t.platform_fee || 0), 0);
   const totalWaste   = collections.filter(c => c.status === 'completed').reduce((s, c) => s + (c.actual_volume || c.volume || 0), 0);
   const co2Saved     = (totalWaste * 1.3) / 1000;
   const openListings = listings.filter(l => l.status === 'open');
@@ -75,6 +67,14 @@ export default function AdminOverview() {
     return d.toISOString().split('T')[0];
   });
 
+  // Real sparklines computed from API data (7-day daily trends)
+  const sparkWaste    = last7Dates.map(day =>
+    collections.filter(c => c.status === 'completed' && (c.completed_at || c.scheduled_date || '').startsWith(day))
+      .reduce((s, c) => s + (c.actual_volume ?? c.volume ?? 0), 0)
+  );
+  const sparkUserReg  = last7Dates.map(day => users.filter(u => u.created_at?.startsWith(day)).length);
+  const sparkListings = last7Dates.map(day => listings.filter(l => l.created_at?.startsWith(day)).length);
+
   const wasteTrendChart = {
     labels: last7,
     datasets: [{
@@ -83,19 +83,6 @@ export default function AdminOverview() {
         collections
           .filter(c => c.status === 'completed' && (c.completed_at || c.scheduled_date || '').startsWith(day))
           .reduce((s, c) => s + (c.actual_volume ?? c.volume ?? 0), 0)
-      ),
-      borderColor: '#0891b2', backgroundColor: '#0891b2',
-    }],
-  };
-
-  const revenueAreaChart = {
-    labels: last7,
-    datasets: [{
-      label: 'Revenue (RWF)',
-      data: last7Dates.map(day =>
-        transactions
-          .filter(t => t.status === 'completed' && t.created_at?.startsWith(day))
-          .reduce((s, t) => s + (t.platform_fee ?? 0), 0)
       ),
       borderColor: '#0891b2', backgroundColor: '#0891b2',
     }],
@@ -119,20 +106,10 @@ export default function AdminOverview() {
       icon: <Package size={11} />,
       iconBg: 'bg-cyan-600',
       title: `${l.hotel_name ?? 'Hotel'} listed ${l.volume}${l.unit} ${l.waste_type}`,
-      subtitle: `Min bid: RWF ${l.min_bid?.toLocaleString()}`,
+      subtitle: `${l.location || 'Kigali'} · ${l.status}`,
       time: new Date(l.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
     })),
-    ...transactions.slice(-3).reverse().map((t, i) => ({
-      id: `txn-${t.id}-${i}`,
-      icon: <DollarSign size={11} />,
-      iconBg: 'bg-cyan-600',
-      title: `Payment RWF ${(t.gross_amount ?? 0).toLocaleString()} received`,
-      subtitle: `${t.hotel_name ?? ''} → ${t.recycler_name ?? ''}`,
-      time: new Date(t.created_at).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }),
-      badge: 'Paid',
-      badgeColor: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300',
-    })),
-    ...activeRoutes.slice(0, 2).map((c, i) => ({
+    ...activeRoutes.slice(0, 3).map((c, i) => ({
       id: `col-${c.id}-${i}`,
       icon: <Truck size={11} />,
       iconBg: 'bg-purple-600',
@@ -167,8 +144,9 @@ export default function AdminOverview() {
                 ['Total Users', String(users.length)],
                 ['Hotels', String(hotels.length)],
                 ['Recyclers', String(recyclers.length)],
-                ['Revenue (RWF)', String(totalRevenue)],
-                ['Waste (kg)', String(totalWaste)],
+                ['Waste Diverted (kg)', String(totalWaste)],
+                ['CO₂ Avoided (t)', String(co2Saved.toFixed(2))],
+                ['Open Listings', String(openListings.length)],
               ])}
               className="btn-primary flex items-center gap-1.5 text-xs py-2"
             >
@@ -201,84 +179,64 @@ export default function AdminOverview() {
       )}
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="Total Users"     value={users.length}                               icon={<Users size={20}/>}    change={pendingUsers.length > 0 ? `+${pendingUsers.length} pending` : undefined} color="cyan"    sparkline={sparkUp}   />
-        <StatCard title="Active Hotels"   value={hotels.filter(h=>h.status==='active').length} icon={<Building2 size={20}/>} change={`${hotels.length} total`}                                            color="blue"    sparkline={sparkFlat} />
-        <StatCard title="Recyclers"       value={recyclers.length}                           icon={<Recycle size={20}/>}  color="cyan"   sparkline={sparkUp}   />
-        <StatCard title="Active Drivers"  value={drivers.filter(d=>d.status==='active').length || drivers.length} icon={<Truck size={20}/>}   color="purple"    sparkline={sparkDown} />
-        <StatCard title="Waste Diverted"  value={`${(totalWaste/1000).toFixed(1)}t`}          icon={<Package size={20}/>}  color="cyan"      sparkline={sparkUp}   />
-        <StatCard title="CO₂ Avoided"     value={`${co2Saved.toFixed(1)}t`}                  icon={<Leaf size={20}/>}    change={`≈${Math.round(co2Saved*45)} trees`} color="cyan" sparkline={sparkUp} />
-        <StatCard title="Platform Revenue" value={`RWF ${(totalRevenue/1000).toFixed(0)}K`}   icon={<DollarSign size={20}/>} change="+12%"                    color="yellow"   sparkline={sparkUp}   />
-        <StatCard title="Open Listings"   value={openListings.length}                        icon={<Clock size={20}/>}    color="blue"      sparkline={sparkFlat} />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <StatCard title="Total Users"     value={users.length}                                icon={<Users size={20}/>}    change={pendingUsers.length > 0 ? `+${pendingUsers.length} pending` : undefined} color="cyan"   sparkline={sparkUserReg} />
+        <StatCard title="Active Hotels"   value={hotels.filter(h=>h.status==='active').length} icon={<Building2 size={20}/>} change={`${hotels.length} total`}                                            color="blue"   sparkline={sparkUserReg} />
+        <StatCard title="Recyclers"       value={recyclers.length}                            icon={<Recycle size={20}/>}  color="cyan"   sparkline={sparkUserReg} />
+        <StatCard title="Active Drivers"  value={drivers.filter(d=>d.status==='active').length || drivers.length} icon={<Truck size={20}/>} color="purple" sparkline={sparkUserReg} />
+        <StatCard title="Waste Diverted"  value={`${(totalWaste/1000).toFixed(1)}t`}           icon={<Package size={20}/>}  color="cyan"   sparkline={sparkWaste} />
+        <StatCard title="CO₂ Avoided"     value={`${co2Saved.toFixed(1)}t`}                   icon={<Leaf size={20}/>}    change={`≈${Math.round(co2Saved*45)} trees`} color="cyan" sparkline={sparkWaste} />
       </div>
 
-      {/* Revenue Area + Activity */}
+      {/* Recent Activity + Open Listings stat */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <DashboardWidget
-          title="Revenue Trend (7 Days)"
-          icon={<TrendingUp size={16} />}
-          className="lg:col-span-2"
-          action={
-            <button onClick={() => navigate('/dashboard/admin/analytics')} className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1">
-              Full analytics <ArrowRight size={11}/>
-            </button>
-          }
-        >
-          <ChartComponent type="area" data={revenueAreaChart} height={230} showAvgLine yLabel="RWF" />
+        <DashboardWidget title="Recent Activity" icon={<Activity size={16}/>} badge={activityItems.length} className="lg:col-span-2" action={<span className="live-dot" />}>
+          <ActivityFeed items={activityItems} maxItems={8} />
         </DashboardWidget>
 
-        <DashboardWidget title="Recent Activity" icon={<Activity size={16}/>} badge={activityItems.length} action={<span className="live-dot" />}>
-          <ActivityFeed items={activityItems} maxItems={6} />
-        </DashboardWidget>
-      </div>
-
-      {/* Waste Bar + Collection Donut */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <DashboardWidget title="Waste Collection (7 Days)" icon={<BarChart3 size={16}/>} className="lg:col-span-2">
-          <ChartComponent type="bar" data={wasteTrendChart} height={220} yLabel="kg" />
-        </DashboardWidget>
-
-        <DashboardWidget title="Collection Status" icon={<CheckCircle size={16}/>}>
-          <ChartComponent type="donut" data={collectionPieChart} height={180} />
-          <div className="mt-3 space-y-2">
-            {[
-              { label: 'Completed', count: collections.filter(c=>c.status==='completed').length, status: 'completed' as const },
-              { label: 'En Route',  count: activeRoutes.length,                                  status: 'en_route' as const },
-              { label: 'Scheduled', count: collections.filter(c=>c.status==='scheduled').length, status: 'scheduled' as const },
-            ].map(item => (
-              <div key={item.status} className="flex items-center justify-between">
-                <StatusBadge status={item.status} size="sm" />
-                <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{item.count}</span>
-              </div>
-            ))}
-          </div>
-        </DashboardWidget>
-      </div>
-
-      {/* Eco Impact + Quick Actions */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <EcoImpactPanel co2Saved={co2Saved} wasteDiverted={totalWaste} waterSaved={totalWaste*3.5} energySaved={totalWaste*0.8} />
+        <div className="space-y-4">
+          <StatCard title="Open Listings" value={openListings.length} icon={<Clock size={20}/>} color="blue" sparkline={sparkListings} />
+          <DashboardWidget title="Collection Status" icon={<CheckCircle size={16}/>}>
+            <ChartComponent type="donut" data={collectionPieChart} height={150} />
+            <div className="mt-3 space-y-2">
+              {[
+                { label: 'Completed', count: collections.filter(c=>c.status==='completed').length, status: 'completed' as const },
+                { label: 'En Route',  count: activeRoutes.length,                                   status: 'en_route' as const },
+                { label: 'Scheduled', count: collections.filter(c=>c.status==='scheduled').length,  status: 'scheduled' as const },
+              ].map(item => (
+                <div key={item.status} className="flex items-center justify-between">
+                  <StatusBadge status={item.status} size="sm" />
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{item.count}</span>
+                </div>
+              ))}
+            </div>
+          </DashboardWidget>
         </div>
-
-        <DashboardWidget title="Quick Actions" icon={<Bell size={16}/>}>
-          <div className="space-y-2">
-            {[
-              { icon: <UserPlus size={15}/>,  label: 'Add New User',                        path: '/dashboard/admin/users',         color: 'text-cyan-700 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:text-cyan-300 dark:hover:bg-cyan-900/40' },
-              { icon: <FileText size={15}/>,  label: 'Generate Report',                     path: '/dashboard/admin/reports',       color: 'text-cyan-700 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:text-cyan-300 dark:hover:bg-cyan-900/40' },
-              { icon: <Shield size={15}/>,    label: `Verification (${pendingUsers.length})`, path: '/dashboard/admin/verification', color: 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/40' },
-              { icon: <MapPin size={15}/>,    label: 'Route Monitor',                       path: '/dashboard/admin/route-monitor', color: 'text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40' },
-              { icon: <BarChart3 size={15}/>, label: 'Analytics Dashboard',                 path: '/dashboard/admin/analytics',     color: 'text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-900/40' },
-            ].map((a, i) => (
-              <button key={i} onClick={() => navigate(a.path)}
-                className={`w-full flex items-center justify-between gap-3 p-3 rounded-xl text-sm font-medium transition-colors ${a.color}`}>
-                <div className="flex items-center gap-2">{a.icon}{a.label}</div>
-                <ArrowRight size={13} className="opacity-50" />
-              </button>
-            ))}
-          </div>
-        </DashboardWidget>
       </div>
+
+      {/* Waste Collection (7 Days) */}
+      <DashboardWidget title="Waste Collection (7 Days)" icon={<BarChart3 size={16}/>}>
+        <ChartComponent type="bar" data={wasteTrendChart} height={220} yLabel="kg" />
+      </DashboardWidget>
+
+      {/* Quick Actions */}
+      <DashboardWidget title="Quick Actions" icon={<Bell size={16}/>}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+          {[
+            { icon: <UserPlus size={15}/>,  label: 'Add New User',                          path: '/dashboard/admin/users',         color: 'text-cyan-700 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:text-cyan-300 dark:hover:bg-cyan-900/40' },
+            { icon: <FileText size={15}/>,  label: 'Generate Report',                       path: '/dashboard/admin/reports',       color: 'text-cyan-700 bg-cyan-50 hover:bg-cyan-100 dark:bg-cyan-900/20 dark:text-cyan-300 dark:hover:bg-cyan-900/40' },
+            { icon: <Shield size={15}/>,    label: `Verification (${pendingUsers.length})`, path: '/dashboard/admin/verification',  color: 'text-amber-700 bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-300 dark:hover:bg-amber-900/40' },
+            { icon: <MapPin size={15}/>,    label: 'Route Monitor',                         path: '/dashboard/admin/route-monitor', color: 'text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40' },
+            { icon: <BarChart3 size={15}/>, label: 'Analytics Dashboard',                   path: '/dashboard/admin/analytics',     color: 'text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-900/40' },
+          ].map((a, i) => (
+            <button key={i} onClick={() => navigate(a.path)}
+              className={`flex flex-col items-center gap-2 p-3 rounded-xl text-xs font-medium transition-colors text-center ${a.color}`}>
+              {a.icon}
+              <span>{a.label}</span>
+            </button>
+          ))}
+        </div>
+      </DashboardWidget>
     </div>
   );
 }

@@ -26,6 +26,9 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
+  // Skip non-HTTP(S) schemes (chrome-extension://, data:, etc.) — Cache API rejects them
+  if (!url.protocol.startsWith('http')) return;
+
   // Skip non-GET mutations — those go through the offline queue in the app
   if (event.request.method !== 'GET') return;
 

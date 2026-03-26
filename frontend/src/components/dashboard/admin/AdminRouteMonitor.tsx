@@ -1,7 +1,10 @@
 // components/dashboard/admin/AdminRouteMonitor.tsx
 import { useState, useEffect, useRef } from 'react';
 import { Map, Truck, Building2, Recycle, AlertTriangle, RefreshCw } from 'lucide-react';
-import { collectionsAPI, usersAPI, type Collection, type APIUser } from '../../../services/api';
+import {
+  collectionsAPI, usersAPI, hotelsAPI, recyclersAPI,
+  type Collection, type APIUser, type HotelProfile, type RecyclerProfile,
+} from '../../../services/api';
 import 'leaflet/dist/leaflet.css';
 
 const STATUS_COLOR: Record<string, string> = {
@@ -11,12 +14,15 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled:   'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
 };
 
-
 export default function AdminRouteMonitor() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [users, setUsers] = useState<APIUser[]>([]);
+  const [hotelProfiles, setHotelProfiles] = useState<HotelProfile[]>([]);
+  const [recyclerProfiles, setRecyclerProfiles] = useState<RecyclerProfile[]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
+  const [mapReady, setMapReady] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState<Collection | null>(null);
   const [layerFilter, setLayerFilter] = useState<'all' | 'hotels' | 'recyclers' | 'routes'>('all');
   const [lastRefresh, setLastRefresh] = useState(new Date());
@@ -25,9 +31,13 @@ export default function AdminRouteMonitor() {
     Promise.all([
       collectionsAPI.all({ limit: 200 }).catch(() => [] as Collection[]),
       usersAPI.list({ limit: 500 }).catch(() => [] as APIUser[]),
-    ]).then(([cs, us]) => {
+      hotelsAPI.list({ limit: 200 }).catch(() => [] as HotelProfile[]),
+      recyclersAPI.list({ limit: 200 }).catch(() => [] as RecyclerProfile[]),
+    ]).then(([cs, us, hs, rs]) => {
       setCollections(cs);
       setUsers(us);
+      setHotelProfiles(hs);
+      setRecyclerProfiles(rs);
       setLastRefresh(new Date());
     });
   };
@@ -44,70 +54,111 @@ export default function AdminRouteMonitor() {
   const activeRoutes = collections.filter(c => c.status === 'en_route');
   const scheduledRoutes = collections.filter(c => c.status === 'scheduled');
 
-  // Hotel and recycler map pins (Kigali coordinates)
-  const HOTEL_PINS: Array<{ name: string; coord: [number, number] }> = [
-    { name: 'Hotel des Mille Collines', coord: [-1.9519, 30.0612] },
-    { name: 'Kigali Marriott', coord: [-1.9480, 30.0601] },
-    { name: 'Serena Hotel', coord: [-1.9543, 30.0621] },
-    { name: 'Radisson Blu', coord: [-1.9561, 30.0648] },
-  ];
-  const RECYCLER_PINS: Array<{ name: string; coord: [number, number] }> = [
-    { name: 'GreenPath Solutions', coord: [-1.9620, 30.0700] },
-    { name: 'EcoRevive Rwanda',    coord: [-1.9480, 30.0490] },
-    { name: 'CleanTech Kigali',    coord: [-1.9380, 30.0650] },
-  ];
-  const DRIVER_PINS: Array<{ name: string; coord: [number, number]; active: boolean }> = [
-    { name: 'Jean Pierre', coord: [-1.9500, 30.0580], active: true },
-    { name: 'Alice M.',    coord: [-1.9460, 30.0640], active: true },
-  ];
-
+  // ── Map init (once) ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!mapRef.current || leafletMapRef.current) return;
-    const init = async () => {
+    if (!mapRef.current) return;
+    let destroyed = false;
+
+    (async () => {
       try {
         const L = await import('leaflet');
+        if (destroyed || leafletMapRef.current) return;
         const map = L.map(mapRef.current!, { zoomControl: true, scrollWheelZoom: false })
           .setView([-1.9441, 30.0619], 13);
         leafletMapRef.current = map;
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap', maxZoom: 18,
         }).addTo(map);
+        setMapReady(true);
+      } catch (err) { console.error('Leaflet init failed', err); }
+    })();
+
+    return () => {
+      destroyed = true;
+      setMapReady(false);
+      markersRef.current.forEach(m => { try { m.remove(); } catch { /* ignore */ } });
+      markersRef.current = [];
+      if (leafletMapRef.current) { leafletMapRef.current.remove(); leafletMapRef.current = null; }
+    };
+  }, []);
+
+  // ── Markers update (when data or filter changes) ───────────────────────────
+  useEffect(() => {
+    if (!mapReady || !leafletMapRef.current) return;
+
+    (async () => {
+      try {
+        const L = await import('leaflet');
+
+        // Clear existing markers/lines
+        markersRef.current.forEach(m => { try { m.remove(); } catch { /* ignore */ } });
+        markersRef.current = [];
 
         const makeIcon = (label: string, bg: string) => L.divIcon({
           html: `<div style="background:${bg};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.35);border:2px solid white;font-size:11px;font-weight:bold;color:white">${label}</div>`,
           className: '', iconSize: [28, 28], iconAnchor: [14, 14],
         });
 
-        // Hotel markers
+        // Hotel markers from hotelProfiles (real lat/lng from DB)
         if (layerFilter === 'all' || layerFilter === 'hotels') {
-          HOTEL_PINS.forEach(h => L.marker(h.coord, { icon: makeIcon('H', '#16a34a') })
-            .addTo(map).bindPopup(`<b>${h.name}</b><br>Hotel`));
+          hotelProfiles
+            .filter(h => h.latitude && h.longitude)
+            .forEach(h => {
+              const m = L.marker([h.latitude!, h.longitude!], { icon: makeIcon('H', '#16a34a') })
+                .addTo(leafletMapRef.current!)
+                .bindPopup(`<b>${h.hotel_name}</b><br>Hotel · ${h.city || 'Kigali'}`);
+              markersRef.current.push(m);
+            });
         }
-        // Recycler markers
+
+        // Recycler markers from recyclerProfiles (real lat/lng from DB)
         if (layerFilter === 'all' || layerFilter === 'recyclers') {
-          RECYCLER_PINS.forEach(r => L.marker(r.coord, { icon: makeIcon('R', '#2563eb') })
-            .addTo(map).bindPopup(`<b>${r.name}</b><br>Recycler`));
+          recyclerProfiles
+            .filter(r => r.latitude && r.longitude)
+            .forEach(r => {
+              const m = L.marker([r.latitude!, r.longitude!], { icon: makeIcon('R', '#2563eb') })
+                .addTo(leafletMapRef.current!)
+                .bindPopup(`<b>${r.company_name}</b><br>Recycler · ${r.city || 'Kigali'}`);
+              markersRef.current.push(m);
+            });
         }
-        // Driver markers
+
+        // Driver markers from en_route collections (live driver GPS)
         if (layerFilter === 'all' || layerFilter === 'routes') {
-          DRIVER_PINS.forEach(d => L.marker(d.coord, { icon: makeIcon('T', d.active ? '#f59e0b' : '#6b7280') })
-            .addTo(map).bindPopup(`<b>${d.name}</b><br>${d.active ? 'En Route' : 'Off Duty'}`));
+          activeRoutes
+            .filter(c => c.driver_lat && c.driver_lng)
+            .forEach(c => {
+              const m = L.marker([c.driver_lat!, c.driver_lng!], { icon: makeIcon('T', '#f59e0b') })
+                .addTo(leafletMapRef.current!)
+                .bindPopup(`<b>${c.driver_name || 'Driver'}</b><br>En Route → ${c.hotel_name || 'Hotel'}`);
+              markersRef.current.push(m);
+            });
+
+          // Route lines: hotel location → driver position
+          activeRoutes
+            .filter(c => c.hotel_lat && c.hotel_lng && c.driver_lat && c.driver_lng)
+            .forEach(c => {
+              const line = L.polyline(
+                [[c.hotel_lat!, c.hotel_lng!], [c.driver_lat!, c.driver_lng!]],
+                { color: '#06b6d4', weight: 2, dashArray: '6 3', opacity: 0.6 }
+              ).addTo(leafletMapRef.current!);
+              markersRef.current.push(line);
+            });
+
+          // Scheduled collection hotel markers (if hotel has coordinates)
+          scheduledRoutes
+            .filter(c => c.hotel_lat && c.hotel_lng)
+            .forEach(c => {
+              const m = L.marker([c.hotel_lat!, c.hotel_lng!], { icon: makeIcon('S', '#9333ea') })
+                .addTo(leafletMapRef.current!)
+                .bindPopup(`<b>${c.hotel_name || 'Hotel'}</b><br>Scheduled: ${c.scheduled_date || ''}`);
+              markersRef.current.push(m);
+            });
         }
-        // Route lines
-        if (layerFilter === 'all' || layerFilter === 'routes') {
-          HOTEL_PINS.slice(0, 3).forEach((h, i) => {
-            const r = RECYCLER_PINS[i % RECYCLER_PINS.length];
-            L.polyline([h.coord, r.coord], { color: '#06b6d4', weight: 2, dashArray: '6 3', opacity: 0.6 }).addTo(map);
-          });
-        }
-      } catch (err) { console.error('Leaflet init failed', err); }
-    };
-    init();
-    return () => {
-      if (leafletMapRef.current) { leafletMapRef.current.remove(); leafletMapRef.current = null; }
-    };
+      } catch (err) { console.error('Marker update failed', err); }
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layerFilter]);
+  }, [mapReady, layerFilter, hotelProfiles, recyclerProfiles, activeRoutes, scheduledRoutes]);
 
   return (
     <div className="space-y-6">
@@ -173,9 +224,12 @@ export default function AdminRouteMonitor() {
                 {label}
               </button>
             ))}
+            <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
+              {hotelProfiles.filter(h => h.latitude).length} hotels · {recyclerProfiles.filter(r => r.latitude).length} recyclers · {activeRoutes.filter(c => c.driver_lat).length} drivers on map
+            </span>
           </div>
 
-          {/* Real Leaflet Map */}
+          {/* Leaflet Map */}
           <div ref={mapRef} style={{ height: 380, width: '100%' }} />
         </div>
 

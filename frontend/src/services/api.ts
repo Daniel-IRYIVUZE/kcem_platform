@@ -1059,6 +1059,8 @@ export interface HotelProfile {
   description?: string;
   address?: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
   phone?: string;
   stars?: number;
   room_count?: number;
@@ -1093,6 +1095,8 @@ export interface RecyclerProfile {
   description?: string;
   address?: string;
   city?: string;
+  latitude?: number;
+  longitude?: number;
   phone?: string;
   website?: string;
   waste_types_handled?: string[] | string;

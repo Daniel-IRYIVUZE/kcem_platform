@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Eye, X, Check, Users, ShieldCheck, UserX, Download } from 'lucide-react';
+import { Edit2, Trash2, Eye, X, Check, Users, ShieldCheck, UserX, Download } from 'lucide-react';
 import { downloadPDF } from '../../../utils/dataStore';
 import { usersAPI, authAPI, type APIUser } from '../../../services/api';
 import DataTable, { type Column, type BulkAction } from '../../ui/DataTable';
 import PageHeader from '../../ui/PageHeader';
 import StatusBadge from '../../ui/StatusBadge';
 
-const ROLES = ['business', 'recycler', 'driver', 'individual', 'admin'] as const;
+const ROLES = ['business', 'recycler', 'driver', 'admin'] as const;
 const STATUSES = ['active', 'pending', 'suspended'] as const;
 
 type UserForm = { full_name: string; email: string; phone: string; role: string; status: string; is_verified: boolean; };
@@ -37,7 +37,6 @@ export default function AdminUserManagement() {
     (statusFilter === 'all' || u.status === statusFilter)
   );
 
-  const openAdd    = () => { setForm(emptyForm()); setSelected(null); setModal('add'); };
   const openEdit   = (u: APIUser) => { setSelected(u); setForm({ full_name: u.full_name, email: u.email, phone: u.phone || '', role: u.role, status: u.status, is_verified: u.is_verified }); setModal('edit'); };
   const openView   = (u: APIUser) => { setSelected(u); setModal('view'); };
   const openDelete = (u: APIUser) => { setSelected(u); setModal('delete'); };
@@ -197,9 +196,6 @@ export default function AdminUserManagement() {
             </select>
             <button onClick={handleExport} className="btn-secondary flex items-center gap-1.5 text-sm">
               <Download size={14}/> Export
-            </button>
-            <button onClick={openAdd} className="btn-primary flex items-center gap-1.5 text-sm">
-              <Plus size={14}/> Add User
             </button>
           </div>
         }
