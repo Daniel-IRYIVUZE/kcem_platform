@@ -23,16 +23,8 @@ class ApiService {
     if (envBase.isNotEmpty) return envBase;
 
     // Always use local backend for all platforms during development
-    if (kIsWeb) {
-      return 'http://localhost:8000/api';
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000/api';
-    }
-    if (defaultTargetPlatform == TargetPlatform.iOS) {
-      return 'http://localhost:8000/api';
-    }
-    return 'http://127.0.0.1:8000/api';
+    return 'https://api.ecotrade-rwanda.com/api';
+    // return 'http://127.0.0.1:8000/api';
   }
   
   static String? _accessToken;
