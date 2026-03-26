@@ -32,6 +32,14 @@ class Settings(BaseSettings):
         "http://localhost:5176",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5175",
+        "https://ecotrade-rwanda.com",
+        "*.ecotrade-rwanda.com",
+        "https://*.ecotrade-rwanda.com",
+        "https://ecotrade-rwanda.netlify.app",
+        "https://*.ecotrade-rwanda.netlify.app",
+        "http://ecotrade-rwanda.netlify.app",
+        "http://*.ecotrade-rwanda.netlify.app",
+        
     ]
 
     # ── File uploads ──────────────────────────────────────────────────────────
