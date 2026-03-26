@@ -333,8 +333,8 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
                               if (current != null)
                                 Marker(
                                   point: current,
-                                  width: 48,
-                                  height: 48,
+                                  width: 56,
+                                  height: 56,
                                   child: _MapPin(
                                     icon: Icons.directions_car,
                                     color: AppColors.primary,
@@ -421,41 +421,45 @@ class _MapPin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.4),
-                blurRadius: 6,
-                spreadRadius: 1,
-              ),
-            ],
+    return OverflowBox(
+      maxHeight: double.infinity,
+      alignment: Alignment.topCenter,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.4),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: 18),
           ),
-          child: Icon(icon, color: Colors.white, size: 18),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              label,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700),
+            ),
           ),
-          child: Text(
-            label,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 9,
-                fontWeight: FontWeight.w700),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

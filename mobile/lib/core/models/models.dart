@@ -386,6 +386,8 @@ class Collection {
   final double? destinationLat;
   final double? destinationLng;
   final double earnings;
+  final String? contactPhone;
+  final String? driverPhone;
 
   const Collection({
     required this.id,
@@ -409,6 +411,8 @@ class Collection {
     this.destinationLat,
     this.destinationLng,
     this.earnings = 0,
+    this.contactPhone,
+    this.driverPhone,
   });
 }
 

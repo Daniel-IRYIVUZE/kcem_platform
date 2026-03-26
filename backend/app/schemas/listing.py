@@ -96,5 +96,9 @@ class ListingListRead(BaseModel):
     is_urgent:   bool
     expires_at:  Optional[datetime]
     created_at:  datetime
+    address:     Optional[str] = None
+    latitude:    Optional[float] = None
+    longitude:   Optional[float] = None
+    images:      List[ListingImageRead] = []
 
     model_config = {"from_attributes": True}

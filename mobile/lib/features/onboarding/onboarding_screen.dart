@@ -161,14 +161,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       },
                       child: const Text('Go to Login'),
                     ),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      onPressed: () {
-                        LocalStorageService.instance.markOnboardingSeen();
-                        context.go(AppRoutes.login);
-                      },
-                      child: const Text('I already have an account'),
-                    ),
                   ] else
                     ElevatedButton(
                       onPressed: _nextPage,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
@@ -193,15 +192,6 @@ class _HotelProfileScreenState extends ConsumerState<HotelProfileScreen> {
                   score: (user?.greenScore ?? 0).toDouble(),
                   level: _scoreLevel(user?.greenScore ?? 0),
                 ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 60.ms).fadeIn(),
-
-                const SizedBox(height: 16),
-
-                // QR Code
-                _QrCodeSection(
-                  userId: user?.id ?? '',
-                  displayName: businessName,
-                  role: 'Business',
-                ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 100.ms).fadeIn(),
 
                 const SizedBox(height: 16),
 
@@ -1080,154 +1070,7 @@ class _StatDivider extends StatelessWidget {
       Container(height: 36, width: 1, color: Colors.white.withValues(alpha: 0.25));
 }
 
-// ─── QR Code Section ──────────────────────────────────────────────────────────
-class _QrCodeSection extends StatelessWidget {
-  final String userId;
-  final String displayName;
-  final String role;
-  const _QrCodeSection(
-      {required this.userId, required this.displayName, required this.role});
 
-  @override
-  Widget build(BuildContext context) {
-    final qrData = 'https://ecotrade.rw/profile/$userId';
-    return Container(
-      decoration: BoxDecoration(
-        color: context.cSurf,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.cBorder),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32, height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child:
-                    const Icon(Icons.qr_code_2, size: 20, color: AppColors.primary),
-              ),
-              const SizedBox(width: 12),
-              Text('My QR Code',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: context.cText)),
-              const Spacer(),
-              TextButton(
-                onPressed: () => _showQrDialog(context, qrData),
-                child: const Text('Expand'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: context.cBorder),
-                ),
-                child: QrImageView(
-                  data: qrData,
-                  version: QrVersions.auto,
-                  size: 80,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(displayName,
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: context.cText,
-                            fontSize: 14)),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(role,
-                          style: const TextStyle(
-                              fontSize: 11,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600)),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Scan to view business profile',
-                        style: TextStyle(fontSize: 12, color: context.cTextSec)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showQrDialog(BuildContext context, String qrData) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('My QR Code',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(displayName,
-                  style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 13)),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black12, blurRadius: 8)
-                  ],
-                ),
-                child: QrImageView(
-                  data: qrData,
-                  version: QrVersions.auto,
-                  size: 200,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(qrData,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, size: 16),
-                label: const Text('Close'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ─── Shared profile section ────────────────────────────────────────────────────
 class _ProfileSection extends StatelessWidget {

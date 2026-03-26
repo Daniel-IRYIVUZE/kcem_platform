@@ -11,6 +11,7 @@ export default function AdminBlogEditor() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<BlogPostCreate>({
     title: '',
     slug: '',
@@ -41,9 +42,8 @@ export default function AdminBlogEditor() {
         author_display_name: post.author_display_name || '',
       });
     } catch (error) {
-      console.error('Failed to fetch post:', error);
-      alert('Failed to load post');
-      navigate('/dashboard/admin/blog');
+      setError('Failed to load post. Redirecting...');
+      setTimeout(() => navigate('/dashboard/admin/blog'), 1500);
     } finally {
       setLoading(false);
     }
@@ -79,9 +79,10 @@ export default function AdminBlogEditor() {
     e.preventDefault();
     
     if (!formData.title || !formData.excerpt || !formData.content) {
-      alert('Please fill in all required fields');
+      setError('Please fill in all required fields (title, excerpt, content).');
       return;
     }
+    setError(null);
 
     try {
       setSaving(true);
@@ -96,8 +97,7 @@ export default function AdminBlogEditor() {
       
       navigate('/dashboard/admin/blog');
     } catch (error) {
-      console.error('Failed to save post:', error);
-      alert('Failed to save post');
+      setError((error as Error).message || 'Failed to save post.');
     } finally {
       setSaving(false);
     }
@@ -116,8 +116,7 @@ export default function AdminBlogEditor() {
       
       setFormData(prev => ({ ...prev, is_published: updated.is_published }));
     } catch (error) {
-      console.error('Failed to toggle publish status:', error);
-      alert('Failed to update publish status');
+      setError((error as Error).message || 'Failed to update publish status.');
     }
   };
 
@@ -132,6 +131,12 @@ export default function AdminBlogEditor() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 text-red-700 dark:text-red-400 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="ml-4 text-red-500 hover:text-red-700">✕</button>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

@@ -16,12 +16,25 @@ class RecyclerCollectionsScreen extends ConsumerStatefulWidget {
 }
 
 class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsScreen> {
+  String _activeFilter = 'All';
+
+  Future<void> _refresh() async {
+    await ref.read(collectionsNotifierProvider.notifier).refresh();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(recyclerCollectionsLoadingProvider);
     final collections = ref.watch(recyclerCollectionsProvider);
-    final pending = collections.where((c) => c.status == CollectionStatus.scheduled).toList();
-    final assigned = collections.where((c) => c.status == CollectionStatus.enRoute).toList();
-    final done = collections.where((c) => c.status == CollectionStatus.completed || c.status == CollectionStatus.verified || c.status == CollectionStatus.collected).toList();
+    final allPending = collections.where((c) => c.status == CollectionStatus.scheduled).toList();
+    final allAssigned = collections.where((c) => c.status == CollectionStatus.enRoute).toList();
+    final allDone = collections.where((c) => c.status == CollectionStatus.completed || c.status == CollectionStatus.verified || c.status == CollectionStatus.collected).toList();
+
+    final pending = _activeFilter == 'All' || _activeFilter == 'Pending' ? allPending : <Collection>[];
+    final assigned = _activeFilter == 'All' || _activeFilter == 'Assigned' ? allAssigned : <Collection>[];
+    final done = _activeFilter == 'All' || _activeFilter == 'Collected' ? allDone : <Collection>[];
+
     final Map<String, List<Collection>> kanbanData = {
       'Pending': pending,
       'Assigned': assigned,
@@ -43,7 +56,7 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
           IconButton(
             icon: const Icon(Icons.filter_list),
             onPressed: () {
-              String selectedFilter = 'All';
+              String selectedFilter = _activeFilter;
               showModalBottomSheet(
                 context: context,
                 backgroundColor: Theme.of(context).colorScheme.surface,
@@ -86,18 +99,17 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
                         const SizedBox(height: 20),
                         Row(children: [
                           Expanded(child: OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx),
+                            onPressed: () {
+                              Navigator.pop(ctx);
+                              setState(() => _activeFilter = 'All');
+                            },
                             child: const Text('Clear'),
                           )),
                           const SizedBox(width: 12),
                           Expanded(child: ElevatedButton(
                             onPressed: () {
                               Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text('Showing: $selectedFilter collections'),
-                                backgroundColor: AppColors.primary,
-                                behavior: SnackBarBehavior.floating,
-                              ));
+                              setState(() => _activeFilter = selectedFilter);
                             },
                             child: const Text('Apply Filter'),
                           )),
@@ -111,49 +123,70 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
           ),
         ],
       ),
-      body: Column(
-        children: [
-          const OfflineBanner(),
-          // Summary row
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-            child: Row(
-              children: [
-                _KanbanCount(label: 'Pending', count: pending.length, color: AppColors.accent),
-                const SizedBox(width: 12),
-                _KanbanCount(label: 'Assigned', count: assigned.length, color: AppColors.info),
-                const SizedBox(width: 12),
-                _KanbanCount(label: 'Collected', count: done.length, color: AppColors.primary),
-              ],
-            ),
-          ),
+      body: isLoading && collections.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _refresh,
+              child: Column(
+                children: [
+                  const OfflineBanner(),
+                  // Summary row (always shows totals)
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                    child: Row(
+                      children: [
+                        _KanbanCount(label: 'Pending', count: allPending.length, color: AppColors.accent),
+                        const SizedBox(width: 12),
+                        _KanbanCount(label: 'Assigned', count: allAssigned.length, color: AppColors.info),
+                        const SizedBox(width: 12),
+                        _KanbanCount(label: 'Collected', count: allDone.length, color: AppColors.primary),
+                      ],
+                    ),
+                  ),
+                  if (_activeFilter != 'All')
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.filter_list, size: 14, color: AppColors.primary),
+                          const SizedBox(width: 4),
+                          Text('Showing: $_activeFilter', style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600)),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () => setState(() => _activeFilter = 'All'),
+                            child: const Icon(Icons.close, size: 14, color: AppColors.primary),
+                          ),
+                        ],
+                      ),
+                    ),
 
-          // Kanban board
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: kanbanData.entries.map((entry) {
-                  return _KanbanColumn(
-                    title: entry.key,
-                    cards: entry.value,
-                    color: entry.key == 'Pending'
-                        ? AppColors.accent
-                        : entry.key == 'Assigned'
-                            ? AppColors.info
-                            : AppColors.primary,
-                    onAssign: entry.key == 'Pending'
-                        ? (c) => _showAssignDriver(context, c)
-                        : null,
-                  );
-                }).toList(),
+                  // Kanban board
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: kanbanData.entries.map((entry) {
+                          return _KanbanColumn(
+                            title: entry.key,
+                            cards: entry.value,
+                            color: entry.key == 'Pending'
+                                ? AppColors.accent
+                                : entry.key == 'Assigned'
+                                    ? AppColors.info
+                                    : AppColors.primary,
+                            onAssign: entry.key == 'Pending'
+                                ? (c) => _showAssignDriver(context, c)
+                                : null,
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -196,7 +229,7 @@ class _RecyclerCollectionsScreenState extends ConsumerState<RecyclerCollectionsS
   }
 
   void _showAssignDriver(BuildContext context, Collection col) {
-    final driversAsync = ref.read(driversProvider);
+    final driversAsync = ref.read(recyclerDriversProvider);
 
     showModalBottomSheet(
       context: context,

@@ -346,7 +346,7 @@ export default function BusinessListings() {
             },
             { key: 'waste_type', label: 'Type', render: (v: string) => <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-medium">{v}</span> },
             { key: 'volume', label: 'Volume', render: (v: number, r: WasteListing) => <span>{v} {r.unit}</span> },
-            { key: 'min_bid', label: 'Min Bid', render: (v: number) => <span>RWF {v.toLocaleString()}</span> },
+            { key: 'min_bid', label: 'Price/unit', render: (v: number, r: WasteListing) => <span>RWF {v.toLocaleString()}/{r.unit || 'unit'}</span> },
             {
               key: 'total_amount',
               label: 'Total Amount',
@@ -394,7 +394,7 @@ export default function BusinessListings() {
                   <p className="font-semibold text-gray-900 dark:text-white">{viewListing.volume} {viewListing.unit}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
-                  <p className="text-xs text-gray-400 mb-1">Min Bid</p>
+                  <p className="text-xs text-gray-400 mb-1">Price per {viewListing.unit || 'unit'}</p>
                   <p className="font-semibold text-cyan-600">RWF {(viewListing.min_bid ?? 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
@@ -462,7 +462,7 @@ export default function BusinessListings() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => { setShowBidModal(false); setBidModalMessage(null); }}>
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <div><h2 className="text-xl font-bold">Bids for #{selectedListing.id}</h2><p className="text-sm text-gray-500 dark:text-gray-400">{selectedListing.waste_type} — {selectedListing.volume} {selectedListing.unit} · Min Total: RWF {(selectedListing.min_bid ?? 0).toLocaleString()} · Listing Total: RWF {((selectedListing.volume || 0) * (selectedListing.min_bid || 0)).toLocaleString()}</p></div>
+              <div><h2 className="text-xl font-bold">Bids for #{selectedListing.id}</h2><p className="text-sm text-gray-500 dark:text-gray-400">{selectedListing.waste_type} — {selectedListing.volume} {selectedListing.unit} · Price/{selectedListing.unit || 'unit'}: RWF {(selectedListing.min_bid ?? 0).toLocaleString()} · Total Amount: RWF {((selectedListing.volume || 0) * (selectedListing.min_bid || 0)).toLocaleString()}</p></div>
               <button onClick={() => { setShowBidModal(false); setBidModalMessage(null); }} className="p-1 hover:bg-gray-100 dark:bg-gray-700 rounded"><X size={20} /></button>
             </div>
             {bidModalMessage && (

@@ -32,12 +32,14 @@ def enrich_bid(bid: Bid) -> dict:
         'waste_type': None,
         'volume': None,
         'unit': None,
+        'min_bid': None,
     }
     if bid.listing:
         data['hotel_name'] = bid.listing.hotel_name
         data['waste_type'] = str(bid.listing.waste_type.value) if bid.listing.waste_type else None
         data['volume'] = bid.listing.volume
         data['unit'] = bid.listing.unit
+        data['min_bid'] = bid.listing.min_bid
     return data
 
 

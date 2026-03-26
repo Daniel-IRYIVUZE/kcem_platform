@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -72,8 +74,11 @@ class _DriverTrackingScreenState extends ConsumerState<DriverTrackingScreen> {
     if (points.isEmpty) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (points.length == 1) {
-        _mapController.move(points.first, 14);
+      // If all drivers are at the same point (e.g. all using Kigali fallback),
+      // just centre there rather than fitting degenerate bounds.
+      final distinct = points.toSet().toList();
+      if (distinct.length == 1) {
+        _mapController.move(distinct.first, 13);
       } else {
         final bounds = LatLngBounds.fromPoints(points);
         _mapController.fitCamera(
@@ -83,23 +88,49 @@ class _DriverTrackingScreenState extends ConsumerState<DriverTrackingScreen> {
     });
   }
 
-  List<LatLng> _driverPoints() {
-    return _drivers
-        .where((d) => d['current_lat'] != null && d['current_lng'] != null)
-        .map((d) => LatLng(
-              (d['current_lat'] as num).toDouble(),
-              (d['current_lng'] as num).toDouble(),
-            ))
-        .toList();
+  LatLng _driverPoint(Map<String, dynamic> d) {
+    if (d['current_lat'] != null && d['current_lng'] != null) {
+      return LatLng(
+        (d['current_lat'] as num).toDouble(),
+        (d['current_lng'] as num).toDouble(),
+      );
+    }
+    return _kigali;
   }
+
+  List<LatLng> _driverPoints() =>
+      _drivers.map(_driverPoint).toList();
 
   String _driverName(Map<String, dynamic> d) =>
       d['full_name'] as String? ??
       d['name'] as String? ??
       'Driver';
 
-  bool _isAvailable(Map<String, dynamic> d) =>
-      d['is_available'] as bool? ?? false;
+  bool _isAvailable(Map<String, dynamic> d) {
+    if (d['is_available'] == true) return true;
+    if (d['is_available'] == false) return false;
+    return (d['status'] as String? ?? '') == 'available';
+  }
+
+  Color _driverColor(Map<String, dynamic> d) {
+    if (_isAvailable(d)) return AppColors.primary;
+    switch (d['status'] as String? ?? '') {
+      case 'on_route': return AppColors.accent;
+      default:         return AppColors.textSecondary;
+    }
+  }
+
+  static double _haversineKm(LatLng a, LatLng b) {
+    const r = 6371.0;
+    final dLat = (b.latitude - a.latitude) * math.pi / 180;
+    final dLng = (b.longitude - a.longitude) * math.pi / 180;
+    final h = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(a.latitude * math.pi / 180) *
+            math.cos(b.latitude * math.pi / 180) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+    return 2 * r * math.asin(math.sqrt(h.clamp(0.0, 1.0)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -176,75 +207,150 @@ class _DriverTrackingScreenState extends ConsumerState<DriverTrackingScreen> {
 
                     // Map
                     Expanded(
-                      child: FlutterMap(
-                        mapController: _mapController,
-                        options: MapOptions(
-                          initialCenter: _kigali,
-                          initialZoom: 13,
-                        ),
+                      child: Stack(
                         children: [
-                          TileLayer(
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.ecotrade.app',
-                          ),
+                          FlutterMap(
+                            mapController: _mapController,
+                            options: MapOptions(
+                              initialCenter: _kigali,
+                              initialZoom: 13,
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate:
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.ecotrade.app',
+                              ),
 
-                          // Collection destination markers (blue pins)
-                          MarkerLayer(
-                            markers: collections
-                                .where((c) =>
-                                    c.destinationLat != null &&
-                                    c.destinationLng != null)
-                                .map((c) => Marker(
-                                      point: LatLng(
-                                        c.destinationLat!,
-                                        c.destinationLng!,
-                                      ),
-                                      width: 44,
-                                      height: 44,
-                                      child: Tooltip(
-                                        message:
-                                            '${c.businessName}\n${c.wasteType.label}',
-                                        child: _CollectionPin(
-                                            status: c.status.name),
-                                      ),
-                                    ))
-                                .toList(),
-                          ),
-
-                          // Driver markers
-                          MarkerLayer(
-                            markers: _drivers
-                                .where((d) =>
-                                    d['current_lat'] != null &&
-                                    d['current_lng'] != null)
-                                .map((d) {
-                              final lat =
-                                  (d['current_lat'] as num).toDouble();
-                              final lng =
-                                  (d['current_lng'] as num).toDouble();
-                              final name = _driverName(d);
-                              final available = _isAvailable(d);
-                              return Marker(
-                                point: LatLng(lat, lng),
-                                width: 56,
-                                height: 56,
-                                child: GestureDetector(
-                                  onTap: () => _showDriverInfo(context, d),
-                                  child: _DriverPin(
-                                    name: name,
-                                    available: available,
-                                  ),
+                              // Dashed distance lines between drivers
+                              if (_drivers.length > 1)
+                                PolylineLayer(
+                                  polylines: [
+                                    for (int i = 0; i < _drivers.length - 1; i++)
+                                      for (int j = i + 1; j < _drivers.length; j++)
+                                        Polyline(
+                                          points: [
+                                            _driverPoint(_drivers[i]),
+                                            _driverPoint(_drivers[j]),
+                                          ],
+                                          color: const Color(0xFF0288D1),
+                                          strokeWidth: 1.5,
+                                          isDotted: true,
+                                        ),
+                                  ],
                                 ),
-                              );
-                            }).toList(),
+
+                              // Collection destination markers (blue pins)
+                              MarkerLayer(
+                                markers: collections
+                                    .where((c) =>
+                                        c.destinationLat != null &&
+                                        c.destinationLng != null)
+                                    .map((c) => Marker(
+                                          point: LatLng(
+                                            c.destinationLat!,
+                                            c.destinationLng!,
+                                          ),
+                                          width: 44,
+                                          height: 44,
+                                          child: Tooltip(
+                                            message:
+                                                '${c.businessName}\n${c.wasteType.label}',
+                                            child: _CollectionPin(
+                                                status: c.status.name),
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
+
+                              // Driver markers — teardrop pins; Kigali fallback when no GPS
+                              MarkerLayer(
+                                markers: _drivers.map((d) {
+                                  final point = _driverPoint(d);
+                                  final name = _driverName(d);
+                                  final color = _driverColor(d);
+                                  return Marker(
+                                    point: point,
+                                    width: 100,
+                                    height: 60,
+                                    alignment: Alignment.bottomCenter,
+                                    child: GestureDetector(
+                                      onTap: () => _showDriverInfo(context, d),
+                                      child: _DriverTearDropPin(
+                                          name: name, color: color),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+
+                              const RichAttributionWidget(
+                                attributions: [
+                                  TextSourceAttribution(
+                                      'OpenStreetMap contributors'),
+                                ],
+                              ),
+                            ],
                           ),
 
-                          const RichAttributionWidget(
-                            attributions: [
-                              TextSourceAttribution(
-                                  'OpenStreetMap contributors'),
-                            ],
+                          // Legend + distance bar overlaid at map bottom
+                          Positioned(
+                            bottom: 0, left: 0, right: 0,
+                            child: Container(
+                              color: Colors.white.withValues(alpha: 0.93),
+                              padding: const EdgeInsets.fromLTRB(12, 5, 12, 7),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (_drivers.length > 1)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 3),
+                                      child: Wrap(
+                                        spacing: 10,
+                                        children: [
+                                          for (int i = 0; i < _drivers.length - 1; i++)
+                                            for (int j = i + 1; j < _drivers.length; j++)
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  ...List.generate(4, (k) => Container(
+                                                    width: 4, height: 1.5,
+                                                    margin: EdgeInsets.only(right: k < 3 ? 3 : 0),
+                                                    color: const Color(0xFF0288D1),
+                                                  )),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    '${_driverName(_drivers[i]).split(' ').first} ↔ '
+                                                    '${_driverName(_drivers[j]).split(' ').first}: '
+                                                    '${_haversineKm(_driverPoint(_drivers[i]), _driverPoint(_drivers[j])).toStringAsFixed(1)} km',
+                                                    style: const TextStyle(fontSize: 10, color: Color(0xFF0288D1)),
+                                                  ),
+                                                ],
+                                              ),
+                                        ],
+                                      ),
+                                    ),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Wrap(
+                                          spacing: 10,
+                                          children: const [
+                                            _TrackLegendDot(color: AppColors.primary, label: 'Available'),
+                                            _TrackLegendDot(color: AppColors.accent, label: 'On Route'),
+                                            _TrackLegendDot(color: AppColors.textSecondary, label: 'Off Duty'),
+                                          ],
+                                        ),
+                                      ),
+                                      Text(
+                                        '${_drivers.length} driver${_drivers.length == 1 ? '' : 's'} · ${collections.length} job${collections.length == 1 ? '' : 's'}',
+                                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF333333)),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -268,15 +374,7 @@ class _DriverTrackingScreenState extends ConsumerState<DriverTrackingScreen> {
                             final hasLoc = d['current_lat'] != null;
                             return GestureDetector(
                               onTap: () {
-                                if (hasLoc) {
-                                  _mapController.move(
-                                    LatLng(
-                                      (d['current_lat'] as num).toDouble(),
-                                      (d['current_lng'] as num).toDouble(),
-                                    ),
-                                    16,
-                                  );
-                                }
+                                _mapController.move(_driverPoint(d), 14);
                                 _showDriverInfo(context, d);
                               },
                               child: Container(
@@ -319,7 +417,7 @@ class _DriverTrackingScreenState extends ConsumerState<DriverTrackingScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      hasLoc ? 'Location known' : 'No GPS data',
+                                      hasLoc ? 'Live location' : 'Kigali (est.)',
                                       style: TextStyle(
                                           fontSize: 11,
                                           color: hasLoc
@@ -424,45 +522,80 @@ class _DriverTrackingScreenState extends ConsumerState<DriverTrackingScreen> {
   }
 }
 
-class _DriverPin extends StatelessWidget {
+class _DriverTearDropPin extends StatelessWidget {
   final String name;
-  final bool available;
-  const _DriverPin({required this.name, required this.available});
+  final Color color;
+  const _DriverTearDropPin({required this.name, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    final color = available ? AppColors.primary : AppColors.textSecondary;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 40,
-          height: 40,
+          constraints: const BoxConstraints(maxWidth: 90),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
           decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
-            boxShadow: [
-              BoxShadow(
-                  color: color.withValues(alpha: 0.4),
-                  blurRadius: 6,
-                  spreadRadius: 1),
-            ],
-          ),
-          child: const Icon(Icons.directions_car, color: Colors.white, size: 20),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-          decoration: BoxDecoration(
-            color: color,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: color.withValues(alpha: 0.4), width: 0.8),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 3)],
           ),
           child: Text(
             name.split(' ').first,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
+        const SizedBox(height: 2),
+        CustomPaint(
+          size: const Size(24, 32),
+          painter: _TrackPinPainter(color: color),
+        ),
+      ],
+    );
+  }
+}
+
+class _TrackPinPainter extends CustomPainter {
+  final Color color;
+  const _TrackPinPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.width / 2;
+    final path = ui.Path()
+      ..addOval(Rect.fromCircle(center: Offset(r, r), radius: r))
+      ..moveTo(size.width * 0.3, r + r * 0.55)
+      ..lineTo(r, size.height)
+      ..lineTo(size.width * 0.7, r + r * 0.55)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.fill);
+    canvas.drawPath(path,
+        Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.8);
+    canvas.drawCircle(Offset(r, r), r * 0.38,
+        Paint()..color = Colors.white..style = PaintingStyle.fill);
+  }
+
+  @override
+  bool shouldRepaint(_TrackPinPainter old) => old.color != color;
+}
+
+class _TrackLegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _TrackLegendDot({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 10, height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF333333))),
       ],
     );
   }

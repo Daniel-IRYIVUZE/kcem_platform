@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../core/services/api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/router/app_router.dart';
@@ -82,12 +84,17 @@ class _DriverHomeTab extends ConsumerWidget {
     final user = ref.watch(authProvider).user;
     final stats = ref.watch(driverStatsProvider);
     final route = ref.watch(driverRouteProvider);
+    final driverProfile = ref.watch(driverProfileProvider).valueOrNull ?? {};
+    final isAvailable = driverProfile['is_available'] as bool? ?? true;
     final h = DateTime.now().hour;
     final greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
     final doneCount = route.stops.where((s) => s.status == RouteStopStatus.completed).length;
     final totalCount = route.stops.length;
     final nextStop = route.stops
-        .where((s) => s.status == RouteStopStatus.pending || s.status == RouteStopStatus.collecting)
+        .where((s) =>
+            s.status == RouteStopStatus.pending ||
+            s.status == RouteStopStatus.arrived ||
+            s.status == RouteStopStatus.collecting)
         .firstOrNull;
     final initials = (user?.displayName ?? 'D').trim().split(' ').take(2)
         .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '').join();
@@ -136,19 +143,30 @@ class _DriverHomeTab extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(width: 10),
-                          // Online pill
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                          // Availability pill — tappable to toggle
+                          GestureDetector(
+                            onTap: () async {
+                              try {
+                                await ApiService.setDriverAvailability(!isAvailable);
+                                ref.invalidate(driverProfileProvider);
+                              } catch (_) {}
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                Icon(Icons.circle, color: isAvailable ? const Color(0xFF69F0AE) : Colors.white54, size: 8),
+                                const SizedBox(width: 5),
+                                Text(
+                                  isAvailable ? 'Online' : 'Offline',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                                ),
+                              ]),
                             ),
-                            child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                              Icon(Icons.circle, color: Color(0xFF69F0AE), size: 8),
-                              SizedBox(width: 5),
-                              Text('Online', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12)),
-                            ]),
                           ),
                           const SizedBox(width: 8),
                           // Notifications bell with unread badge
@@ -555,9 +573,12 @@ class _NextStopCard extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               OutlinedButton.icon(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Calling customer...'), behavior: SnackBarBehavior.floating),
-                ),
+                onPressed: stop.contactPhone.isNotEmpty
+                    ? () async {
+                        final uri = Uri(scheme: 'tel', path: stop.contactPhone);
+                        if (await canLaunchUrl(uri)) await launchUrl(uri);
+                      }
+                    : null,
                 icon: const Icon(Icons.call, size: 16),
                 label: const Text('Call'),
                 style: OutlinedButton.styleFrom(minimumSize: const Size(0, 42)),

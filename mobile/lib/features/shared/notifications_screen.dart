@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/models/models.dart';
+import '../../core/router/app_router.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -111,9 +113,7 @@ class _NotificationList extends StatelessWidget {
           ...todayNotifs.asMap().entries.map((e) => _NotifTile(
                 notification: e.value,
                 delay: e.key * 40,
-                onTap: () => ref
-                    .read(notificationsProvider.notifier)
-                    .markRead(e.value.id),
+                onTap: (ctx) => _handleTap(ctx, e.value),
               )),
         ],
         if (olderNotifs.isNotEmpty) ...[
@@ -121,13 +121,49 @@ class _NotificationList extends StatelessWidget {
           ...olderNotifs.asMap().entries.map((e) => _NotifTile(
                 notification: e.value,
                 delay: todayNotifs.length * 40 + e.key * 40,
-                onTap: () => ref
-                    .read(notificationsProvider.notifier)
-                    .markRead(e.value.id),
+                onTap: (ctx) => _handleTap(ctx, e.value),
               )),
         ],
       ],
     );
+  }
+
+  void _handleTap(BuildContext ctx, AppNotification notif) {
+    ref.read(notificationsProvider.notifier).markRead(notif.id);
+    final role = ref.read(authProvider).role;
+    final route = _resolveRoute(notif.link, notif.type, role);
+    if (route != null && ctx.mounted) ctx.go(route);
+  }
+
+  String? _resolveRoute(String? link, NotificationType type, UserRole? role) {
+    if (link != null) {
+      if (link.startsWith('/listings/')) {
+        return role == UserRole.recycler
+            ? AppRoutes.recyclerMarketplace
+            : AppRoutes.hotelBids;
+      }
+      if (link.startsWith('/bids/')) {
+        return role == UserRole.recycler
+            ? AppRoutes.recyclerBids
+            : AppRoutes.hotelBids;
+      }
+      if (link.startsWith('/collections/')) {
+        if (role == UserRole.driver) return AppRoutes.driverCollection;
+        if (role == UserRole.recycler) return AppRoutes.recyclerCollections;
+        return AppRoutes.hotelCollections;
+      }
+    }
+    // Fallback by notification type
+    switch (type) {
+      case NotificationType.bid:
+        return role == UserRole.recycler ? AppRoutes.recyclerBids : AppRoutes.hotelBids;
+      case NotificationType.collection:
+        if (role == UserRole.driver) return AppRoutes.driverCollection;
+        if (role == UserRole.recycler) return AppRoutes.recyclerCollections;
+        return AppRoutes.hotelCollections;
+      default:
+        return null;
+    }
   }
 
   bool _isSameDay(DateTime a, DateTime b) =>
@@ -154,7 +190,7 @@ class _SectionLabel extends StatelessWidget {
 class _NotifTile extends StatelessWidget {
   final AppNotification notification;
   final int delay;
-  final VoidCallback onTap;
+  final void Function(BuildContext) onTap;
   const _NotifTile(
       {required this.notification, required this.delay, required this.onTap});
 
@@ -162,7 +198,7 @@ class _NotifTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUnread = !notification.read;
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => onTap(context),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         margin: const EdgeInsets.only(bottom: 10),

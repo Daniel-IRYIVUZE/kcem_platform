@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/models/models.dart';
@@ -241,13 +242,12 @@ class _CollectionCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               OutlinedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Calling driver...'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                onPressed: () async {
+                  final phone = collection.driverPhone ?? '';
+                  if (phone.isNotEmpty) {
+                    final uri = Uri(scheme: 'tel', path: phone);
+                    if (await canLaunchUrl(uri)) await launchUrl(uri);
+                  }
                 },
                 icon: const Icon(Icons.call, size: 16),
                 label: const Text('Call'),

@@ -36,22 +36,38 @@ def create_listing(payload: ListingCreate, db: Session = Depends(get_db),
             user_id=current_user.id,
         )
     listing = crud_listing.create(db, obj_in=payload, hotel_id=hotel.id)
-    # Always use the hotel's exact coordinates so all listings cluster together on the map
-    if hotel.latitude and hotel.longitude:
-        listing.latitude  = hotel.latitude
-        listing.longitude = hotel.longitude
-        listing.address   = listing.address or hotel.address
-        db.commit()
+    # Use hotel coordinates; fall back to Kigali city centre so every listing
+    # appears on the map even when the hotel profile has no GPS coordinates.
+    _KIGALI_LAT, _KIGALI_LNG = -1.9441, 30.0619
+    listing.latitude  = hotel.latitude  or payload.latitude  or _KIGALI_LAT
+    listing.longitude = hotel.longitude or payload.longitude or _KIGALI_LNG
+    listing.address   = listing.address or hotel.address or "Kigali, Rwanda"
+    db.commit()
     crud_hotel.increment_listing_count(db, hotel.id)
     return listing
+
+
+_KIGALI_LAT, _KIGALI_LNG = -1.9441, 30.0619
 
 
 @router.get("/", response_model=list[ListingRead])
 def list_listings(waste_type: str | None = None, search: str | None = None,
                   min_volume: float | None = None, skip: int = 0, limit: int = 20,
                   db: Session = Depends(get_db)):
-    return crud_listing.get_open(db, waste_type=waste_type, search=search,
-                                 min_volume=min_volume, skip=skip, limit=limit)
+    listings = crud_listing.get_open(db, waste_type=waste_type, search=search,
+                                     min_volume=min_volume, skip=skip, limit=limit)
+    # Backfill missing coordinates so every listing appears on the map.
+    # Hotel coords > Kigali city centre fallback.
+    for listing in listings:
+        if not listing.latitude or not listing.longitude:
+            hotel = listing.hotel
+            if hotel and hotel.latitude and hotel.longitude:
+                listing.latitude  = hotel.latitude
+                listing.longitude = hotel.longitude
+            else:
+                listing.latitude  = _KIGALI_LAT
+                listing.longitude = _KIGALI_LNG
+    return listings
 
 
 @router.get("/mine", response_model=list[ListingRead],

@@ -64,8 +64,11 @@ class CollectionRead(BaseModel):
 
     # Denormalized fields populated from ORM relationships
     hotel_name:    Optional[str] = None
+    hotel_phone:   Optional[str] = None
+    hotel_address: Optional[str] = None
     recycler_name: Optional[str] = None
     driver_name:   Optional[str] = None
+    driver_phone:  Optional[str] = None
     waste_type:    Optional[str] = None
     volume:        Optional[float] = None
     unit:          Optional[str] = None
@@ -87,15 +90,18 @@ class CollectionRead(BaseModel):
             return data
         try:
             if data.hotel:
-                data.__dict__.setdefault('hotel_name', data.hotel.hotel_name)
-                data.__dict__.setdefault('location',   data.hotel.address)
-                data.__dict__.setdefault('hotel_lat',  data.hotel.latitude)
-                data.__dict__.setdefault('hotel_lng',  data.hotel.longitude)
+                data.__dict__.setdefault('hotel_name',    data.hotel.hotel_name)
+                data.__dict__.setdefault('hotel_phone',   data.hotel.phone)
+                data.__dict__.setdefault('hotel_address', data.hotel.address)
+                data.__dict__.setdefault('location',      data.hotel.address)
+                data.__dict__.setdefault('hotel_lat',     data.hotel.latitude)
+                data.__dict__.setdefault('hotel_lng',     data.hotel.longitude)
             if data.recycler:
                 data.__dict__.setdefault('recycler_name', data.recycler.company_name)
             if data.driver:
                 if data.driver.user:
                     data.__dict__.setdefault('driver_name', data.driver.user.full_name or data.driver.user.email)
+                    data.__dict__.setdefault('driver_phone', data.driver.user.phone)
                 data.__dict__.setdefault('driver_lat', data.driver.current_lat)
                 data.__dict__.setdefault('driver_lng', data.driver.current_lng)
             if data.listing:

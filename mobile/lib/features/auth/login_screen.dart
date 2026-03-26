@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/services/api_service.dart';
 import '../../core/services/offline_sync_service.dart';
 
 import '../shared/widgets/app_text_field.dart';
@@ -25,20 +24,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
-
-  bool get _isLocalBackend {
-    final uri = Uri.tryParse(ApiService.baseUrl);
-    final host = uri?.host ?? '';
-    return host == '127.0.0.1' || host == 'localhost' || host == '10.0.2.2';
-  }
-
-  String get _backendIndicatorText {
-    final uri = Uri.tryParse(ApiService.baseUrl);
-    final host = uri?.host ?? 'unknown';
-    final port = uri?.hasPort == true ? ':${uri!.port}' : '';
-    final modeLabel = _isLocalBackend ? 'Connected to local server' : 'Connected to production server';
-    return '$modeLabel ($host$port)';
-  }
 
   @override
   void dispose() {
@@ -117,31 +102,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 16),
                 // Always show the network badge (online or offline)
                 const OfflineBanner(showOnlineState: true),
-                const SizedBox(height: 8),
-                // Backend server indicator (dev vs production)
-                Row(
-                  children: [
-                    Text(
-                      '●',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: _isLocalBackend ? AppColors.success : AppColors.warning,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Flexible(
-                      child: Text(
-                        _backendIndicatorText,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: _isLocalBackend ? AppColors.success : AppColors.warning,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 24),
 
                 // Header

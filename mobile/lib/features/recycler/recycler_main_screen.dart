@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/api_service.dart';
@@ -72,13 +70,28 @@ class _RecyclerMainScreenState extends ConsumerState<RecyclerMainScreen> {
 }
 
 // ─── Recycler Home Tab ────────────────────────────────────────────────────────
-class _RecyclerHomeTab extends ConsumerWidget {
+class _RecyclerHomeTab extends ConsumerStatefulWidget {
   final VoidCallback? onBrowseMarket;
   final VoidCallback? onGoToProfile;
   const _RecyclerHomeTab({this.onBrowseMarket, this.onGoToProfile});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_RecyclerHomeTab> createState() => _RecyclerHomeTabState();
+}
+
+class _RecyclerHomeTabState extends ConsumerState<_RecyclerHomeTab> {
+  VoidCallback? get onBrowseMarket => widget.onBrowseMarket;
+  VoidCallback? get onGoToProfile => widget.onGoToProfile;
+
+  Future<void> _refresh() async {
+    // Refresh all dashboard data via the notifiers (they invalidate the private FutureProviders)
+    ref.read(listingsNotifierProvider.notifier).refresh();
+    await ref.read(collectionsNotifierProvider.notifier).refresh();
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
     final listings = ref.watch(openListingsProvider);
     final stats = ref.watch(recyclerStatsProvider);
@@ -87,7 +100,9 @@ class _RecyclerHomeTab extends ConsumerWidget {
     final greeting = _greeting();
     return Scaffold(
       backgroundColor: context.cBg,
-      body: CustomScrollView(
+      body: RefreshIndicator(
+        onRefresh: _refresh,
+        child: CustomScrollView(
         slivers: [
           // ── Gradient header ───────────────────────────────────────
           SliverToBoxAdapter(
@@ -274,60 +289,69 @@ class _RecyclerHomeTab extends ConsumerWidget {
 
                 const SizedBox(height: 24),
 
-                // Map Preview
-                SectionHeader(title: 'Nearby Listings', actionLabel: 'See Map', onAction: onBrowseMarket),
+                // Nearby Listings — top 3 from marketplace
+                SectionHeader(title: 'Nearby Listings', actionLabel: 'View All', onAction: onBrowseMarket),
                 const SizedBox(height: 12),
 
-                Container(
-                  height: 190,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD1FAE5),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: const _MapPlaceholder(),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 14,
-                        left: 14,
-                        right: 14,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, 2))],
+                if (listings.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    alignment: Alignment.center,
+                    child: const Text('No listings available yet',
+                        style: TextStyle(color: AppColors.textSecondary)),
+                  )
+                else
+                  ...listings.take(3).map((listing) => Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: context.cSurf,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: context.cBorder),
+                    ),
+                    child: InkWell(
+                      onTap: onBrowseMarket,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44, height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 22),
                           ),
-                          child: Row(
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(listing.businessName,
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${listing.wasteType.label} • ${listing.volume.toStringAsFixed(0)} ${listing.unit}',
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              const Icon(Icons.location_on, color: AppColors.primary, size: 18),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  '${listings.length} listings in marketplace',
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: onBrowseMarket,
-                                style: TextButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                                ),
-                                child: const Text('View All'),
-                              ),
+                              Text('RWF ${listing.minBid.toStringAsFixed(0)}/${listing.unit}',
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.primary)),
+                              Text('${listing.activeBidCount} bid${listing.activeBidCount == 1 ? '' : 's'}',
+                                  style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
                             ],
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                ).animate().slideY(begin: 0.2, duration: 400.ms, delay: 200.ms).fadeIn(),
+                    ),
+                  )).toList(),
 
                 const SizedBox(height: 24),
 
@@ -364,6 +388,7 @@ class _RecyclerHomeTab extends ConsumerWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -472,51 +497,6 @@ class _QuickBidCard extends StatelessWidget {
   }
 }
 
-class _MapPlaceholder extends StatelessWidget {
-  const _MapPlaceholder();
-
-  static const _kigali = LatLng(-1.9441, 30.0619);
-  static const _pins = [
-    LatLng(-1.9350, 30.0560),
-    LatLng(-1.9508, 30.0710),
-    LatLng(-1.9620, 30.0520),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return FlutterMap(
-      options: const MapOptions(
-        initialCenter: _kigali,
-        initialZoom: 12.5,
-        interactionOptions: InteractionOptions(
-          flags: InteractiveFlag.none,
-        ),
-      ),
-      children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.ecotrade.rwanda',
-        ),
-        MarkerLayer(
-          markers: _pins
-              .map((pt) => Marker(
-                    point: pt,
-                    width: 32,
-                    height: 32,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.recycling, color: Colors.white, size: 16),
-                    ),
-                  ))
-              .toList(),
-        ),
-      ],
-    );
-  }
-}
 
 class _ActivityCard extends StatelessWidget {
   final IconData icon;

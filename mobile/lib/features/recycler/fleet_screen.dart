@@ -1,16 +1,16 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
-import '../../core/services/api_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../shared/widgets/shared_cards.dart';
-import '../shared/widgets/eco_button.dart';
 import '../shared/widgets/offline_banner.dart';
 import 'driver_tracking_screen.dart';
-import 'recycler_collections_screen.dart';
 
 class FleetScreen extends ConsumerStatefulWidget {
   const FleetScreen({super.key});
@@ -20,40 +20,14 @@ class FleetScreen extends ConsumerStatefulWidget {
 }
 
 class _FleetScreenState extends ConsumerState<FleetScreen> {
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _vehicleCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    _phoneCtrl.dispose();
-    _vehicleCtrl.dispose();
-    _emailCtrl.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
-    final driversAsync = ref.watch(driversProvider);
+    final driversAsync = ref.watch(recyclerDriversProvider);
 
     return Scaffold(
       backgroundColor: context.cBg,
       appBar: AppBar(
         title: const Text('Driver Fleet'),
-        actions: [
-          ElevatedButton.icon(
-            onPressed: () => _showAddDriverSheet(context),
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text('Add Driver'),
-            style: ElevatedButton.styleFrom(
-              minimumSize: const Size(0, 36),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-            ),
-          ),
-          const SizedBox(width: 12),
-        ],
       ),
       body: driversAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -66,7 +40,7 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
               const Text('Could not load drivers', style: TextStyle(color: AppColors.textSecondary)),
               const SizedBox(height: 12),
               OutlinedButton(
-                onPressed: () => ref.invalidate(driversProvider),
+                onPressed: () => ref.invalidate(recyclerDriversProvider),
                 child: const Text('Retry'),
               ),
             ],
@@ -174,12 +148,6 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
                         const SizedBox(height: 12),
                         const Text('No drivers in your fleet yet',
                             style: TextStyle(color: AppColors.textSecondary)),
-                        const SizedBox(height: 12),
-                        ElevatedButton.icon(
-                          onPressed: () => _showAddDriverSheet(context),
-                          icon: const Icon(Icons.add, size: 16),
-                          label: const Text('Add Driver'),
-                        ),
                       ],
                     ),
                   ),
@@ -205,138 +173,18 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
   }
 
   String _statusOf(Map<String, dynamic> d) {
-    // Backend may return is_available, status, or last_seen fields
+    // Handle legacy is_available flag
     if (d['is_available'] == true) return 'active';
     if (d['is_available'] == false) return 'offline';
-    return d['status'] as String? ?? 'idle';
+    // Map DriverStatus enum values returned by /drivers/my-recycler
+    switch (d['status'] as String? ?? '') {
+      case 'available': return 'active';
+      case 'on_route':  return 'idle';
+      case 'off_duty':  return 'offline';
+      default:          return 'idle';
+    }
   }
 
-  void _showAddDriverSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) {
-          bool loading = false;
-          return Padding(
-            padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Add New Driver', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Driver Full Name',
-                    prefixIcon: Icon(Icons.person_outline),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _emailCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Driver Email',
-                    prefixIcon: Icon(Icons.email_outlined),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _phoneCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _vehicleCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Vehicle Plate',
-                    prefixIcon: Icon(Icons.directions_car_outlined),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                EcoButton(
-                  label: 'Send Invitation',
-                  isLoading: loading,
-                  onPressed: loading
-                      ? null
-                      : () async {
-                          final name = _nameCtrl.text.trim();
-                          final email = _emailCtrl.text.trim();
-                          final phone = _phoneCtrl.text.trim();
-                          if (name.isEmpty || email.isEmpty || phone.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please fill in name, email and phone'),
-                                backgroundColor: AppColors.error,
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                            return;
-                          }
-                          setSheet(() => loading = true);
-                          try {
-                            await ApiService.inviteDriver(
-                              name: name,
-                              email: email,
-                              phone: phone,
-                              vehiclePlate: _vehicleCtrl.text.trim(),
-                            );
-                            ref.invalidate(driversProvider);
-                            _nameCtrl.clear();
-                            _emailCtrl.clear();
-                            _phoneCtrl.clear();
-                            _vehicleCtrl.clear();
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
-                                    children: [
-                                      const Icon(Icons.check_circle, color: Colors.white, size: 18),
-                                      const SizedBox(width: 8),
-                                      Text('Invitation sent to $name'),
-                                    ],
-                                  ),
-                                  backgroundColor: AppColors.primary,
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            setSheet(() => loading = false);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to invite driver: $e'),
-                                  backgroundColor: AppColors.error,
-                                  behavior: SnackBarBehavior.floating,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
 }
 
 // ─── Fleet Map Preview ────────────────────────────────────────────────────────
@@ -347,44 +195,228 @@ class _FleetMapPreview extends StatelessWidget {
 
   const _FleetMapPreview({required this.driverData});
 
+  static Color _statusColor(Map<String, dynamic> d) {
+    if (d['is_available'] == true) return AppColors.primary;
+    switch (d['status'] as String? ?? '') {
+      case 'available': return AppColors.primary;
+      case 'on_route':  return AppColors.accent;
+      default:          return AppColors.textSecondary;
+    }
+  }
+
+  static LatLng _point(Map<String, dynamic> d) {
+    if (d['current_lat'] != null && d['current_lng'] != null) {
+      return LatLng(
+        (d['current_lat'] as num).toDouble(),
+        (d['current_lng'] as num).toDouble(),
+      );
+    }
+    return _kigali;
+  }
+
+  static double _haversineKm(LatLng a, LatLng b) {
+    const r = 6371.0;
+    final dLat = (b.latitude - a.latitude) * math.pi / 180;
+    final dLng = (b.longitude - a.longitude) * math.pi / 180;
+    final h = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(a.latitude * math.pi / 180) *
+            math.cos(b.latitude * math.pi / 180) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+    return 2 * r * math.asin(math.sqrt(h.clamp(0.0, 1.0)));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final withGps = driverData
-        .where((d) => d['current_lat'] != null && d['current_lng'] != null)
-        .toList();
+    final points = driverData.map(_point).toList();
 
-    return FlutterMap(
-      options: const MapOptions(
-        initialCenter: _kigali,
-        initialZoom: 12.5,
-        interactionOptions: InteractionOptions(flags: InteractiveFlag.none),
-      ),
+    // Dashed polylines + distance labels between distinct driver positions
+    final polylines = <Polyline>[];
+    final distanceLabels = <String>[];
+    for (int i = 0; i < points.length - 1; i++) {
+      for (int j = i + 1; j < points.length; j++) {
+        polylines.add(Polyline(
+          points: [points[i], points[j]],
+          color: const Color(0xFF0288D1),
+          strokeWidth: 1.5,
+          isDotted: true,
+        ));
+        final km = _haversineKm(points[i], points[j]);
+        final nameA = (driverData[i]['name'] ?? driverData[i]['full_name'] ?? 'D${i + 1}') as String;
+        final nameB = (driverData[j]['name'] ?? driverData[j]['full_name'] ?? 'D${j + 1}') as String;
+        distanceLabels.add(
+            '${nameA.split(' ').first} ↔ ${nameB.split(' ').first}: ${km.toStringAsFixed(1)} km');
+      }
+    }
+
+    return Stack(
       children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.ecotrade.app',
-        ),
-        if (withGps.isNotEmpty)
-          MarkerLayer(
-            markers: withGps.map((d) {
-              final lat = (d['current_lat'] as num).toDouble();
-              final lng = (d['current_lng'] as num).toDouble();
-              final available = d['is_available'] as bool? ?? false;
-              return Marker(
-                point: LatLng(lat, lng),
-                width: 32,
-                height: 32,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: available ? AppColors.primary : AppColors.textSecondary,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                  child: const Icon(Icons.directions_car, color: Colors.white, size: 14),
-                ),
-              );
-            }).toList(),
+        FlutterMap(
+          options: const MapOptions(
+            initialCenter: _kigali,
+            initialZoom: 12.5,
+            interactionOptions: InteractionOptions(flags: InteractiveFlag.none),
           ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.ecotrade.app',
+            ),
+            if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
+            if (driverData.isNotEmpty)
+              MarkerLayer(
+                markers: driverData.asMap().entries.map((e) {
+                  final d = e.value;
+                  final name = d['name'] as String? ?? d['full_name'] as String? ?? 'Driver';
+                  return Marker(
+                    point: points[e.key],
+                    width: 100,
+                    height: 60,
+                    alignment: Alignment.bottomCenter,
+                    child: _DriverTearDrop(name: name, color: _statusColor(d)),
+                  );
+                }).toList(),
+              ),
+          ],
+        ),
+
+        // Legend + stats bar
+        Positioned(
+          bottom: 0, left: 0, right: 0,
+          child: Container(
+            color: Colors.white.withValues(alpha: 0.93),
+            padding: const EdgeInsets.fromLTRB(10, 5, 10, 7),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (distanceLabels.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Wrap(
+                      spacing: 10,
+                      children: distanceLabels.map((lbl) => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ...List.generate(4, (i) => Container(
+                            width: 4, height: 1.5,
+                            margin: EdgeInsets.only(right: i < 3 ? 3 : 0),
+                            color: const Color(0xFF0288D1),
+                          )),
+                          const SizedBox(width: 4),
+                          Text(lbl, style: const TextStyle(fontSize: 10, color: Color(0xFF0288D1))),
+                        ],
+                      )).toList(),
+                    ),
+                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Wrap(
+                        spacing: 10,
+                        children: const [
+                          _LegendDot(color: AppColors.primary, label: 'Available'),
+                          _LegendDot(color: AppColors.accent, label: 'On Route'),
+                          _LegendDot(color: AppColors.textSecondary, label: 'Off Duty'),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${driverData.length} driver${driverData.length == 1 ? '' : 's'}',
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF333333)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── Driver teardrop pin ───────────────────────────────────────────────────────
+
+class _DriverTearDrop extends StatelessWidget {
+  final String name;
+  final Color color;
+  const _DriverTearDrop({required this.name, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          constraints: const BoxConstraints(maxWidth: 90),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: color.withValues(alpha: 0.4), width: 0.8),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 3)],
+          ),
+          child: Text(
+            name.split(' ').first,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(height: 2),
+        CustomPaint(
+          size: const Size(24, 32),
+          painter: _DriverPinPainter(color: color),
+        ),
+      ],
+    );
+  }
+}
+
+class _DriverPinPainter extends CustomPainter {
+  final Color color;
+  const _DriverPinPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.width / 2;
+    final path = ui.Path()
+      ..addOval(Rect.fromCircle(center: Offset(r, r), radius: r))
+      ..moveTo(size.width * 0.3, r + r * 0.55)
+      ..lineTo(r, size.height)
+      ..lineTo(size.width * 0.7, r + r * 0.55)
+      ..close();
+
+    canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.fill);
+    canvas.drawPath(path,
+        Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8);
+    canvas.drawCircle(Offset(r, r), r * 0.38,
+        Paint()..color = Colors.white..style = PaintingStyle.fill);
+  }
+
+  @override
+  bool shouldRepaint(_DriverPinPainter old) => old.color != color;
+}
+
+class _LegendDot extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendDot({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(width: 10, height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF333333))),
       ],
     );
   }
@@ -427,10 +459,23 @@ class _DriverCard extends StatelessWidget {
   final Map<String, dynamic> driver;
   const _DriverCard({required this.driver});
 
+  /// Returns 'active' | 'idle' | 'offline' — used for color and stats counting.
   String get _driverStatus {
     if (driver['is_available'] == true) return 'active';
     if (driver['is_available'] == false) return 'offline';
-    return driver['status'] as String? ?? 'idle';
+    switch (driver['status'] as String? ?? '') {
+      case 'available': return 'active';
+      case 'on_route':  return 'idle';
+      case 'off_duty':  return 'offline';
+      default:          return 'idle';
+    }
+  }
+
+  /// Human-readable badge label derived from the raw API status value.
+  String get _statusLabel {
+    final raw = driver['status'] as String? ?? '';
+    if (raw.isNotEmpty) return raw.replaceAll('_', ' ').toUpperCase();
+    return _driverStatus.toUpperCase();
   }
 
   Color get _statusColor {
@@ -529,7 +574,7 @@ class _DriverCard extends StatelessWidget {
                     ),
                   Text('$completedRoutes jobs', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                   StatusBadge(
-                    label: _driverStatus.toUpperCase(),
+                    label: _statusLabel,
                     type: _driverStatus == 'active'
                         ? StatusType.success
                         : _driverStatus == 'idle'
@@ -554,21 +599,15 @@ class _DriverCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const RecyclerCollectionsScreen()),
-                  ),
-                  icon: const Icon(Icons.assignment_outlined, size: 14),
-                  label: const Text('Assign'),
-                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 36)),
-                ),
-              ),
-              const SizedBox(width: 8),
               OutlinedButton(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Calling $phone...'), behavior: SnackBarBehavior.floating),
-                ),
+                onPressed: (phone.isNotEmpty && phone != '—')
+                    ? () async {
+                        final uri = Uri(scheme: 'tel', path: phone);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri);
+                        }
+                      }
+                    : null,
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(36, 36),
                   padding: EdgeInsets.zero,

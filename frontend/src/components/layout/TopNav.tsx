@@ -45,9 +45,34 @@ const TopNav = ({ user }: TopNavProps) => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const resolveNotifLink = (link?: string): string | null => {
+    if (!link) return null;
+    const role = user.role;
+    if (link.startsWith('/listings/')) {
+      return role === 'recycler' ? '/dashboard/recycler/marketplace' : '/dashboard/business/listings';
+    }
+    if (link.startsWith('/bids/')) {
+      return role === 'recycler' ? '/dashboard/recycler/bids' : '/dashboard/business/listings';
+    }
+    if (link.startsWith('/collections/')) {
+      if (role === 'driver') return '/dashboard/driver';
+      if (role === 'recycler') return '/dashboard/recycler/collections';
+      return '/dashboard/business/schedule';
+    }
+    if (link.startsWith('/transactions/')) {
+      if (role === 'driver') return '/dashboard/driver/earnings';
+      if (role === 'recycler') return '/dashboard/recycler/revenue';
+      return '/dashboard/business/transactions';
+    }
+    // Already an internal route (starts with /dashboard)
+    if (link.startsWith('/dashboard')) return link;
+    return null;
+  };
+
   const handleNotifClick = (id: string, link?: string) => {
     markRead(id);
-    if (link) { setShowNotif(false); navigate(link); }
+    const dest = resolveNotifLink(link);
+    if (dest) { setShowNotif(false); navigate(dest); }
   };
 
   const handleLogout = () => { logout(); navigate('/login'); };

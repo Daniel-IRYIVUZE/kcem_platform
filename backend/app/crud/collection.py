@@ -26,10 +26,25 @@ class CRUDCollection(CRUDBase[Collection, CollectionCreate, CollectionUpdate]):
                 .order_by(Collection.scheduled_date.asc())
                 .offset(skip).limit(limit).all())
 
+    # Ordered status progression for auto-advance
+    _STATUS_NEXT = {
+        CollectionStatus.scheduled: CollectionStatus.en_route,
+        CollectionStatus.en_route:  CollectionStatus.arrived,
+        CollectionStatus.arrived:   CollectionStatus.collected,
+        CollectionStatus.collected: CollectionStatus.completed,
+        CollectionStatus.verified:  CollectionStatus.completed,
+    }
+
     def advance_status(self, db: Session, *, collection_id: int = None, collection: Collection = None,
                       new_status: CollectionStatus = None, notes: str = None,
                       actual_volume: float = None) -> Collection | None:
-        """Advance collection status and update related timestamps."""
+        """Advance collection status and update related timestamps.
+
+        If *new_status* is not provided the method auto-advances:
+        - When actual_volume is supplied the collection jumps straight to
+          ``completed`` (driver recorded weight → job done).
+        - Otherwise the next status in the linear progression is used.
+        """
         # Get collection if only ID provided
         if collection_id and not collection:
             collection = self.get(db, collection_id)
@@ -40,6 +55,15 @@ class CRUDCollection(CRUDBase[Collection, CollectionCreate, CollectionUpdate]):
             return None
 
         now = datetime.now(timezone.utc)
+
+        # Auto-determine next status when caller did not specify one
+        if new_status is None:
+            if actual_volume is not None:
+                # Recording weight means the driver has finished — mark complete
+                new_status = CollectionStatus.completed
+            else:
+                new_status = self._STATUS_NEXT.get(collection.status, collection.status)
+
         collection.status = new_status
         if notes:
             collection.notes = notes

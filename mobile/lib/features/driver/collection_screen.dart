@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -133,35 +134,54 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         _isLoading = true;
       });
 
-      // Upload proof photo to backend
+      // Upload proof photo to backend (only when online)
       final collectionId = int.tryParse(collection?.id ?? '');
       if (collectionId != null) {
-        try {
-          final bytes = await image.readAsBytes();
-          await ApiService.uploadCollectionProof(collectionId, bytes, image.name);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Row(children: [
-                  Icon(Icons.cloud_done, color: Colors.white, size: 16),
-                  SizedBox(width: 8),
-                  Text('Photo uploaded successfully'),
-                ]),
-                backgroundColor: AppColors.primary,
-                behavior: SnackBarBehavior.floating,
-                duration: Duration(seconds: 2),
-              ),
-            );
+        final online = await _isOnline();
+        if (online) {
+          try {
+            final bytes = await image.readAsBytes();
+            await ApiService.uploadCollectionProof(collectionId, bytes, image.name);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Row(children: [
+                    Icon(Icons.cloud_done, color: Colors.white, size: 16),
+                    SizedBox(width: 8),
+                    Text('Photo uploaded successfully'),
+                  ]),
+                  backgroundColor: AppColors.primary,
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          } catch (_) {
+            // Non-fatal — show warning but still advance
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Row(children: [
+                    Icon(Icons.warning_amber_rounded, color: Colors.white, size: 16),
+                    SizedBox(width: 8),
+                    Text('Photo upload failed — re-take when back online'),
+                  ]),
+                  backgroundColor: AppColors.warning,
+                  behavior: SnackBarBehavior.floating,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            }
           }
-        } catch (_) {
-          // Non-fatal — show warning but still advance
+        } else {
+          // Offline — skip upload, arrival advance will be queued instead
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Row(children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.white, size: 16),
+                  Icon(Icons.cloud_off, color: Colors.white, size: 16),
                   SizedBox(width: 8),
-                  Text('Photo saved locally — upload failed'),
+                  Text('Offline — photo skipped, arrival will sync when connected'),
                 ]),
                 backgroundColor: AppColors.warning,
                 behavior: SnackBarBehavior.floating,
@@ -474,13 +494,12 @@ class _ArriveStep extends StatelessWidget {
                     ),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Calling contact...'),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                    onPressed: () async {
+                      final phone = currentCollection?.contactPhone ?? '';
+                      if (phone.isNotEmpty) {
+                        final uri = Uri(scheme: 'tel', path: phone);
+                        if (await canLaunchUrl(uri)) await launchUrl(uri);
+                      }
                     },
                     icon: const Icon(Icons.call, size: 14),
                     label: const Text('Call'),

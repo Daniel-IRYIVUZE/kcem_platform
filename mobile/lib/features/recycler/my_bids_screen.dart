@@ -29,19 +29,32 @@ class _MyBidsScreenState extends ConsumerState<MyBidsScreen>
     super.dispose();
   }
 
+  Future<void> _refresh() async {
+    ref.read(bidsNotifierProvider.notifier).refresh();
+    // Small delay to let the FutureProvider re-fire before we return
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(recyclerBidsLoadingProvider);
     final listings = ref.watch(recyclerBidListingsProvider);
     final allBids = listings.expand((l) => l.bids).toList();
     final activeBids = allBids.where((b) => b.status == BidStatus.active).toList();
     final wonBids = allBids.where((b) => b.status == BidStatus.won).toList();
     final lostBids = allBids.where((b) => b.status == BidStatus.lost).toList();
 
-    // Map bid ID → hotel/business name from enriched listing data
+    // Maps: bid ID → hotel name, min bid (price/unit), volume, unit
     final bidToHotel = <String, String>{};
+    final bidToMinBid = <String, double>{};
+    final bidToVolume = <String, double>{};
+    final bidToUnit = <String, String>{};
     for (final listing in listings) {
       for (final bid in listing.bids) {
         bidToHotel[bid.id] = listing.businessName;
+        bidToMinBid[bid.id] = listing.minBid;
+        bidToVolume[bid.id] = listing.volume;
+        bidToUnit[bid.id] = listing.unit;
       }
     }
 
@@ -61,14 +74,19 @@ class _MyBidsScreenState extends ConsumerState<MyBidsScreen>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _BidListView(bids: activeBids, type: BidStatus.active, bidToHotel: bidToHotel),
-          _BidListView(bids: wonBids, type: BidStatus.won, bidToHotel: bidToHotel),
-          _LostBidsView(bids: lostBids, bidToHotel: bidToHotel),
-        ],
-      ),
+      body: isLoading && allBids.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _refresh,
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _BidListView(bids: activeBids, type: BidStatus.active, bidToHotel: bidToHotel, bidToMinBid: bidToMinBid, bidToVolume: bidToVolume, bidToUnit: bidToUnit),
+                  _BidListView(bids: wonBids, type: BidStatus.won, bidToHotel: bidToHotel, bidToMinBid: bidToMinBid, bidToVolume: bidToVolume, bidToUnit: bidToUnit),
+                  _LostBidsView(bids: lostBids, bidToHotel: bidToHotel, bidToMinBid: bidToMinBid, bidToVolume: bidToVolume, bidToUnit: bidToUnit),
+                ],
+              ),
+            ),
     );
   }
 }
@@ -77,7 +95,17 @@ class _BidListView extends ConsumerWidget {
   final List<Bid> bids;
   final BidStatus type;
   final Map<String, String> bidToHotel;
-  const _BidListView({required this.bids, required this.type, required this.bidToHotel});
+  final Map<String, double> bidToMinBid;
+  final Map<String, double> bidToVolume;
+  final Map<String, String> bidToUnit;
+  const _BidListView({
+    required this.bids,
+    required this.type,
+    required this.bidToHotel,
+    required this.bidToMinBid,
+    required this.bidToVolume,
+    required this.bidToUnit,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -105,6 +133,10 @@ class _BidListView extends ConsumerWidget {
       itemBuilder: (context, index) {
         final bid = bids[index];
         final hotelName = bidToHotel[bid.id] ?? bid.recyclerName;
+        final minBid = bidToMinBid[bid.id] ?? 0;
+        final volume = bidToVolume[bid.id] ?? 0;
+        final unit = bidToUnit[bid.id] ?? 'kg';
+        final totalAmount = volume * minBid;
         final statusColor = type == BidStatus.won ? AppColors.primary : AppColors.info;
         final statusLabel = type == BidStatus.won ? 'Won' : 'Pending';
         return Container(
@@ -141,17 +173,51 @@ class _BidListView extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('RWF ${bid.amount.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.primary)),
-                      StatusBadge(label: statusLabel, type: type == BidStatus.won ? StatusType.success : StatusType.info),
-                    ],
-                  ),
+                  StatusBadge(label: statusLabel, type: type == BidStatus.won ? StatusType.success : StatusType.info),
                 ],
               ),
               const SizedBox(height: 10),
-              Text('Submitted ${_timeAgo(bid.createdAt)}', style: const TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+              // Min Bid & Total Amount row
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Min Bid', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                        Text(
+                          'RWF ${_fmt(minBid)}/$unit',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('Total Amount', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                        Text(
+                          'RWF ${_fmt(totalAmount)}',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Your bid: RWF ${_fmt(bid.amount)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.accent)),
+                  Text('Submitted ${_timeAgo(bid.createdAt)}', style: const TextStyle(fontSize: 12, color: AppColors.textTertiary)),
+                ],
+              ),
               if (type == BidStatus.active) ...[
                 const SizedBox(height: 12),
                 Row(
@@ -214,6 +280,7 @@ class _BidListView extends ConsumerWidget {
 
   void _showReviseBid(BuildContext context, WidgetRef ref, Bid bid) {
     final ctrl = TextEditingController(text: bid.amount.toStringAsFixed(0));
+    bool loading = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -221,56 +288,77 @@ class _BidListView extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (_) => Padding(
-        padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Revise Bid', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            const Text('Enter your new bid amount', style: TextStyle(color: AppColors.textSecondary)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: ctrl,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-              decoration: InputDecoration(
-                prefixText: 'RWF ',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      builder: (sheetCtx) => StatefulBuilder(
+        builder: (sheetCtx, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(context).viewInsets.bottom + 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Revise Bid', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              const Text('Enter your new bid amount', style: TextStyle(color: AppColors.textSecondary)),
+              const SizedBox(height: 16),
+              TextField(
+                controller: ctrl,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                decoration: InputDecoration(
+                  prefixText: 'RWF ',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Row(
-                          children: [
-                            Icon(Icons.gavel, color: Colors.white, size: 16),
-                            SizedBox(width: 8),
-                            Text('Bid revised successfully!'),
-                          ],
-                        ),
-                        backgroundColor: AppColors.primary,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
-                child: const Text('Submit Revised Bid', style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: loading
+                      ? null
+                      : () async {
+                          final newAmount = double.tryParse(ctrl.text.replaceAll(',', ''));
+                          if (newAmount == null || newAmount <= 0) return;
+                          setSheetState(() => loading = true);
+                          try {
+                            await ref.read(bidsNotifierProvider.notifier).increaseBid(bid.id, newAmount);
+                            if (sheetCtx.mounted) Navigator.pop(sheetCtx);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Row(children: [
+                                    Icon(Icons.gavel, color: Colors.white, size: 16),
+                                    SizedBox(width: 8),
+                                    Text('Bid revised successfully!'),
+                                  ]),
+                                  backgroundColor: AppColors.primary,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            setSheetState(() => loading = false);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to revise bid: $e'),
+                                  backgroundColor: AppColors.error,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 52)),
+                  child: loading
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text('Submit Revised Bid', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -282,12 +370,27 @@ class _BidListView extends ConsumerWidget {
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${diff.inDays}d ago';
   }
+
+  String _fmt(double v) {
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K';
+    return v.toStringAsFixed(0);
+  }
 }
 
 class _LostBidsView extends StatelessWidget {
   final List<Bid> bids;
   final Map<String, String> bidToHotel;
-  const _LostBidsView({required this.bids, required this.bidToHotel});
+  final Map<String, double> bidToMinBid;
+  final Map<String, double> bidToVolume;
+  final Map<String, String> bidToUnit;
+  const _LostBidsView({
+    required this.bids,
+    required this.bidToHotel,
+    required this.bidToMinBid,
+    required this.bidToVolume,
+    required this.bidToUnit,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -327,6 +430,10 @@ class _LostBidsView extends StatelessWidget {
         }
         final bid = bids[index - 1];
         final hotelName = bidToHotel[bid.id] ?? bid.recyclerName;
+        final minBid = bidToMinBid[bid.id] ?? 0;
+        final volume = bidToVolume[bid.id] ?? 0;
+        final unit = bidToUnit[bid.id] ?? 'kg';
+        final totalAmount = volume * minBid;
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
@@ -351,13 +458,35 @@ class _LostBidsView extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text('RWF ${bid.amount.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.textSecondary, decoration: TextDecoration.lineThrough)),
-                      const StatusBadge(label: 'Lost', type: StatusType.error),
-                    ],
-                  ),
+                  const StatusBadge(label: 'Lost', type: StatusType.error),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('Min Bid', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      Text('RWF ${_fmt(minBid)}/$unit', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                    ]),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      Text('Total Amount', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      Text('RWF ${_fmt(totalAmount)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
+                    ]),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Your bid: RWF ${_fmt(bid.amount)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary, decoration: TextDecoration.lineThrough)),
                 ],
               ),
               const SizedBox(height: 10),
@@ -377,5 +506,11 @@ class _LostBidsView extends StatelessWidget {
         ).animate().slideY(begin: 0.15, duration: 300.ms, delay: ((index - 1) * 60).ms).fadeIn();
       },
     );
+  }
+
+  String _fmt(double v) {
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K';
+    return v.toStringAsFixed(0);
   }
 }

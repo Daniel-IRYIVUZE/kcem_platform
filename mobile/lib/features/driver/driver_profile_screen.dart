@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import '../../core/services/api_service.dart';
@@ -298,12 +297,6 @@ class _DriverProfileScreenState extends ConsumerState<DriverProfileScreen> {
                     ],
                   ),
                 ).animate().slideY(begin: 0.15, duration: 300.ms, delay: 80.ms).fadeIn(),
-                const SizedBox(height: 16),
-                // QR Code Identity Card
-                _DriverQrSection(
-                  userId: user?.id ?? '',
-                  displayName: user?.displayName ?? 'Driver',
-                ).animate().slideY(begin: 0.15, duration: 300.ms, delay: 120.ms).fadeIn(),
                 const SizedBox(height: 16),
                 // Settings
                 _ProfileSection(
@@ -961,148 +954,3 @@ class _SettingRow extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────
-// Driver QR Section
-// ─────────────────────────────────────────────
-class _DriverQrSection extends StatelessWidget {
-  final String userId;
-  final String displayName;
-  const _DriverQrSection({required this.userId, required this.displayName});
-
-  void _showQrDialog(BuildContext context) {
-    final qrData = 'https://ecotrade.rw/driver/$userId';
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Driver QR Code',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text(displayName, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8)],
-                ),
-                child: QrImageView(
-                  data: qrData,
-                  version: QrVersions.auto,
-                  size: 200,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(qrData, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close, size: 16),
-                label: const Text('Close'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final qrData = 'https://ecotrade.rw/driver/$userId';
-    return Container(
-      decoration: BoxDecoration(
-        color: context.cSurf,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.cBorder),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.qr_code_2, size: 20, color: AppColors.primary),
-              ),
-              const SizedBox(width: 12),
-              Text('Driver QR Code',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                    color: context.cText,
-                  )),
-              const Spacer(),
-              TextButton(
-                onPressed: () => _showQrDialog(context),
-                child: const Text('Expand'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: context.cBorder),
-                ),
-                child: QrImageView(
-                  data: qrData,
-                  version: QrVersions.auto,
-                  size: 80,
-                  backgroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(displayName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: context.cText,
-                          fontSize: 14,
-                        )),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text('Driver',
-                          style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600)),
-                    ),
-                    const SizedBox(height: 8),
-                    Text('Scan to verify driver identity',
-                        style: TextStyle(fontSize: 12, color: context.cTextSec)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}

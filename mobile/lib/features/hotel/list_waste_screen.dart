@@ -77,9 +77,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
       _wasteType = e.wasteType;
       _quantityCtrl.text = e.volume.toStringAsFixed(0);
       _unit = e.unit;
-      _unitPriceCtrl.text = e.minBid > 0 && e.volume > 0
-          ? (e.minBid / e.volume).toStringAsFixed(0)
-          : e.minBid.toStringAsFixed(0);
+      _unitPriceCtrl.text = e.minBid.toStringAsFixed(0);
       if (e.description != null) _descriptionCtrl.text = e.description!;
       if (e.notes != null) _instructionsCtrl.text = e.notes!;
       if (e.collectionDate != null) {
@@ -99,19 +97,14 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
   }
 
   // ── Image helpers ──────────────────────────────────────────────────────────
-  Future<void> _pickFromGallery() async {
-    final remaining = _maxImages - _images.length;
-    if (remaining <= 0) return;
-    try {
-      final picked = await _imagePicker.pickMultiImage(limit: remaining);
-      if (picked.isNotEmpty) setState(() => _images.addAll(picked));
-    } catch (_) {}
-  }
-
   Future<void> _pickFromCamera() async {
     if (_images.length >= _maxImages) return;
     try {
-      final picked = await _imagePicker.pickImage(source: ImageSource.camera);
+      final picked = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+        preferredCameraDevice: CameraDevice.rear,
+      );
       if (picked != null) setState(() => _images.add(picked));
     } catch (_) {}
   }
@@ -180,7 +173,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
           unit: _unit,
           quality: WasteQuality.b,
           photos: e.photos,
-          minBid: _totalMinPrice,
+          minBid: _unitPrice, // per-unit price; Total Amount = volume × minBid
           reservePrice: e.reservePrice,
           auctionDuration: e.auctionDuration,
           autoAcceptAbove: e.autoAcceptAbove,
@@ -214,7 +207,7 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
           volume: _qty,
           unit: _unit,
           quality: WasteQuality.b,
-          minBid: _totalMinPrice,
+          minBid: _unitPrice, // per-unit price; Total Amount = volume × minBid
           location: 'Kigali, Rwanda',
           description: _descriptionCtrl.text.trim().isNotEmpty
               ? _descriptionCtrl.text.trim()
@@ -335,7 +328,6 @@ class _ListWasteScreenState extends ConsumerState<ListWasteScreen> {
                               onUnit: (u) => setState(() => _unit = u),
                               descriptionCtrl: _descriptionCtrl,
                               images: _images,
-                              onPickGallery: _pickFromGallery,
                               onPickCamera: _pickFromCamera,
                               onRemoveImage: _removeImage,
                             )
@@ -641,7 +633,6 @@ class _Step1 extends StatelessWidget {
   final ValueChanged<String> onUnit;
   final TextEditingController descriptionCtrl;
   final List<XFile> images;
-  final VoidCallback onPickGallery;
   final VoidCallback onPickCamera;
   final ValueChanged<int> onRemoveImage;
 
@@ -653,7 +644,6 @@ class _Step1 extends StatelessWidget {
     required this.onUnit,
     required this.descriptionCtrl,
     required this.images,
-    required this.onPickGallery,
     required this.onPickCamera,
     required this.onRemoveImage,
   });
@@ -742,25 +732,11 @@ class _Step1 extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        // Pick buttons
-        Row(
-          children: [
-            Expanded(
-              child: _ImagePickBtn(
-                icon: Icons.photo_library_outlined,
-                label: 'Gallery',
-                onTap: images.length < _maxImages ? onPickGallery : null,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _ImagePickBtn(
-                icon: Icons.camera_alt_outlined,
-                label: 'Camera',
-                onTap: images.length < _maxImages ? onPickCamera : null,
-              ),
-            ),
-          ],
+        // Pick button — camera only
+        _ImagePickBtn(
+          icon: Icons.camera_alt_outlined,
+          label: 'Take Photo',
+          onTap: images.length < _maxImages ? onPickCamera : null,
         ),
 
         // Image previews
@@ -842,7 +818,7 @@ class _Step2 extends StatelessWidget {
         ),
         const SizedBox(height: 12),
 
-        // Total min price preview
+        // Total amount preview
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -853,7 +829,7 @@ class _Step2 extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Total Minimum Bid',
+              Text('Total Amount',
                   style: TextStyle(fontSize: 13, color: context.cTextSec)),
               Text(
                 'RWF ${fmt.format(totalMinPrice)}',
@@ -971,7 +947,7 @@ class _Step3 extends StatelessWidget {
               _ReviewRow('Quantity', '$quantity $unit'),
               _ReviewRow('Price per $unit', 'RWF ${numFmt.format(unitPrice)}'),
               _ReviewRow(
-                'Minimum Bid (Qty × Price)',
+                'Total Amount',
                 'RWF ${numFmt.format(totalMinPrice)}',
                 highlight: true,
               ),

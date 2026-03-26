@@ -382,6 +382,7 @@ Collection _collectionFromApi(Map<String, dynamic> j) {
     id: (j['id'] as int).toString(),
     listingId: (j['listing_id'] as int? ?? 0).toString(),
     businessName: j['hotel_name'] as String? ?? '',
+    businessAddress: (j['hotel_address'] as String?) ?? (j['location'] as String?),
     recyclerName: j['recycler_name'] as String? ?? '',
     driverName: j['driver_name'] as String?,
     driverId: j['driver_id'] != null ? (j['driver_id'] as int).toString() : null,
@@ -403,6 +404,8 @@ Collection _collectionFromApi(Map<String, dynamic> j) {
     destinationLat: (j['listing_lat'] as num?)?.toDouble() ?? (j['hotel_lat'] as num?)?.toDouble(),
     destinationLng: (j['listing_lng'] as num?)?.toDouble() ?? (j['hotel_lng'] as num?)?.toDouble(),
     earnings: (j['earnings'] as num? ?? 0).toDouble(),
+    contactPhone: j['hotel_phone'] as String?,
+    driverPhone: j['driver_phone'] as String?,
   );
 }
 
@@ -767,6 +770,7 @@ final recyclerBidListingsProvider = Provider<List<WasteListing>>((ref) {
       'waste_type': raw['waste_type'] ?? 'mixed',
       'volume': raw['volume'] ?? 0,
       'unit': raw['unit'] ?? 'kg',
+      'min_bid': raw['min_bid'] ?? 0,
       'first_bid': bid,
     });
     listingBids.putIfAbsent(key, () => []).add(bid);
@@ -783,7 +787,7 @@ final recyclerBidListingsProvider = Provider<List<WasteListing>>((ref) {
       volume: (meta['volume'] as num? ?? 0).toDouble(),
       unit: meta['unit'] as String? ?? 'kg',
       quality: WasteQuality.a,
-      minBid: first.amount,
+      minBid: (meta['min_bid'] as num? ?? 0).toDouble(),
       status: ListingStatus.open,
       bids: listingBids[entry.key] ?? [],
       location: '',
@@ -816,6 +820,14 @@ final recyclerCollectionsProvider = Provider<List<Collection>>((ref) {
   if (user == null) return [];
   return ref.watch(_apiMyCollectionsProvider).whenOrNull(data: (d) => d) ?? [];
 });
+
+/// True while the recycler's bids are being fetched from the API.
+final recyclerBidsLoadingProvider = Provider<bool>(
+    (ref) => ref.watch(_apiMyBidsProvider).isLoading);
+
+/// True while the recycler's collections are being fetched from the API.
+final recyclerCollectionsLoadingProvider = Provider<bool>(
+    (ref) => ref.watch(_apiMyCollectionsProvider).isLoading);
 
 // ── Driver Route Provider ─────────────────────────────────────────────────
 
@@ -851,7 +863,7 @@ final driverRouteProvider = Provider<DriverRoute>(
             eta: collection.scheduledTime,
             status: toStopStatus(collection.status),
             contactPerson: collection.businessName,
-            contactPhone: '',
+            contactPhone: collection.contactPhone ?? '',
           ),
         )
         .toList();
@@ -994,13 +1006,24 @@ final recyclerStatsProvider = Provider<Map<String, dynamic>>((ref) {
     final transactions = apiTransactions ?? [];
     final bids = apiBids ?? [];
     final activeBids = bids.where((b) => b.status == BidStatus.active).length;
+    final wonBids = apiCollections
+        .where((c) =>
+            c.status == CollectionStatus.collected ||
+            c.status == CollectionStatus.verified ||
+            c.status == CollectionStatus.completed)
+        .length;
+    final totalEarnings = apiCollections.fold<double>(0, (s, c) => s + c.earnings);
     return {
       'totalBids': bids.length,
       'activeBids': activeBids,
-      'wonBids': apiCollections.length,
-      'totalEarnings': transactions.fold<double>(0, (s, t) => s + t.amount),
+      'wonBids': wonBids,
+      'totalEarnings': totalEarnings > 0
+          ? totalEarnings
+          : transactions.fold<double>(0, (s, t) => s + t.amount),
       'pendingCollections': apiCollections
-          .where((c) => c.status != CollectionStatus.completed && c.status != CollectionStatus.missed)
+          .where((c) =>
+              c.status != CollectionStatus.completed &&
+              c.status != CollectionStatus.missed)
           .length,
     };
   }
@@ -1023,9 +1046,11 @@ final driverStatsProvider = Provider<Map<String, dynamic>>((ref) {
       final d = c.scheduledDate;
       return d.year == today.year && d.month == today.month && d.day == today.day;
     }).toList();
-    final completed = apiCollections.where((c) => c.status == CollectionStatus.completed).length;
+    final completedCols = apiCollections.where((c) => c.status == CollectionStatus.completed).toList();
+    final completed = completedCols.length;
     final todayCompleted = todayCollections.where((c) => c.status == CollectionStatus.completed).length;
-    final totalVolume = apiCollections.fold<double>(
+    // Only count actual weight from truly completed collections
+    final totalVolume = completedCols.fold<double>(
       0, (s, c) => s + (c.actualWeight ?? c.volume));
     return {
       'todayStops': todayCollections.length,
@@ -1262,6 +1287,36 @@ class BidsNotifier extends StateNotifier<List<Bid>> {
     ref.invalidate(_apiMyBidsProvider);
     ref.invalidate(_apiOpenListingsProvider);
     ref.invalidate(_apiMyListingsWithBidsProvider);
+  }
+
+  Future<void> increaseBid(String bidId, double newAmount) async {
+    final bidNumericId = int.tryParse(bidId);
+    if (bidNumericId == null) throw Exception('Invalid bid id');
+    await ApiService.increaseBid(bidNumericId, newAmount);
+    state = state
+        .map((x) => x.id == bidId
+            ? Bid(
+                id: x.id,
+                listingId: x.listingId,
+                recyclerId: x.recyclerId,
+                recyclerName: x.recyclerName,
+                amount: newAmount,
+                note: x.note,
+                collectionPreference: x.collectionPreference,
+                status: x.status,
+                createdAt: x.createdAt,
+              )
+            : x)
+        .toList();
+    ref.invalidate(_apiMyBidsProvider);
+    ref.invalidate(_apiOpenListingsProvider);
+    ref.invalidate(_apiMyListingsWithBidsProvider);
+  }
+
+  /// Re-fetches bids from the API.
+  void refresh() {
+    ref.invalidate(_apiMyBidsProvider);
+    ref.invalidate(_apiMyBidsRawProvider);
   }
 }
 

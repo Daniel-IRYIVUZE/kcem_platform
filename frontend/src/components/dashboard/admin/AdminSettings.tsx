@@ -75,12 +75,8 @@ export default function AdminSettings() {
       setSettings({ ...defaults, ...persisted });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-      // Diagnostic: log success
-      console.log('Settings saved:', persisted);
     } catch (err) {
       setError((err as Error).message || 'Failed to save settings.');
-      // Diagnostic: log error
-      console.error('Settings save error:', err);
     } finally {
       setIsSaving(false);
     }

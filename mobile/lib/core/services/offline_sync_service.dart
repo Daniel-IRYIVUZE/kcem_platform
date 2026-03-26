@@ -16,8 +16,14 @@ class OfflineSyncService {
   // Callback to notify UI when sync state changes (set by OfflineBanner)
   static void Function()? onSyncStateChanged;
 
-  /// Call once at app startup (after Hive.initFlutter)
+  /// Call once at app startup (after Hive.initFlutter).
+  /// Safe to call multiple times (e.g. on hot restart) — cancels any
+  /// existing connectivity subscription before creating a new one.
   static Future<void> init() async {
+    await _connectivitySub?.cancel();
+    _connectivitySub = null;
+    _isSyncing = false;
+
     _box = await Hive.openBox(_boxName);
     _purgeExpired(); // clean up stale entries from previous sessions
     _connectivitySub = Connectivity().onConnectivityChanged.listen((result) {

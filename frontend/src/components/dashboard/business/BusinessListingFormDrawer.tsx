@@ -135,7 +135,7 @@ export default function BusinessListingFormDrawer({ open, onClose, onCreated }: 
 
     try {
       const qty = Number.parseFloat(form.quantity);
-      const minBid = totalMinPrice;
+      const minBid = unitPriceValue; // store per-unit price; Total Amount = volume × min_bid
       const startAt = form.pickupDate ? new Date(`${form.pickupDate}T${form.pickupTime || '09:00'}`) : null;
       const endAt = startAt ? new Date(startAt.getTime() + 2 * 60 * 60 * 1000) : null;
       const expiresAt = startAt ? new Date(startAt) : new Date();
@@ -329,7 +329,7 @@ export default function BusinessListingFormDrawer({ open, onClose, onCreated }: 
                   <div><p className="text-gray-500">Waste Type</p><p className="font-semibold text-gray-900 dark:text-white">{form.wasteType || '—'}</p></div>
                   <div><p className="text-gray-500">Quantity</p><p className="font-semibold text-gray-900 dark:text-white">{form.quantity ? `${form.quantity} ${form.unit}` : '—'}</p></div>
                   <div><p className="text-gray-500">Price per {form.unit || 'unit'}</p><p className="font-semibold text-gray-900 dark:text-white">{form.unitPrice ? `RWF ${Number.parseInt(form.unitPrice, 10).toLocaleString()}` : '—'}</p></div>
-                  <div><p className="text-gray-500">Minimum Price (Qty × Price)</p><p className="font-semibold text-gray-900 dark:text-white">RWF {totalMinPrice.toLocaleString()}</p></div>
+                  <div><p className="text-gray-500">Total Amount</p><p className="font-semibold text-gray-900 dark:text-white">RWF {totalMinPrice.toLocaleString()}</p></div>
                   <div><p className="text-gray-500">Pickup</p><p className="font-semibold text-gray-900 dark:text-white">{form.pickupDate || '—'} {form.pickupTime || ''}</p></div>
                 </div>
                 <div><p className="text-gray-500 text-sm">Images</p><p className="font-semibold text-gray-900 dark:text-white">{files.length}/{MAX_FILES} selected</p></div>

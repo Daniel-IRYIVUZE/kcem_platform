@@ -5,6 +5,7 @@ from app.database import get_db
 from app.crud import crud_collection, crud_driver, crud_hotel, crud_recycler
 from app.auth.dependencies import get_current_active_user, require_role
 from app.schemas.collection import CollectionCreate, CollectionRead
+from app.models.collection import CollectionStatus
 from app.models.user import User, UserRole
 from app.services.notification_service import notify_collection_status, notify_driver_assigned
 from app.services.green_score_service import update_score
@@ -111,11 +112,11 @@ def advance_status(collection_id: int, payload: dict, db: Session = Depends(get_
     col = crud_collection.advance_status(db, collection_id=collection_id, new_status=new_status,
                                          notes=payload.get("notes"),
                                          actual_volume=float(actual_weight) if actual_weight is not None else None)
-    # Notify hotel owner
+    # Notify hotel owner using the actual resulting status
     notify_collection_status(db, user_id=col.listing.hotel.user_id,
-                             status=new_status, collection_id=col.id)
+                             status=col.status.value if col.status else None, collection_id=col.id)
     # If completed, update green score and recycler totals
-    if new_status == "completed" and col.listing:
+    if col.status == CollectionStatus.completed and col.listing:
         listing = col.listing
         vol_kg = col.actual_volume or listing.volume or 0
         update_score(db, user_id=listing.hotel.user_id,

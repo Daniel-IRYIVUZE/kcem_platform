@@ -640,6 +640,10 @@ class ApiService {
     return await _request('PATCH', '/drivers/me', body: data);
   }
 
+  static Future<Map<String, dynamic>> setDriverAvailability(bool isAvailable) async {
+    return await _request('PATCH', '/drivers/me/availability', body: {'is_available': isAvailable});
+  }
+
   static Future<void> changePassword({
     required String currentPassword,
     required String newPassword,

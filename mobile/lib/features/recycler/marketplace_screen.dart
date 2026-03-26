@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -98,16 +100,31 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: context.cSurfAlt,
+                color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Icon(Icons.info_outline, size: 16, color: AppColors.textSecondary),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Min bid: RWF ${listing.minBid.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Min Bid', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      Text(
+                        'RWF ${listing.minBid.toStringAsFixed(0)}/${listing.unit}',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text('Total Amount', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      Text(
+                        'RWF ${(listing.volume * listing.minBid).toStringAsFixed(0)}',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -410,6 +427,40 @@ class _ListingCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          // Pricing row
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Min Bid', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                    Text(
+                      'RWF ${_fmt(listing.minBid)}/${listing.unit}',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.primary),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('Total Amount', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                    Text(
+                      'RWF ${_fmt(listing.volume * listing.minBid)}',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
           Row(
             children: [
               Text(
@@ -423,6 +474,12 @@ class _ListingCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _fmt(double v) {
+    if (v >= 1000000) return '${(v / 1000000).toStringAsFixed(1)}M';
+    if (v >= 1000) return '${(v / 1000).toStringAsFixed(0)}K';
+    return v.toStringAsFixed(0);
   }
 
   String _timeAgo(DateTime dt) {
@@ -513,11 +570,32 @@ class _Tag extends StatelessWidget {
   }
 }
 
+// ─── Waste type → colour mapping ──────────────────────────────────────────────
+
+Color _wasteTypeColor(WasteType t) {
+  switch (t) {
+    case WasteType.uco:            return const Color(0xFF00897B); // teal
+    case WasteType.glass:          return const Color(0xFF1565C0); // dark blue
+    case WasteType.paperCardboard: return const Color(0xFF388E3C); // green
+    case WasteType.plastic:        return const Color(0xFF1B5E20); // dark green
+    case WasteType.metal:          return const Color(0xFFC62828); // red
+    case WasteType.organic:        return const Color(0xFF9E9D24); // lime
+    case WasteType.mixed:          return const Color(0xFF6A1B9A); // purple
+    case WasteType.electronic:     return const Color(0xFF283593); // indigo
+    case WasteType.textile:        return const Color(0xFFAD1457); // pink
+    case WasteType.other:          return const Color(0xFF616161); // grey
+  }
+}
+
+// ─── Map view ─────────────────────────────────────────────────────────────────
+
 class _MapView extends StatelessWidget {
   final List<WasteListing> listings;
   final Function(WasteListing) onBid;
 
   const _MapView({required this.listings, required this.onBid});
+
+  static const _kigali = LatLng(-1.9441, 30.0619);
 
   static LatLng _point(WasteListing l) {
     if (l.latitude != null && l.longitude != null) {
@@ -532,142 +610,232 @@ class _MapView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Unique hotel positions — one entry per business
+    final hotelMap = <String, LatLng>{};
+    for (final l in listings) {
+      hotelMap.putIfAbsent(l.businessName, () => _point(l));
+    }
+    final hotelPoints = hotelMap.values.toList();
+
+    // Dashed polylines between distinct hotel locations
+    final polylines = <Polyline>[];
+    for (int i = 0; i < hotelPoints.length - 1; i++) {
+      for (int j = i + 1; j < hotelPoints.length; j++) {
+        polylines.add(Polyline(
+          points: [hotelPoints[i], hotelPoints[j]],
+          color: const Color(0xFF0288D1),
+          strokeWidth: 1.5,
+          isDotted: true,
+        ));
+      }
+    }
+
+    // Waste types present in the filtered results (for legend)
+    final presentTypes = listings.map((l) => l.wasteType).toSet().toList()
+      ..sort((a, b) => a.index.compareTo(b.index));
+
+    // Distance strings for each pair of distinct hotels
+    final distanceLabels = <String>[];
+    final hotelEntries = hotelMap.entries.toList();
+    for (int i = 0; i < hotelEntries.length - 1; i++) {
+      for (int j = i + 1; j < hotelEntries.length; j++) {
+        final a = hotelEntries[i].value;
+        final b = hotelEntries[j].value;
+        final km = _haversineKm(a, b);
+        distanceLabels.add(
+          '${hotelEntries[i].key} ↔ ${hotelEntries[j].key}: ${km.toStringAsFixed(1)} km',
+        );
+      }
+    }
+
     return Stack(
       children: [
         FlutterMap(
           options: const MapOptions(
-            initialCenter: LatLng(-1.9441, 30.0619),
-            initialZoom: 12.0,
+            initialCenter: _kigali,
+            initialZoom: 13.0,
           ),
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.ecotrade.rwanda',
             ),
+            if (polylines.isNotEmpty)
+              PolylineLayer(polylines: polylines),
             MarkerLayer(
-              markers: listings
-                  .map((l) => Marker(
-                        point: _point(l),
-                        width: 46,
-                        height: 46,
-                        child: GestureDetector(
-                          onTap: () => onBid(l),
-                          child: _MapClusterMarker(
-                            wasteType: l.wasteType,
-                            count: l.activeBidCount,
-                          ),
-                        ),
-                      ))
-                  .toList(),
+              markers: listings.map((l) => Marker(
+                point: _point(l),
+                width: 110,
+                height: 64,
+                alignment: Alignment.bottomCenter,
+                child: GestureDetector(
+                  onTap: () => onBid(l),
+                  child: _WastePin(
+                    label: l.businessName,
+                    color: _wasteTypeColor(l.wasteType),
+                  ),
+                ),
+              )).toList(),
             ),
           ],
         ),
+
+        // Legend + stats bar at bottom
         Positioned(
           bottom: 0, left: 0, right: 0,
-          child: SizedBox(
-            height: 160,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              itemCount: listings.length,
-              itemBuilder: (context, index) {
-                final l = listings[index];
-                return GestureDetector(
-                  onTap: () => onBid(l),
-                  child: Container(
-                    width: 200,
-                    margin: const EdgeInsets.only(right: 10),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 3))],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.recycling, color: AppColors.primary, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(l.wasteType.label,
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(l.businessName,
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                        const Spacer(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('${l.volume.toStringAsFixed(0)} ${l.unit}',
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                            Text('RWF ${l.minBid.toStringAsFixed(0)}',
-                                style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ],
+          child: Container(
+            color: Colors.white.withValues(alpha: 0.93),
+            padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Distances (only when multiple hotels present)
+                if (distanceLabels.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Wrap(
+                      spacing: 12,
+                      children: distanceLabels.map((d) => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ...List.generate(4, (i) => Container(
+                            width: 5, height: 1.5,
+                            margin: EdgeInsets.only(right: i < 3 ? 3 : 0),
+                            color: const Color(0xFF0288D1),
+                          )),
+                          const SizedBox(width: 4),
+                          Text(d, style: const TextStyle(fontSize: 10, color: Color(0xFF0288D1))),
+                        ],
+                      )).toList(),
                     ),
                   ),
-                );
-              },
+
+                // Waste type legend + listing/hotel count
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Wrap(
+                        spacing: 10,
+                        runSpacing: 3,
+                        children: presentTypes.map((t) => Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 10, height: 10,
+                              decoration: BoxDecoration(
+                                color: _wasteTypeColor(t),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(t.label,
+                                style: const TextStyle(fontSize: 11, color: Color(0xFF333333))),
+                          ],
+                        )).toList(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${listings.length} listing${listings.length == 1 ? '' : 's'} · '
+                      '${hotelMap.length} hotel${hotelMap.length == 1 ? '' : 's'}',
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF333333)),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  /// Haversine distance in km between two LatLng points.
+  static double _haversineKm(LatLng a, LatLng b) {
+    const r = 6371.0;
+    final dLat = (b.latitude - a.latitude) * math.pi / 180;
+    final dLng = (b.longitude - a.longitude) * math.pi / 180;
+    final h = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(a.latitude * math.pi / 180) *
+            math.cos(b.latitude * math.pi / 180) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+    return 2 * r * math.asin(math.sqrt(h));
+  }
+}
+
+// ─── Teardrop location pin ─────────────────────────────────────────────────────
+
+class _WastePin extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _WastePin({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Business name label bubble
+        Container(
+          constraints: const BoxConstraints(maxWidth: 100),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: color.withValues(alpha: 0.4), width: 0.8),
+            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 3)],
+          ),
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(height: 2),
+        // Teardrop pin
+        CustomPaint(
+          size: const Size(24, 32),
+          painter: _TearDropPainter(color: color),
         ),
       ],
     );
   }
 }
 
-class _MapClusterMarker extends StatelessWidget {
-  final WasteType wasteType;
-  final int count;
-  const _MapClusterMarker({required this.wasteType, required this.count});
+class _TearDropPainter extends CustomPainter {
+  final Color color;
+  const _TearDropPainter({required this.color});
 
   @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2.5),
-            boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 8, spreadRadius: 2)],
-          ),
-          child: Icon(
-            wasteType == WasteType.uco
-                ? Icons.water_drop_outlined
-                : wasteType == WasteType.glass
-                    ? Icons.wine_bar_outlined
-                    : wasteType == WasteType.paperCardboard
-                        ? Icons.article_outlined
-                        : Icons.delete_outline,
-            color: Colors.white,
-            size: 22,
-          ),
-        ),
-        Positioned(
-          top: -2,
-          right: -2,
-          child: Container(
-            padding: const EdgeInsets.all(3),
-            decoration: const BoxDecoration(
-              color: AppColors.error,
-              shape: BoxShape.circle,
-            ),
-            child: Text(
-              '$count',
-              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ),
-      ],
+  void paint(Canvas canvas, Size size) {
+    final r = size.width / 2;
+    final path = ui.Path()
+      ..addOval(Rect.fromCircle(center: Offset(r, r), radius: r))
+      ..moveTo(size.width * 0.3, r + r * 0.55)
+      ..lineTo(r, size.height)
+      ..lineTo(size.width * 0.7, r + r * 0.55)
+      ..close();
+
+    canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.fill);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.8,
     );
+    // White inner dot
+    canvas.drawCircle(Offset(r, r), r * 0.38,
+        Paint()..color = Colors.white..style = PaintingStyle.fill);
   }
+
+  @override
+  bool shouldRepaint(_TearDropPainter old) => old.color != color;
 }
 
 class EcoSmallButton extends StatelessWidget {

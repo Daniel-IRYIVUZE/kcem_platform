@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,8 +12,42 @@ import 'core/services/local_storage_service.dart';
 import 'core/services/offline_sync_service.dart';
 import 'core/providers/app_providers.dart';
 
-void main() async {
+void main() {
+  // Queue lifecycle messages instead of discarding them — must happen before
+  // WidgetsFlutterBinding.ensureInitialized() so engine events fired at
+  // startup are buffered until runApp registers the real listener.
+  ui.channelBuffers.resize('flutter/lifecycle', 100);
+
+  // runZonedGuarded catches errors that escape Flutter's error handler,
+  // including hot-restart artifacts (font-loading futures resolving after
+  // the Dart state is torn down) and SchedulerBinding timing issues on web.
+  runZonedGuarded(_init, (error, stack) {
+    // Suppress known hot-restart / binding-init race conditions.
+    final msg = error.toString();
+    if (msg.contains('Binding has not yet been initialized') ||
+        msg.contains('SchedulerBinding') ||
+        msg.contains('ServicesBinding')) {
+      return;
+    }
+    debugPrint('Uncaught error: $error\n$stack');
+  });
+}
+
+Future<void> _init() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Suppress known hot-restart binding race errors that are reported via
+  // FlutterError.onError (not caught by runZonedGuarded).
+  final originalOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    final msg = details.exceptionAsString();
+    if (msg.contains('Binding has not yet been initialized') ||
+        msg.contains('SchedulerBinding') ||
+        msg.contains('ServicesBinding')) {
+      return;
+    }
+    originalOnError?.call(details);
+  };
 
   // Initialize Hive for offline storage
   await Hive.initFlutter();
@@ -33,7 +69,6 @@ void main() async {
       DeviceOrientation.portraitDown,
     ]);
 
-    // Status bar style
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,

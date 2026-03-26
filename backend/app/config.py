@@ -53,10 +53,6 @@ class Settings(BaseSettings):
     EMAIL_USE_TLS: bool = True
     ADMIN_EMAIL: str = "security@nexventures.net"
 
-    @property
-    def is_email_configured(self) -> bool:
-        return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD and self.EMAIL_FROM)
-
     # ── Pagination defaults ───────────────────────────────────────────────────
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100

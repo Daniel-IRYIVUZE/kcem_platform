@@ -76,42 +76,54 @@ class AppRoutes {
   }
 }
 
-final _routerKey = GlobalKey<NavigatorState>();
+// Listens to auth state changes and notifies GoRouter to re-evaluate redirects
+// WITHOUT rebuilding the GoRouter instance itself.
+// This prevents the duplicate GlobalKey assertion that occurs when the provider
+// recreates GoRouter on every auth change during hot restart.
+class _RouterNotifier extends ChangeNotifier {
+  _RouterNotifier(Ref ref) {
+    ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+    _ref = ref;
+  }
+  late final Ref _ref;
+
+  String? redirect(BuildContext context, GoRouterState state) {
+    final auth = _ref.read(authProvider);
+    final loggedIn = auth.isLoggedIn;
+    final loc = state.matchedLocation;
+    final publicPaths = [
+      AppRoutes.login,
+      AppRoutes.verifyOtp,
+      AppRoutes.forgotPassword,
+      AppRoutes.terms,
+      AppRoutes.privacy,
+    ];
+    final isPublic = publicPaths.contains(loc);
+
+    if (loggedIn) {
+      if (loc == AppRoutes.splash ||
+          loc == AppRoutes.onboarding ||
+          isPublic) {
+        return AppRoutes.homeForRole(auth.role!);
+      }
+      return null;
+    }
+
+    if (loc == AppRoutes.splash || loc == AppRoutes.onboarding) return null;
+    if (!isPublic) return AppRoutes.login;
+    return null;
+  }
+}
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authProvider);
-
-  return GoRouter(
-    navigatorKey: _routerKey,
+  final notifier = _RouterNotifier(ref);
+  final routerKey = GlobalKey<NavigatorState>();
+  final router = GoRouter(
+    navigatorKey: routerKey,
     initialLocation: AppRoutes.splash,
     debugLogDiagnostics: false,
-    redirect: (context, state) {
-      final loggedIn = auth.isLoggedIn;
-      final loc = state.matchedLocation;
-      final publicPaths = [
-        AppRoutes.login,
-        AppRoutes.verifyOtp,
-        AppRoutes.forgotPassword,
-        AppRoutes.terms,
-        AppRoutes.privacy,
-      ];
-      final isPublic = publicPaths.contains(loc);
-
-      // Logged-in users: redirect away from splash, onboarding, and auth screens
-      if (loggedIn) {
-        if (loc == AppRoutes.splash ||
-            loc == AppRoutes.onboarding ||
-            isPublic) {
-          return AppRoutes.homeForRole(auth.role!);
-        }
-        return null;
-      }
-
-      // Not logged-in: allow splash and onboarding freely; everything else → login
-      if (loc == AppRoutes.splash || loc == AppRoutes.onboarding) return null;
-      if (!isPublic) return AppRoutes.login;
-      return null;
-    },
+    refreshListenable: notifier,
+    redirect: notifier.redirect,
     routes: [
       GoRoute(
         path: AppRoutes.splash,
@@ -236,4 +248,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  ref.onDispose(() {
+    notifier.dispose();
+    router.dispose();
+  });
+  return router;
 });

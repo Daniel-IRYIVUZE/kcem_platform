@@ -19,7 +19,6 @@ const Footer = () => {
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     if (email.trim()) {
-      console.log('Subscribed email:', email);
       setSubscribed(true);
       setEmail('');
       setTimeout(() => setSubscribed(false), 4000);
