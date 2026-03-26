@@ -584,6 +584,8 @@ class _RecyclerProfileTab extends ConsumerStatefulWidget {
 }
 
 class _RecyclerProfileTabState extends ConsumerState<_RecyclerProfileTab> {
+  final _rdbKey = GlobalKey<_RecyclerRdbSectionState>();
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
@@ -690,6 +692,7 @@ class _RecyclerProfileTabState extends ConsumerState<_RecyclerProfileTab> {
 
                 // RDB Certificate
                 _RecyclerRdbSection(
+                  key: _rdbKey,
                   onUpload: () => _showRdbCertSheet(context),
                 ).animate().slideY(begin: 0.2, duration: 300.ms, delay: 60.ms).fadeIn(),
 
@@ -799,12 +802,14 @@ class _RecyclerProfileTabState extends ConsumerState<_RecyclerProfileTab> {
       builder: (ctx) => _RecyclerRdbUploadSheet(
         onUploaded: () {
           if (ctx.mounted) Navigator.pop(ctx);
+          // Reload the RDB section to show the approved certificate immediately
+          _rdbKey.currentState?._load();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Row(children: [
                 Icon(Icons.check_circle, color: Colors.white, size: 18),
                 SizedBox(width: 8),
-                Text('Certificate uploaded. Pending admin review.'),
+                Text('Certificate uploaded and approved.'),
               ]),
               backgroundColor: AppColors.primary,
               behavior: SnackBarBehavior.floating,
@@ -1253,11 +1258,7 @@ class _RecyclerRdbSectionState extends State<_RecyclerRdbSection> {
                         fontWeight: FontWeight.w700, fontSize: 15, color: context.cText)),
                 const Spacer(),
                 TextButton.icon(
-                  onPressed: () async {
-                    widget.onUpload?.call();
-                    await Future.delayed(const Duration(milliseconds: 800));
-                    _load();
-                  },
+                  onPressed: () => widget.onUpload?.call(),
                   icon: const Icon(Icons.upload_outlined, size: 16),
                   label: const Text('Upload'),
                   style: TextButton.styleFrom(foregroundColor: AppColors.primary),

@@ -250,7 +250,15 @@ class ApiService {
     if (_accessToken != null) {
       request.headers['Authorization'] = 'Bearer $_accessToken';
     }
-    request.files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+    final ext = filename.toLowerCase().split('.').last;
+    final mimeStr = ext == 'pdf' ? 'application/pdf' : _mimeFromFilename(filename);
+    final mimeParts = mimeStr.split('/');
+    request.files.add(http.MultipartFile.fromBytes(
+      'file',
+      bytes,
+      filename: filename,
+      contentType: MediaType(mimeParts[0], mimeParts[1]),
+    ));
     final streamedResponse = await request.send();
     final response = await http.Response.fromStream(streamedResponse);
     if (response.statusCode >= 200 && response.statusCode < 300) {
