@@ -75,6 +75,7 @@ class CollectionRead(BaseModel):
     location:      Optional[str] = None
     earnings:      Optional[float] = None   # net_amount: what hotel receives
     gross_amount:  Optional[float] = None   # total bid amount: what recycler pays
+    driver_fee:    Optional[float] = None   # amount earned by the driver (RWF)
     # Coordinates (destination + driver live position)
     listing_lat:   Optional[float] = None
     listing_lng:   Optional[float] = None
@@ -120,6 +121,9 @@ class CollectionRead(BaseModel):
             if data.transaction:
                 data.__dict__.setdefault('earnings',     data.transaction.net_amount  or 0.0)
                 data.__dict__.setdefault('gross_amount', data.transaction.gross_amount or 0.0)
+            # Populate driver_fee from DB column (set when collection is completed)
+            if hasattr(data, 'driver_fee') and data.driver_fee is not None:
+                data.__dict__.setdefault('driver_fee', data.driver_fee)
         except Exception:
             pass
         return data

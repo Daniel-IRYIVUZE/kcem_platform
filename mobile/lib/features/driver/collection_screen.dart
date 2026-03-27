@@ -153,11 +153,10 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
     }
   }
 
-  /// Take arrival photo with camera — auto-advances to weigh step when done.
+  /// Take arrival photo with camera — just adds to list, no upload yet.
   Future<void> _takeArrivalPhoto(Collection? collection) async {
     if (!await _requestCamera()) return;
     try {
-      // On web use gallery (file picker); on mobile always open camera
       final source = kIsWeb ? ImageSource.gallery : ImageSource.camera;
       final image = await _imagePicker.pickImage(
         source: source,
@@ -165,75 +164,13 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         preferredCameraDevice: CameraDevice.rear,
       );
       if (image == null) return;
-
       setState(() {
         _arrivalPhotos.add(image);
-        _isLoading = true;
       });
-
-      // Upload proof photo to backend (only when online)
-      final collectionId = int.tryParse(collection?.id ?? '');
-      if (collectionId != null) {
-        final online = await _isOnline();
-        if (online) {
-          try {
-            final bytes = await image.readAsBytes();
-            await ApiService.uploadCollectionProof(collectionId, bytes, image.name);
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Row(children: [
-                    Icon(Icons.cloud_done, color: Colors.white, size: 16),
-                    SizedBox(width: 8),
-                    Text('Photo uploaded successfully'),
-                  ]),
-                  backgroundColor: AppColors.primary,
-                  behavior: SnackBarBehavior.floating,
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            }
-          } catch (_) {
-            // Non-fatal — show warning but still advance
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Row(children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.white, size: 16),
-                    SizedBox(width: 8),
-                    Text('Photo upload failed — re-take when back online'),
-                  ]),
-                  backgroundColor: AppColors.warning,
-                  behavior: SnackBarBehavior.floating,
-                  duration: Duration(seconds: 3),
-                ),
-              );
-            }
-          }
-        } else {
-          // Offline — skip upload, arrival advance will be queued instead
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Row(children: [
-                  Icon(Icons.cloud_off, color: Colors.white, size: 16),
-                  SizedBox(width: 8),
-                  Text('Offline — photo skipped, arrival will sync when connected'),
-                ]),
-                backgroundColor: AppColors.warning,
-                behavior: SnackBarBehavior.floating,
-                duration: Duration(seconds: 3),
-              ),
-            );
-          }
-        }
-      }
-
       // Auto-advance to weigh step — no extra button click needed
       await _advance(collection, notes: 'Driver arrived and confirmed with photo');
     } catch (_) {
       if (mounted) {
-        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Could not open camera. Please try again.'),
@@ -414,7 +351,10 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
           const OfflineBanner(),
           _StepBar(current: _step, steps: _steps),
           Expanded(
-            child: SingleChildScrollView(
+            child: RefreshIndicator(
+              onRefresh: () => ref.read(collectionsNotifierProvider.notifier).refresh(),
+              child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 350),
@@ -441,7 +381,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                     onUnitChange: (u) => setState(() => _unit = u),
                     onAddPhoto: _addWeighPhoto,
                     isLoading: _isLoading,
-                    onConfirm: () {
+                    onConfirm: () async {
                       _capturedWeight = double.tryParse(_weightCtrl.text);
                       if (_capturedWeight == null || _capturedWeight! <= 0) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -453,7 +393,8 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         );
                         return;
                       }
-                      _advance(
+                      // Advance to next step, but do not upload images yet
+                      await _advance(
                         currentCollection,
                         actualWeight: _capturedWeight,
                         notes: 'Weight recorded: $_capturedWeight kg',
@@ -466,17 +407,45 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                     advanceResult: _lastAdvanceResult,
                     arrivalPhotoCount: _arrivalPhotos.length,
                     weighPhotoCount: _weighPhotos.length,
-                    onDone: () => setState(() {
-                      _step = 0;
-                      _weightCtrl.clear();
-                      _arrivalPhotos.clear();
-                      _weighPhotos.clear();
-                      _capturedWeight = null;
-                      _lastAdvanceResult = {};
-                    }),
+                    onDone: () async {
+                      // Upload all images (arrival + weigh) at the end
+                      final collectionId = int.tryParse(currentCollection?.id ?? '');
+                      if (collectionId != null) {
+                        final allPhotos = [..._arrivalPhotos, ..._weighPhotos];
+                        bool anyFailed = false;
+                        for (final image in allPhotos) {
+                          try {
+                            final bytes = await image.readAsBytes();
+                            await ApiService.uploadCollectionProof(collectionId, bytes, image.name);
+                          } catch (_) {
+                            anyFailed = true;
+                          }
+                        }
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(anyFailed
+                                  ? 'Some photos failed to upload.'
+                                  : 'All photos uploaded successfully!'),
+                              backgroundColor: anyFailed ? AppColors.warning : AppColors.primary,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      }
+                      setState(() {
+                        _step = 0;
+                        _weightCtrl.clear();
+                        _arrivalPhotos.clear();
+                        _weighPhotos.clear();
+                        _capturedWeight = null;
+                        _lastAdvanceResult = {};
+                      });
+                    },
                   ),
                 ][_step],
               ),
+            ),
             ),
           ),
         ],

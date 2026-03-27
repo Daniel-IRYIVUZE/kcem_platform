@@ -108,7 +108,14 @@ class _DriverHomeTab extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: context.cBg,
-      body: CustomScrollView(
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ref.read(collectionsNotifierProvider.notifier).refresh();
+          ref.invalidate(driverProfileProvider);
+          ref.invalidate(notificationsProvider);
+          await Future.delayed(const Duration(milliseconds: 600));
+        },
+        child: CustomScrollView(
         slivers: [
           // ── Gradient header ─────────────────────────────────────────
           SliverToBoxAdapter(
@@ -360,6 +367,7 @@ class _DriverHomeTab extends ConsumerWidget {
             ])),
           ),
         ],
+      ),
       ),
     );
   }

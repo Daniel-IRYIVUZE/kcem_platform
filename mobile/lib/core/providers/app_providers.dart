@@ -412,7 +412,7 @@ Collection _collectionFromApi(Map<String, dynamic> j) {
     location: (j['hotel_address'] as String?) ?? (j['location'] as String?) ?? '',
     destinationLat: (j['listing_lat'] as num?)?.toDouble() ?? (j['hotel_lat'] as num?)?.toDouble(),
     destinationLng: (j['listing_lng'] as num?)?.toDouble() ?? (j['hotel_lng'] as num?)?.toDouble(),
-    earnings: (j['earnings'] as num? ?? 0).toDouble(),
+    earnings: ((j['driver_fee'] as num?) ?? (j['earnings'] as num?) ?? 0).toDouble(),
     contactPhone: j['hotel_phone'] as String?,
     driverPhone: j['driver_phone'] as String?,
   );

@@ -61,6 +61,7 @@ def _run_migrations() -> None:
         "ALTER TABLE hotels ADD COLUMN tin_number VARCHAR(100)",
         "ALTER TABLE recyclers ADD COLUMN tin_number VARCHAR(100)",
         "ALTER TABLE waste_listings ADD COLUMN qr_token VARCHAR(64)",
+        "ALTER TABLE collections ADD COLUMN driver_fee REAL",
     ]
     with engine.connect() as conn:
         for stmt in migrations:
@@ -101,6 +102,29 @@ def _run_migrations() -> None:
                 conn.commit()
         except Exception:
             pass  # Already migrated or table doesn't exist yet
+
+    # Backfill driver_fee for existing completed collections that have no fee set.
+    # Uses 10% of the linked transaction's gross_amount, or RWF 500/kg of actual_volume.
+    with engine.connect() as conn:
+        try:
+            rows = conn.execute(text(
+                "SELECT c.id, c.actual_volume, t.gross_amount "
+                "FROM collections c LEFT JOIN transactions t ON t.collection_id = c.id "
+                "WHERE c.status IN ('completed','verified') AND c.driver_id IS NOT NULL "
+                "AND (c.driver_fee IS NULL OR c.driver_fee = 0)"
+            )).fetchall()
+            for row in rows:
+                col_id, vol, gross = row[0], row[1] or 0.0, row[2] or 0.0
+                fee = round(gross * 0.10, 2) if gross else round(vol * 500.0, 2)
+                fee = max(fee, 500.0)
+                conn.execute(
+                    text("UPDATE collections SET driver_fee = :fee WHERE id = :id"),
+                    {"fee": fee, "id": col_id},
+                )
+            if rows:
+                conn.commit()
+        except Exception:
+            pass
 
     # Backfill qr_token for existing listings that have NULL (created before this feature)
     with engine.connect() as conn:

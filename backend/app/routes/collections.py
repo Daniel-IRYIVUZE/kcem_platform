@@ -32,7 +32,7 @@ def create_collection(payload: CollectionCreate, db: Session = Depends(get_db),
 
 
 @router.get("/mine", response_model=list[CollectionRead])
-def my_collections(skip: int = 0, limit: int = 20, db: Session = Depends(get_db),
+def my_collections(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),
                    current_user: User = Depends(get_current_active_user)):
     if current_user.role == UserRole.admin:
         return crud_collection.get_multi(db, skip=skip, limit=limit)
@@ -115,7 +115,7 @@ def advance_status(collection_id: int, payload: dict, db: Session = Depends(get_
     # Notify hotel owner using the actual resulting status
     notify_collection_status(db, user_id=col.listing.hotel.user_id,
                              status=col.status.value if col.status else None, collection_id=col.id)
-    # If completed, update green score and recycler totals
+    # If completed, update green score, recycler totals, and compute driver fee
     if col.status == CollectionStatus.completed and col.listing:
         listing = col.listing
         vol_kg = col.actual_volume or listing.volume or 0
@@ -132,6 +132,17 @@ def advance_status(collection_id: int, payload: dict, db: Session = Depends(get_
                     (recycler.green_score or 0.0) + vol_kg * 0.5 + 5.0,
                 )
                 db.commit()
+        # Compute driver fee: 10% of gross bid amount, minimum RWF 500 per collection
+        if col.driver_id and col.driver_fee is None:
+            gross = col.transaction.gross_amount if col.transaction else 0.0
+            if gross:
+                fee = round(gross * 0.10, 2)
+            else:
+                # Fallback: RWF 500 per kg collected
+                fee = round(vol_kg * 500.0, 2)
+            col.driver_fee = max(fee, 500.0)
+            db.commit()
+            db.refresh(col)
     return col
 
 

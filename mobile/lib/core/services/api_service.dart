@@ -356,7 +356,7 @@ class ApiService {
   // ── Collections ─────────────────────────────────────────────────────────────
   
   static Future<List<dynamic>> getMyCollections() async {
-    final response = await _request('GET', '/collections/mine');
+    final response = await _request('GET', '/collections/mine', queryParams: {'limit': '100'});
     if (response is List) return response;
     if (response is Map<String, dynamic>) {
       return (response['items'] as List<dynamic>?) ?? <dynamic>[];

@@ -39,6 +39,7 @@ class Collection(Base):
     collected_at      = Column(DateTime(timezone=True), nullable=True)
     completed_at      = Column(DateTime(timezone=True), nullable=True)
     actual_volume     = Column(Float, nullable=True)   # kg actually collected
+    driver_fee        = Column(Float, nullable=True)   # amount earned by driver (RWF)
     notes             = Column(Text, nullable=True)
     driver_notes      = Column(Text, nullable=True)
     created_at        = Column(DateTime(timezone=True), default=utc_now)
