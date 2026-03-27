@@ -3,11 +3,14 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Respons
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.crud import crud_listing, crud_hotel
+from app.crud import crud_listing, crud_hotel, crud_collection, crud_driver
 from app.auth.dependencies import get_current_active_user, require_role
 from app.schemas.listing import ListingCreate, ListingUpdate, ListingRead
 from app.schemas.hotel import HotelCreate
 from app.models.user import User, UserRole
+from app.models.listing import WasteListing
+from app.models.collection import CollectionStatus
+from app.services.notification_service import notify_collection_status
 from app.utils.file_upload import save_upload
 
 router = APIRouter(prefix="/listings", tags=["Listings"])
@@ -168,6 +171,64 @@ def delete_image(listing_id: int, image_id: int,
     if not removed:
         return Response(status_code=204)
     return Response(status_code=204)
+
+
+@router.post("/scan-qr",
+             dependencies=[Depends(require_role(UserRole.driver, UserRole.admin))])
+def scan_qr_code(payload: dict, db: Session = Depends(get_db),
+                 current_user: User = Depends(get_current_active_user)):
+    """Driver scans a listing QR code — verifies assignment and marks collection as collected."""
+    token = (payload.get("token") or "").strip()
+    if not token:
+        raise HTTPException(400, "token is required.")
+
+    listing = db.query(WasteListing).filter(WasteListing.qr_token == token).first()
+    if not listing:
+        raise HTTPException(404, "Invalid QR code.")
+
+    collection = listing.collection
+    if not collection:
+        raise HTTPException(404, "No collection has been assigned for this listing yet.")
+
+    # Verify the scanning driver is assigned to this collection
+    driver = crud_driver.get_by_user(db, current_user.id)
+    if not driver:
+        raise HTTPException(403, "Driver profile not found.")
+    if collection.driver_id != driver.id:
+        raise HTTPException(403, "This collection is not assigned to you.")
+
+    # If already at or past 'collected', just return current state
+    terminal = {CollectionStatus.collected, CollectionStatus.verified, CollectionStatus.completed}
+    if collection.status in terminal:
+        return {
+            "collection_id": collection.id,
+            "listing_id": listing.id,
+            "status": collection.status.value,
+            "message": "Collection already marked as collected.",
+        }
+
+    # Advance straight to 'collected'
+    collection = crud_collection.advance_status(
+        db,
+        collection_id=collection.id,
+        new_status=CollectionStatus.collected,
+        notes="Marked as collected via QR scan",
+    )
+
+    # Notify the hotel owner
+    notify_collection_status(
+        db,
+        user_id=listing.hotel.user_id,
+        status=collection.status.value,
+        collection_id=collection.id,
+    )
+
+    return {
+        "collection_id": collection.id,
+        "listing_id": listing.id,
+        "status": collection.status.value,
+        "message": "Collection marked as collected successfully.",
+    }
 
 
 def _get_listing_owned(db, listing_id, current_user):

@@ -74,6 +74,7 @@ class ListingRead(BaseModel):
     notes:                  Optional[str]
     view_count:             int
     images:                 List[ListingImageRead] = []
+    qr_token:               Optional[str] = None
     created_at:             datetime
     updated_at:             datetime
 

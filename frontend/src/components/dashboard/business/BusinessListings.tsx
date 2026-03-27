@@ -1,8 +1,9 @@
 // components/dashboard/business/BusinessListings.tsx
 import { useState, useEffect } from 'react';
+import { toDataURL as qrToDataURL } from 'qrcode';
 import { listingsAPI, resolveMediaUrl, type WasteListing, type Bid, type ListingImage } from '../../../services/api';
 import { downloadCSV, saveAll } from '../../../utils/dataStore';
-import { Package, CheckCircle, Clock, Eye, PlusCircle, Download, Search, Trash2, X, Edit2, Image as ImageIcon, Star, Check } from 'lucide-react';
+import { Package, CheckCircle, Clock, Eye, PlusCircle, Download, Search, Trash2, X, Edit2, Image as ImageIcon, Star, Check, QrCode } from 'lucide-react';
 import StatCard from '../StatCard';
 import DataTable from '../DataTable';
 import { StatusBadge } from './_shared';
@@ -41,6 +42,7 @@ export default function BusinessListings() {
     description: '',
   });
   const [loadingEditDetails, setLoadingEditDetails] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [existingImages, setExistingImages] = useState<ListingImage[]>([]);
   const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
   const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
@@ -57,8 +59,18 @@ export default function BusinessListings() {
     return () => objectUrls.forEach((url) => URL.revokeObjectURL(url));
   }, [newImageFiles]);
 
+  // Generate QR code whenever the viewed listing changes and has a token
+  useEffect(() => {
+    setQrDataUrl(null);
+    if (!viewListing?.qr_token) return;
+    let cancelled = false;
+    qrToDataURL(viewListing.qr_token, { width: 200, margin: 2, color: { dark: '#0e7490', light: '#ffffff' } })
+      .then(url => { if (!cancelled) setQrDataUrl(url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [viewListing?.qr_token]);
+
   const loadListings = () => listingsAPI.mine().then(setListings).catch(() => {});
-  useEffect(() => { loadListings(); }, []);
   useEffect(() => {
     const handleDataChange = () => {
       loadListings();
@@ -88,7 +100,7 @@ export default function BusinessListings() {
     setLoadingViewDetails(true);
     try {
       const details = await listingsAPI.get(listing.id);
-      setViewListing(details);
+      setViewListing(details); // triggers the qr_token useEffect above
     } catch {
       // keep existing listing details in modal
     } finally {
@@ -452,6 +464,31 @@ export default function BusinessListings() {
                 )}
               </div>
             </div>
+              {/* QR Code for driver scanning */}
+              <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 mb-3">
+                  <QrCode size={16} className="text-cyan-600" />
+                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Collection QR Code</p>
+                </div>
+                {qrDataUrl ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <img src={qrDataUrl} alt="Collection QR Code" className="rounded-lg border border-gray-200 dark:border-gray-600" style={{ width: 180, height: 180 }} />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Driver scans this QR code at collection to auto-confirm pickup</p>
+                    <a
+                      href={qrDataUrl}
+                      download={`listing-${viewListing.id}-qr.png`}
+                      className="text-xs text-cyan-600 hover:underline"
+                    >
+                      Download QR Code
+                    </a>
+                  </div>
+                ) : loadingViewDetails ? (
+                  <p className="text-xs text-gray-400">Generating QR code...</p>
+                ) : (
+                  <p className="text-xs text-gray-400">QR code not available for this listing.</p>
+                )}
+              </div>
+
             <div className="flex gap-2 mt-5">
               <button onClick={() => { setShowViewModal(false); openBidsModal(viewListing); }} className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm hover:bg-cyan-700 font-medium">View Bids ({viewListing.bid_count || 0})</button>
               <button onClick={() => setShowViewModal(false)} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700">Close</button>

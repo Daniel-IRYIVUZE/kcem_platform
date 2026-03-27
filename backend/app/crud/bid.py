@@ -65,5 +65,11 @@ class CRUDBid(CRUDBase[Bid, BidCreate, BidUpdate]):
         db.refresh(bid)
         return bid
 
+    def reject(self, db: Session, *, bid: Bid) -> Bid:
+        bid.status = BidStatus.rejected
+        db.commit()
+        db.refresh(bid)
+        return bid
+
 
 crud_bid = CRUDBid(Bid)

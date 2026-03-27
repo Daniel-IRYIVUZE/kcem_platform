@@ -320,6 +320,8 @@ class Bid {
   final String collectionPreference;
   final BidStatus status;
   final DateTime createdAt;
+  final double? recyclerRating;
+  final String? recyclerLicense;
 
   const Bid({
     required this.id,
@@ -331,6 +333,8 @@ class Bid {
     this.collectionPreference = 'flexible',
     this.status = BidStatus.active,
     required this.createdAt,
+    this.recyclerRating,
+    this.recyclerLicense,
   });
 
   Map<String, dynamic> toJson() => {

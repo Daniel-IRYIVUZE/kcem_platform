@@ -225,6 +225,7 @@ export interface WasteListing {
   collection_date?: string;
   collection_time?: string;
   actual_weight?: number;
+  qr_token?: string;
 }
 
 export interface ListingImage {
@@ -681,6 +682,11 @@ export const listingsAPI = {
 
   deleteImage: (listingId: number, imageId: number) =>
     request<void>(`/listings/${listingId}/images/${imageId}`, { method: 'DELETE' }),
+
+  scanQr: (token: string) =>
+    request<{ collection_id: number; listing_id: number; status: string; message: string }>(
+      '/listings/scan-qr', { method: 'POST', body: JSON.stringify({ token }) }
+    ),
 };
 
 export const bidsAPI = {

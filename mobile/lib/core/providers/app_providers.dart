@@ -453,19 +453,25 @@ BidStatus _mapBidStatus(String s) {
   }
 }
 
-Bid _bidFromApi(Map<String, dynamic> j, {required String recyclerName}) {
+Bid _bidFromApi(Map<String, dynamic> j, {String? recyclerName}) {
+  // Prefer the recycler_name field from the API; fall back to the passed name
+  final name = (j['recycler_name'] as String?)?.isNotEmpty == true
+      ? j['recycler_name'] as String
+      : (recyclerName?.isNotEmpty == true ? recyclerName! : 'Unknown Recycler');
   return Bid(
     id: (j['id'] as int? ?? 0).toString(),
     listingId: (j['listing_id'] as int? ?? 0).toString(),
     recyclerId: (j['recycler_id'] as int? ?? 0).toString(),
-    recyclerName: recyclerName,
+    recyclerName: name,
     amount: (j['amount'] as num? ?? 0).toDouble(),
     note: j['notes'] as String?,
-    collectionPreference: 'flexible',
+    collectionPreference: j['notes'] as String? ?? 'flexible',
     status: _mapBidStatus(j['status'] as String? ?? 'active'),
     createdAt: j['created_at'] != null
         ? DateTime.tryParse(j['created_at'] as String) ?? DateTime.now()
         : DateTime.now(),
+    recyclerRating: (j['recycler_rating'] as num?)?.toDouble(),
+    recyclerLicense: j['recycler_license'] as String?,
   );
 }
 
@@ -605,10 +611,7 @@ final _apiMyListingsWithBidsProvider = FutureProvider<List<WasteListing>>((ref) 
     try {
       final bidsJson = await ApiService.getListingBids(listingId);
       final bids = bidsJson
-          .map((j) => _bidFromApi(
-                j as Map<String, dynamic>,
-                recyclerName: (j['recycler_name'] as String?) ?? 'Recycler',
-              ))
+          .map((j) => _bidFromApi(j as Map<String, dynamic>))
           .toList();
       return WasteListing(
         id: listing.id,
@@ -642,10 +645,9 @@ final _apiMyListingsWithBidsProvider = FutureProvider<List<WasteListing>>((ref) 
 
 final _apiMyBidsProvider = FutureProvider<List<Bid>>((ref) async {
   try {
-    final recyclerName = ref.read(authProvider).user?.displayName ?? 'Recycler';
     final items = await ApiService.getMyBids();
     return items
-        .map((j) => _bidFromApi(j as Map<String, dynamic>, recyclerName: recyclerName))
+        .map((j) => _bidFromApi(j as Map<String, dynamic>))
         .toList();
   } catch (_) {
     return <Bid>[];

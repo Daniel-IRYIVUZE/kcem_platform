@@ -655,7 +655,7 @@ class ApiService {
   }
 
   static Future<void> rejectBid(int bidId) async {
-    await _request('POST', '/bids/$bidId/withdraw');
+    await _request('POST', '/bids/$bidId/reject');
   }
 
   static Future<Map<String, dynamic>> inviteDriver({
@@ -820,6 +820,14 @@ class ApiService {
   /// Toggle featured status (admin only)
   static Future<Map<String, dynamic>> toggleBlogFeatured(int id) async {
     return await _request('POST', '/blog/$id/toggle-featured');
+  }
+
+  // ── QR Code Collection Verification ───────────────────────────────────────
+
+  /// Driver scans a listing QR token — returns collection info and advances
+  /// the collection status to 'collected' if the driver is the assigned driver.
+  static Future<Map<String, dynamic>> scanQrToken(String token) async {
+    return await _request('POST', '/listings/scan-qr', body: {'token': token});
   }
 
   // ── Support Tickets ────────────────────────────────────────────────────────

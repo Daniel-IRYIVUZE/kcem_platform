@@ -28,6 +28,10 @@ class BidRead(BaseModel):
     notes:           Optional[str]
     created_at:      datetime
     updated_at:      datetime
+    # Enriched recycler details
+    recycler_name:    Optional[str] = None
+    recycler_rating:  Optional[float] = None
+    recycler_license: Optional[str] = None
     # Enriched listing details
     hotel_name:      Optional[str] = None
     waste_type:      Optional[str] = None

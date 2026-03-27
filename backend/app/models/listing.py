@@ -62,6 +62,7 @@ class WasteListing(Base):
     is_urgent            = Column(Boolean, default=False)
     notes                = Column(Text, nullable=True)
     view_count           = Column(Integer, default=0)
+    qr_token             = Column(String(64), unique=True, index=True, nullable=True)
     created_at           = Column(DateTime(timezone=True), default=utc_now)
     updated_at           = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 

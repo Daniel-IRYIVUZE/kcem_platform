@@ -41,6 +41,14 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Camera permission — required for arrival photos, weigh photos, and QR scanning -->
+	<key>NSCameraUsageDescription</key>
+	<string>EcoTrade needs camera access to take arrival and weigh photos and to scan collection QR codes.</string>
+	<!-- Photo library permission — required by image_picker when saving photos -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>EcoTrade needs photo library access to save collection proof photos.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>EcoTrade needs permission to save collection photos to your library.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

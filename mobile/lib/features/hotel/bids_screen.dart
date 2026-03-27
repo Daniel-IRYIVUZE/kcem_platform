@@ -171,14 +171,25 @@ class _BidCardState extends ConsumerState<_BidCard> {
                       children: [
                         const Icon(Icons.star, color: AppColors.accent, size: 14),
                         const SizedBox(width: 3),
-                        Flexible(
-                          child: Text(
-                            bid.collectionPreference,
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                        Text(
+                          bid.recyclerRating != null
+                              ? bid.recyclerRating!.toStringAsFixed(1)
+                              : 'New',
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                         ),
+                        if (bid.recyclerLicense != null) ...[
+                          const SizedBox(width: 6),
+                          const Text('·', style: TextStyle(color: AppColors.textSecondary)),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              bid.recyclerLicense!,
+                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -205,60 +216,77 @@ class _BidCardState extends ConsumerState<_BidCard> {
           ),
 
           const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: context.cSurfAlt,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.recycling, size: 16, color: AppColors.textSecondary),
-                const SizedBox(width: 6),
-                Text(
-                  bid.collectionPreference,
-                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-
-          if (bid.note != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              '"${bid.note}"',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-                fontStyle: FontStyle.italic,
-                height: 1.5,
+          if (bid.note != null && bid.note!.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: context.cSurfAlt,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.notes, size: 16, color: AppColors.textSecondary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      bid.note!,
+                      style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
 
           const SizedBox(height: 14),
 
+          if (bid.status != BidStatus.active) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: bid.status == BidStatus.won
+                    ? AppColors.primary.withOpacity(0.08)
+                    : AppColors.error.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                bid.status == BidStatus.won ? 'Accepted' : 'Declined',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: bid.status == BidStatus.won ? AppColors.primary : AppColors.error,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+
           Row(
             children: [
-              Expanded(
-                child: EcoButton(
-                  label: 'Accept',
-                  height: 40,
-                  isLoading: _accepting,
-                  onPressed: _accepting ? null : () => _showAcceptDialog(context, ref, bid),
+              if (bid.status == BidStatus.active) ...[
+                Expanded(
+                  child: EcoButton(
+                    label: 'Accept',
+                    height: 40,
+                    isLoading: _accepting,
+                    onPressed: _accepting ? null : () => _showAcceptDialog(context, ref, bid),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: EcoButton(
-                  label: 'Decline',
-                  height: 40,
-                  isOutlined: true,
-                  backgroundColor: AppColors.error,
-                  onPressed: _accepting ? null : () => _showDeclineDialog(context, ref, bid),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: EcoButton(
+                    label: 'Decline',
+                    height: 40,
+                    isOutlined: true,
+                    backgroundColor: AppColors.error,
+                    onPressed: _accepting ? null : () => _showDeclineDialog(context, ref, bid),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
+                const SizedBox(width: 10),
+              ],
               Container(
                 width: 40,
                 height: 40,

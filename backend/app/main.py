@@ -60,6 +60,7 @@ def _run_migrations() -> None:
         "ALTER TABLE users ADD COLUMN must_change_password BOOLEAN DEFAULT 0",
         "ALTER TABLE hotels ADD COLUMN tin_number VARCHAR(100)",
         "ALTER TABLE recyclers ADD COLUMN tin_number VARCHAR(100)",
+        "ALTER TABLE waste_listings ADD COLUMN qr_token VARCHAR(64)",
     ]
     with engine.connect() as conn:
         for stmt in migrations:
@@ -100,6 +101,21 @@ def _run_migrations() -> None:
                 conn.commit()
         except Exception:
             pass  # Already migrated or table doesn't exist yet
+
+    # Backfill qr_token for existing listings that have NULL (created before this feature)
+    with engine.connect() as conn:
+        try:
+            import uuid as _uuid
+            rows = conn.execute(text("SELECT id FROM waste_listings WHERE qr_token IS NULL")).fetchall()
+            for row in rows:
+                conn.execute(
+                    text("UPDATE waste_listings SET qr_token = :token WHERE id = :id"),
+                    {"token": str(_uuid.uuid4()), "id": row[0]},
+                )
+            if rows:
+                conn.commit()
+        except Exception:
+            pass
 
 
 app = FastAPI(

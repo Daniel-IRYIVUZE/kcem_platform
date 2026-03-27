@@ -1,4 +1,5 @@
 """crud/listing.py — WasteListing CRUD operations."""
+import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.crud.base import CRUDBase
@@ -7,6 +8,17 @@ from app.schemas.listing import ListingCreate, ListingUpdate
 
 
 class CRUDListing(CRUDBase[WasteListing, ListingCreate, ListingUpdate]):
+
+    def create(self, db: Session, *, obj_in: ListingCreate, **extra) -> WasteListing:
+        """Create a listing and auto-generate a unique QR token."""
+        data = obj_in.model_dump(exclude_unset=True)
+        data.update(extra)
+        data.setdefault('qr_token', str(uuid.uuid4()))
+        db_obj = WasteListing(**data)
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
 
     def get_by_hotel(self, db: Session, hotel_id: int, *, status: ListingStatus | None = None,
                      skip: int = 0, limit: int = 20) -> list[WasteListing]:

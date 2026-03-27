@@ -16,7 +16,7 @@ require_business = require_role(UserRole.business, UserRole.admin)
 
 
 def enrich_bid(bid: Bid) -> dict:
-    """Enrich a bid object with listing details for client response."""
+    """Enrich a bid object with listing and recycler details for client response."""
     data = {
         'id': bid.id,
         'listing_id': bid.listing_id,
@@ -28,12 +28,21 @@ def enrich_bid(bid: Bid) -> dict:
         'notes': bid.notes,
         'created_at': bid.created_at,
         'updated_at': bid.updated_at,
+        # Recycler profile details
+        'recycler_name': None,
+        'recycler_rating': None,
+        'recycler_license': None,
+        # Listing details
         'hotel_name': None,
         'waste_type': None,
         'volume': None,
         'unit': None,
         'min_bid': None,
     }
+    if bid.recycler:
+        data['recycler_name'] = bid.recycler.company_name or bid.recycler.user.full_name if bid.recycler.user else bid.recycler.company_name
+        data['recycler_rating'] = bid.recycler.rating
+        data['recycler_license'] = bid.recycler.license_number
     if bid.listing:
         data['hotel_name'] = bid.listing.hotel_name
         data['waste_type'] = str(bid.listing.waste_type.value) if bid.listing.waste_type else None
@@ -133,6 +142,21 @@ def accept_bid(bid_id: int, db: Session = Depends(get_db),
                         hotel_name=hotel.hotel_name,
                         listing_title=bid.listing.title,
                         bid_id=bid_id)
+    db.refresh(bid)
+    return enrich_bid(bid)
+
+
+@router.post("/{bid_id}/reject", response_model=BidRead,
+             dependencies=[Depends(require_business)])
+def reject_bid(bid_id: int, db: Session = Depends(get_db),
+               current_user: User = Depends(get_current_active_user)):
+    bid = crud_bid.get(db, bid_id)
+    if not bid:
+        raise HTTPException(404, "Bid not found.")
+    hotel = crud_hotel.get_by_user(db, current_user.id)
+    if not hotel or bid.listing.hotel_id != hotel.id:
+        raise HTTPException(403, "Not your listing.")
+    bid = crud_bid.reject(db, bid=bid)
     db.refresh(bid)
     return enrich_bid(bid)
 
