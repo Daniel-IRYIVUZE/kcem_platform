@@ -31,7 +31,7 @@ const LoginForm = ({ onToggleMode, onForgotPassword, onLogin }: LoginFormProps) 
       if (msg.includes('offline') || msg.includes('suspended') || msg.includes('Incorrect')) {
         setError(msg);
       } else {
-        setError('Invalid email or password. Please try again or use a demo account below.');
+        setError('Invalid email or password. Please try again!');
       }
     } finally {
       setIsLoading(false);
