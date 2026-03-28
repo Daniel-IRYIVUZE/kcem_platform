@@ -23,8 +23,8 @@ class ApiService {
     if (envBase.isNotEmpty) return envBase;
 
     // Always use local backend for all platforms during development
-    return 'https://api.ecotrade-rwanda.com/api';
-    // return 'http://127.0.0.1:8000/api';
+    // return 'https://api.ecotrade-rwanda.com/api';
+    return 'http://127.0.0.1:8000/api';
   }
   
   static String? _accessToken;
