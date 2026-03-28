@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/models/models.dart';
@@ -1215,6 +1216,12 @@ class _ManageListingCard extends StatelessWidget {
                     ),
                   ],
 
+                  // ── QR Code section ───────────────────────────────────
+                  if (listing.qrToken != null) ...[
+                    const SizedBox(height: 14),
+                    _QrCodeSection(qrToken: listing.qrToken!),
+                  ],
+
                   const SizedBox(height: 14),
 
                   // Action row
@@ -1258,6 +1265,266 @@ class _ManageListingCard extends StatelessWidget {
                     ],
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── QR Code Section (embedded in listing card) ───────────────────────────────
+class _QrCodeSection extends StatelessWidget {
+  final String qrToken;
+  const _QrCodeSection({required this.qrToken});
+
+  void _showFullDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => _QrFullDialog(qrToken: qrToken),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showFullDialog(context),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.20),
+          ),
+        ),
+        child: Row(
+          children: [
+            // Small QR preview
+            Container(
+              width: 72,
+              height: 72,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                ),
+              ),
+              child: QrImageView(
+                data: qrToken,
+                version: QrVersions.auto,
+                size: 60,
+                backgroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 14),
+            // Text info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.qr_code_2_rounded,
+                          size: 15, color: AppColors.primary),
+                      const SizedBox(width: 5),
+                      const Text(
+                        'Collection QR Code',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Show to the driver when they arrive to verify pickup.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.primary.withValues(alpha: 0.70),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.open_in_full_rounded,
+                          size: 11, color: AppColors.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Tap to enlarge',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary.withValues(alpha: 0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Full-Screen QR Dialog ────────────────────────────────────────────────────
+class _QrFullDialog extends StatelessWidget {
+  final String qrToken;
+  const _QrFullDialog({required this.qrToken});
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final dialogWidth = (mq.size.width * 0.90).clamp(0.0, 360.0);
+    final qrSize = (dialogWidth - 48).clamp(160.0, 280.0);
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: (mq.size.width - dialogWidth) / 2,
+        vertical: 24,
+      ),
+      child: SizedBox(
+        width: dialogWidth,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+              decoration: const BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.qr_code_2_rounded,
+                        color: AppColors.primary, size: 32),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Collection QR Code',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Show this to the driver when they arrive',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primary.withValues(alpha: 0.75),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // QR code
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+              child: Container(
+                width: qrSize,
+                height: qrSize,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: QrImageView(
+                  data: qrToken,
+                  version: QrVersions.auto,
+                  size: qrSize - 24,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            ),
+
+            // Token chip
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 14, 24, 0),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: context.cSurfAlt,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: context.cBorder),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.key_rounded, size: 13, color: context.cTextSec),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        qrToken,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: context.cTextSec,
+                          fontFamily: 'monospace',
+                          letterSpacing: 0.3,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Close button
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                ),
               ),
             ),
           ],

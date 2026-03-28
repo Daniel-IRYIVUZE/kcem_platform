@@ -49,6 +49,11 @@ class Settings(BaseSettings):
     DEFAULT_PAGE_SIZE: int = 20
     MAX_PAGE_SIZE: int = 100
 
+    @property
+    def is_email_configured(self) -> bool:
+        """True when SMTP credentials are present and functional."""
+        return bool(self.SMTP_HOST and self.SMTP_USER and self.SMTP_PASSWORD and self.EMAIL_FROM)
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

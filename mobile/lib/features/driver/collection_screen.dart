@@ -243,11 +243,17 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
       final returnedCollectionId = result['collection_id'] as int?;
 
       if (returnedCollectionId == collectionId) {
-        // Refresh collection list via the notifier's public refresh method
+        // Refresh collection list — this removes the collected item from "started"
         await ref.read(collectionsNotifierProvider.notifier).refresh();
         if (mounted) {
+          // Reset state so the screen auto-shows the next collection
           setState(() {
-            _step = 2; // Jump straight to Complete
+            _step = 0;
+            _weightCtrl.clear();
+            _arrivalPhotos.clear();
+            _weighPhotos.clear();
+            _capturedWeight = null;
+            _lastAdvanceResult = {};
             _isLoading = false;
           });
           ScaffoldMessenger.of(context).showSnackBar(
@@ -255,7 +261,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               content: Row(children: [
                 Icon(Icons.check_circle, color: Colors.white, size: 16),
                 SizedBox(width: 8),
-                Text('QR verified! Collection marked as collected.'),
+                Text('Collected! Proceeding to next stop…'),
               ]),
               backgroundColor: AppColors.primary,
               behavior: SnackBarBehavior.floating,

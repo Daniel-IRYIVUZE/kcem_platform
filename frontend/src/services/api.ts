@@ -309,6 +309,7 @@ export interface Collection {
   unit?: string;
   location?: string;
   earnings?: number;      // net_amount: what hotel receives (from transaction)
+  driver_fee?: number;    // fee paid to driver for this collection
   gross_amount?: number;  // total bid amount: what recycler pays (from transaction)
   // Coordinates — destination + driver live position (populated by backend)
   listing_lat?: number;
@@ -729,6 +730,12 @@ export const transactionsAPI = {
     const q = new URLSearchParams(params as Record<string, string>).toString();
     return request<Transaction[]>(`/transactions/mine${q ? `?${q}` : ''}`);
   },
+
+  requestWithdrawal: (amount: number) =>
+    request<{ message: string; amount: number; currency: string; status: string }>(
+      '/transactions/withdraw',
+      { method: 'POST', body: JSON.stringify({ amount }) }
+    ),
 };
 
 // ─── Collections ─────────────────────────────────────────────────────────────

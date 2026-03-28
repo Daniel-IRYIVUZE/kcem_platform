@@ -374,6 +374,7 @@ WasteListing _listingFromApi(Map<String, dynamic> j) {
         : null,
     description: j['description'] as String?,
     notes: j['notes'] as String?,
+    qrToken: j['qr_token'] as String?,
   );
 }
 
@@ -635,6 +636,9 @@ final _apiMyListingsWithBidsProvider = FutureProvider<List<WasteListing>>((ref) 
         latitude: listing.latitude,
         longitude: listing.longitude,
         createdAt: listing.createdAt,
+        description: listing.description,
+        notes: listing.notes,
+        qrToken: listing.qrToken,
       );
     } catch (_) {
       return listing;
@@ -679,6 +683,35 @@ final _apiMyCollectionsProvider = FutureProvider<List<Collection>>((ref) async {
 });
 
 final _apiMyTransactionsProvider = FutureProvider<List<Transaction>>((ref) async {
+  final user = ref.read(authProvider).user;
+
+  // Backend GET /transactions/mine doesn't handle the driver role.
+  // Synthesize transaction records from completed collections so the
+  // earnings screen chart and history work correctly for drivers.
+  if (user?.role == UserRole.driver) {
+    try {
+      final collections = await ref.read(_apiMyCollectionsProvider.future);
+      return collections
+          .where((c) => c.earnings > 0)
+          .map((c) => Transaction(
+                id: 'col-${c.id}',
+                date: c.completedAt ?? c.scheduledDate,
+                from: c.businessName,
+                to: user!.name,
+                wasteType: c.wasteType,
+                volume: c.actualWeight ?? c.volume,
+                amount: c.earnings,
+                status: c.status == CollectionStatus.completed
+                    ? TransactionStatus.completed
+                    : TransactionStatus.pending,
+                listingId: c.listingId,
+              ))
+          .toList();
+    } catch (_) {
+      return <Transaction>[];
+    }
+  }
+
   try {
     final items = await ApiService.getMyTransactions();
     return items.map((j) => _transactionFromApi(j as Map<String, dynamic>)).toList();

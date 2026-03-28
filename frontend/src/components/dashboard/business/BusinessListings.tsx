@@ -43,6 +43,10 @@ export default function BusinessListings() {
   });
   const [loadingEditDetails, setLoadingEditDetails] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrModalToken, setQrModalToken] = useState<string | null>(null);
+  const [qrModalDataUrl, setQrModalDataUrl] = useState<string | null>(null);
+  const [qrModalListingId, setQrModalListingId] = useState<number | null>(null);
   const [existingImages, setExistingImages] = useState<ListingImage[]>([]);
   const [removedImageIds, setRemovedImageIds] = useState<number[]>([]);
   const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
@@ -64,17 +68,29 @@ export default function BusinessListings() {
     setQrDataUrl(null);
     if (!viewListing?.qr_token) return;
     let cancelled = false;
-    qrToDataURL(viewListing.qr_token, { width: 200, margin: 2, color: { dark: '#0e7490', light: '#ffffff' } })
+    qrToDataURL(viewListing.qr_token, { width: 220, margin: 2, color: { dark: '#0e7490', light: '#ffffff' } })
       .then(url => { if (!cancelled) setQrDataUrl(url); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [viewListing?.qr_token]);
 
-  const loadListings = () => listingsAPI.mine().then(setListings).catch(() => {});
+  // Generate QR for the quick-view modal (triggered from table row)
   useEffect(() => {
-    const handleDataChange = () => {
-      loadListings();
-    };
+    setQrModalDataUrl(null);
+    if (!qrModalToken) return;
+    let cancelled = false;
+    qrToDataURL(qrModalToken, { width: 260, margin: 2, color: { dark: '#0e7490', light: '#ffffff' } })
+      .then(url => { if (!cancelled) setQrModalDataUrl(url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [qrModalToken]);
+
+  const loadListings = () => listingsAPI.mine().then(setListings).catch(() => {});
+
+  // Initial load + reload on data-change events
+  useEffect(() => {
+    loadListings();
+    const handleDataChange = () => loadListings();
     window.addEventListener('ecotrade_data_change', handleDataChange);
     return () => window.removeEventListener('ecotrade_data_change', handleDataChange);
   }, []);
@@ -106,6 +122,12 @@ export default function BusinessListings() {
     } finally {
       setLoadingViewDetails(false);
     }
+  };
+
+  const openQrModal = (listing: WasteListing) => {
+    setQrModalToken(listing.qr_token ?? null);
+    setQrModalListingId(listing.id);
+    setShowQrModal(true);
   };
 
   const openBidsModal = (listing: WasteListing) => {
@@ -374,11 +396,16 @@ export default function BusinessListings() {
             )},
             { key: 'status', label: 'Status', render: (v: string) => <StatusBadge status={v} /> },
             { key: 'created_at', label: 'Posted', render: (v: string) => <span className="text-sm">{new Date(v).toLocaleDateString()}</span> },
+            { key: 'qr_token', label: 'QR', render: (v: string | undefined) => v
+              ? <span title="Has QR code" className="inline-flex items-center justify-center w-6 h-6 rounded bg-cyan-50 dark:bg-cyan-900/30"><QrCode size={13} className="text-cyan-600" /></span>
+              : <span className="text-gray-300 dark:text-gray-600 text-xs">—</span>
+            },
             { key: 'id', label: 'Actions', render: (_v: number, r: WasteListing) => (
               <div className="flex gap-1">
-                <button onClick={() => openEditModal(r)} className="p-1.5 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:bg-cyan-900/20 rounded"><Edit2 size={15} /></button>
-                {r.status === 'open' && <button onClick={() => handleDelete(r.id)} className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:bg-red-900/20 rounded"><Trash2 size={15} /></button>}
-                <button onClick={() => openViewModal(r)} className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:bg-blue-900/20 rounded"><Eye size={15} /></button>
+                <button onClick={() => openEditModal(r)} title="Edit" className="p-1.5 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded"><Edit2 size={15} /></button>
+                {r.status === 'open' && <button onClick={() => handleDelete(r.id)} title="Delete" className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"><Trash2 size={15} /></button>}
+                <button onClick={() => openViewModal(r)} title="View details" className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"><Eye size={15} /></button>
+                {r.qr_token && <button onClick={() => openQrModal(r)} title="Show QR code" className="p-1.5 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded"><QrCode size={15} /></button>}
               </div>
             )},
           ]}
@@ -463,31 +490,39 @@ export default function BusinessListings() {
                   <p className="text-xs text-gray-500">No images uploaded.</p>
                 )}
               </div>
-            </div>
-              {/* QR Code for driver scanning */}
-              <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+
+              {/* QR Code — inside space-y-3 for consistent spacing */}
+              <div className="bg-cyan-50 dark:bg-cyan-900/20 rounded-lg p-4 border border-cyan-200 dark:border-cyan-800">
                 <div className="flex items-center gap-2 mb-3">
                   <QrCode size={16} className="text-cyan-600" />
-                  <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Collection QR Code</p>
+                  <p className="text-sm font-semibold text-cyan-700 dark:text-cyan-300">Collection QR Code</p>
                 </div>
                 {qrDataUrl ? (
-                  <div className="flex flex-col items-center gap-2">
-                    <img src={qrDataUrl} alt="Collection QR Code" className="rounded-lg border border-gray-200 dark:border-gray-600" style={{ width: 180, height: 180 }} />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 text-center">Driver scans this QR code at collection to auto-confirm pickup</p>
+                  <div className="flex flex-col items-center gap-3">
+                    <img
+                      src={qrDataUrl}
+                      alt="Collection QR Code"
+                      className="rounded-xl border-2 border-cyan-200 dark:border-cyan-700 shadow-sm"
+                      style={{ width: 200, height: 200 }}
+                    />
+                    <p className="text-xs text-cyan-600 dark:text-cyan-400 text-center">
+                      Show this QR to the driver on arrival — scanning auto-confirms pickup
+                    </p>
                     <a
                       href={qrDataUrl}
                       download={`listing-${viewListing.id}-qr.png`}
-                      className="text-xs text-cyan-600 hover:underline"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700 px-3 py-1.5 rounded-lg hover:bg-cyan-100 dark:hover:bg-cyan-900/40 transition-colors"
                     >
-                      Download QR Code
+                      <Download size={12} /> Download QR Code
                     </a>
                   </div>
                 ) : loadingViewDetails ? (
-                  <p className="text-xs text-gray-400">Generating QR code...</p>
+                  <p className="text-xs text-cyan-500 dark:text-cyan-400 animate-pulse">Generating QR code…</p>
                 ) : (
                   <p className="text-xs text-gray-400">QR code not available for this listing.</p>
                 )}
               </div>
+            </div>
 
             <div className="flex gap-2 mt-5">
               <button onClick={() => { setShowViewModal(false); openBidsModal(viewListing); }} className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded-lg text-sm hover:bg-cyan-700 font-medium">View Bids ({viewListing.bid_count || 0})</button>
@@ -722,6 +757,83 @@ export default function BusinessListings() {
           loadListings();
         }}
       />
+
+      {/* ── QR Quick-View Modal (from table row QR button) ── */}
+      {showQrModal && qrModalToken && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => { setShowQrModal(false); setQrModalToken(null); setQrModalDataUrl(null); }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center gap-4"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="w-full flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-cyan-50 dark:bg-cyan-900/30 flex items-center justify-center">
+                  <QrCode size={16} className="text-cyan-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900 dark:text-white">Collection QR Code</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Listing #{qrModalListingId}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowQrModal(false); setQrModalToken(null); setQrModalDataUrl(null); }}
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* QR Image */}
+            <div className="bg-cyan-50 dark:bg-cyan-900/20 rounded-xl p-4 border border-cyan-100 dark:border-cyan-800">
+              {qrModalDataUrl ? (
+                <img
+                  src={qrModalDataUrl}
+                  alt="Collection QR Code"
+                  className="rounded-lg"
+                  style={{ width: 220, height: 220 }}
+                />
+              ) : (
+                <div className="w-[220px] h-[220px] flex items-center justify-center">
+                  <p className="text-xs text-cyan-500 animate-pulse">Generating…</p>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+              Show this QR to the driver on arrival — scanning auto-confirms pickup
+            </p>
+
+            {/* Token display */}
+            <div className="w-full flex items-center gap-2 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2">
+              <QrCode size={12} className="text-gray-400 shrink-0" />
+              <span className="text-[11px] font-mono text-gray-500 dark:text-gray-400 truncate">{qrModalToken}</span>
+            </div>
+
+            {/* Actions */}
+            <div className="w-full flex gap-2">
+              {qrModalDataUrl && (
+                <a
+                  href={qrModalDataUrl}
+                  download={`listing-${qrModalListingId}-qr.png`}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-700 px-4 py-2 rounded-lg hover:bg-cyan-50 dark:hover:bg-cyan-900/30 transition-colors"
+                >
+                  <Download size={14} /> Download
+                </a>
+              )}
+              <button
+                onClick={() => { setShowQrModal(false); setQrModalToken(null); setQrModalDataUrl(null); }}
+                className="flex-1 px-4 py-2 bg-cyan-600 text-white text-sm font-semibold rounded-lg hover:bg-cyan-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

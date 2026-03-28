@@ -205,6 +205,7 @@ class WasteListing {
   final DateTime createdAt;
   final String? description;
   final String? notes;
+  final String? qrToken;
 
   const WasteListing({
     required this.id,
@@ -230,6 +231,7 @@ class WasteListing {
     required this.createdAt,
     this.description,
     this.notes,
+    this.qrToken,
   });
 
   double get bestBid =>
@@ -262,6 +264,7 @@ class WasteListing {
         'createdAt': createdAt.toIso8601String(),
         'description': description,
         'notes': notes,
+        'qr_token': qrToken,
       };
 
   factory WasteListing.fromJson(Map<String, dynamic> j) => WasteListing(
@@ -305,6 +308,7 @@ class WasteListing {
         createdAt: DateTime.parse(j['createdAt'] as String),
         description: j['description'] as String?,
         notes: j['notes'] as String?,
+        qrToken: j['qr_token'] as String?,
       );
 }
 

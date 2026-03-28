@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { usersAPI, recyclersAPI, resolveMediaUrl } from '../../../services/api';
+import { usersAPI, recyclersAPI, resolveMediaUrl, authAPI } from '../../../services/api';
 import type { RecyclerProfile, UserDocument } from '../../../services/api';
-import { CheckCircle, AlertCircle, Loader2, Check, Upload, FileText } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, Check, Upload, FileText, Lock } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 
 const WASTE_TYPES = [
@@ -53,6 +53,11 @@ export default function RecyclerSettings() {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+
+  const [pwdNew, setPwdNew]       = useState('');
+  const [pwdConfirm, setPwdConfirm] = useState('');
+  const [pwdSaving, setPwdSaving] = useState(false);
+  const [pwdMsg, setPwdMsg]       = useState<{ text: string; ok: boolean } | null>(null);
 
   const loadDocuments = useCallback(async () => {
     try {
@@ -350,6 +355,52 @@ export default function RecyclerSettings() {
             <CheckCircle size={12} /> Certificate uploaded. Pending admin review.
           </div>
         )}
+      </div>
+
+      {/* Change Password */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+        <h2 className="text-base font-semibold border-b border-gray-100 dark:border-gray-700 pb-2 text-gray-900 dark:text-white flex items-center gap-2">
+          <Lock size={16} className="text-cyan-600" /> Change Password
+        </h2>
+        {pwdMsg && (
+          <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${pwdMsg.ok ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'}`}>
+            {pwdMsg.ok ? <CheckCircle size={14} /> : <AlertCircle size={14} />} {pwdMsg.text}
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+            <input type="password" value={pwdNew} onChange={e => setPwdNew(e.target.value)} minLength={8}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              placeholder="Min. 8 characters" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
+            <input type="password" value={pwdConfirm} onChange={e => setPwdConfirm(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-cyan-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              placeholder="Repeat new password" />
+          </div>
+        </div>
+        <button
+          disabled={pwdSaving || !pwdNew || pwdNew.length < 8 || pwdNew !== pwdConfirm}
+          onClick={async () => {
+            setPwdSaving(true);
+            try {
+              await authAPI.changePassword(pwdNew);
+              setPwdMsg({ text: 'Password changed successfully.', ok: true });
+              setPwdNew(''); setPwdConfirm('');
+            } catch (e: any) {
+              setPwdMsg({ text: e?.message || 'Failed to change password.', ok: false });
+            } finally {
+              setPwdSaving(false);
+              setTimeout(() => setPwdMsg(null), 5000);
+            }
+          }}
+          className="flex items-center gap-2 px-5 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:opacity-40 text-white rounded-lg text-sm font-medium transition-colors"
+        >
+          {pwdSaving ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
+          {pwdSaving ? 'Updating…' : 'Update Password'}
+        </button>
       </div>
 
       <div className="flex justify-end">

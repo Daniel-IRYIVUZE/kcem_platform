@@ -8,7 +8,7 @@ from app.auth.dependencies import get_current_active_user, require_role
 from app.schemas.listing import ListingCreate, ListingUpdate, ListingRead
 from app.schemas.hotel import HotelCreate
 from app.models.user import User, UserRole
-from app.models.listing import WasteListing
+from app.models.listing import WasteListing, ListingStatus
 from app.models.collection import CollectionStatus
 from app.services.notification_service import notify_collection_status
 from app.utils.file_upload import save_upload
@@ -214,6 +214,10 @@ def scan_qr_code(payload: dict, db: Session = Depends(get_db),
         new_status=CollectionStatus.collected,
         notes="Marked as collected via QR scan",
     )
+
+    # Also mark the listing itself as collected
+    listing.status = ListingStatus.collected
+    db.commit()
 
     # Notify the hotel owner
     notify_collection_status(
