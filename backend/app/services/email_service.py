@@ -231,7 +231,7 @@ def send_driver_reminder_email(*, email: str, full_name: str, recycler_name: str
     token = None
     if user:
         token = create_access_token(subject=str(user.id), role="driver", extra={"email": email, "login_token": True})
-    login_url = f"http://localhost:5173/login?token={token}" if token else "http://localhost:5173/login"
+    login_url = f"https://ecotrade-rwanda.com/login?token={token}" if token else "https://ecotrade-rwanda.com/login"
     html = f"""
     <!DOCTYPE html>
     <html>
