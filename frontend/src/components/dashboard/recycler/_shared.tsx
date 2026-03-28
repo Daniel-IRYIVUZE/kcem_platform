@@ -48,7 +48,7 @@ export const StatusBadge = ({ status }: { status: string }) => {
     collecting: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200',
     outbid: 'bg-orange-100 dark:bg-yellow-700/30 text-yellow-700 dark:text-yellow-700',
     lost: 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200',
-    maintenance: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300',
+    offline: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
     inactive: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200',
   };
   return (

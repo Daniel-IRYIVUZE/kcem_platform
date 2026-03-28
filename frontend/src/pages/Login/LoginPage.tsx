@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authAPI } from '../../services/api';
-import { Home, RefreshCw } from 'lucide-react';
+import { Home, RefreshCw, Lock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 import { getQueueCount } from '../../utils/offlineQueue';
@@ -31,6 +31,11 @@ const LoginPage = () => {
   const [tokenLoginLoading, setTokenLoginLoading] = useState(false);
   const [tokenLoginError, setTokenLoginError] = useState('');
   const [showPwdReset, setShowPwdReset] = useState(false);
+  const [pwdResetRole, setPwdResetRole] = useState('driver');
+  const [newPwd, setNewPwd]       = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdError, setPwdError]   = useState('');
   const [pendingCount, setPendingCount] = useState(() => getQueueCount());
 
   // Keep pending count in sync with queue events
@@ -84,8 +89,9 @@ const LoginPage = () => {
             localStorage.setItem('ecotrade_refresh_token', res.refresh_token);
           }
           localStorage.setItem('ecotrade_user', JSON.stringify(res.user));
-          // If must_change_password, show reset popup
+          // If must_change_password, show set-password form (driver is already authenticated)
           if (res.must_change_password) {
+            setPwdResetRole(res.user?.role || 'driver');
             setShowPwdReset(true);
           } else {
             navigate(roleToDashboard[res.user.role] || '/dashboard', { replace: true });
@@ -191,10 +197,49 @@ const LoginPage = () => {
                 />
               </>
             ) : showPwdReset ? (
-              <ForgotPasswordModal
-                onClose={() => { setShowPwdReset(false); clearMustChangePassword(); navigate('/dashboard/driver'); }}
-                onSubmit={(_email) => { setShowPwdReset(false); clearMustChangePassword(); navigate('/dashboard/driver'); }}
-              />
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 w-full">
+                <div className="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+                  <Lock size={28} className="text-amber-600 dark:text-amber-400" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white text-center mb-1">Set Your Password</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6">
+                  Your account is ready. Please set a new password to activate it and sign in.
+                </p>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (newPwd.length < 8) { setPwdError('Password must be at least 8 characters.'); return; }
+                  if (newPwd !== confirmPwd) { setPwdError('Passwords do not match.'); return; }
+                  setPwdLoading(true); setPwdError('');
+                  try {
+                    await authAPI.changePassword(newPwd);
+                    clearMustChangePassword();
+                    setShowPwdReset(false);
+                    navigate(roleToDashboard[pwdResetRole] || '/dashboard', { replace: true });
+                  } catch (err) {
+                    setPwdError(err instanceof Error ? err.message : 'Failed to set password.');
+                  } finally {
+                    setPwdLoading(false);
+                  }
+                }} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password</label>
+                    <input type="password" required minLength={8} value={newPwd} onChange={e => { setNewPwd(e.target.value); setPwdError(''); }}
+                      placeholder="At least 8 characters"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm Password</label>
+                    <input type="password" required value={confirmPwd} onChange={e => { setConfirmPwd(e.target.value); setPwdError(''); }}
+                      placeholder="Repeat new password"
+                      className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none" />
+                  </div>
+                  {pwdError && <p className="text-sm text-red-600 dark:text-red-400">{pwdError}</p>}
+                  <button type="submit" disabled={pwdLoading}
+                    className="w-full py-2.5 bg-cyan-600 text-white rounded-xl font-semibold hover:bg-cyan-700 disabled:opacity-50 transition-colors">
+                    {pwdLoading ? 'Saving…' : 'Activate Account & Sign In'}
+                  </button>
+                </form>
+              </div>
             ) : (
               <SignupWizard
                 onToggleMode={() => setShowSignup(false)}

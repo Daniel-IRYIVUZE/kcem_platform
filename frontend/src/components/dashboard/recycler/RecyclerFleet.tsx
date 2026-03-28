@@ -47,7 +47,7 @@ interface FleetRow {
   rating: number;
   routeLabel: string;
   onRoute: boolean;
-  status: 'active' | 'maintenance' | 'inactive';
+  status: 'active' | 'offline' | 'inactive';
   activeAssignments: number;
   nearestDistanceM: number | null;
   nearestDestination: ActiveAssignmentInfo | null;
@@ -254,7 +254,7 @@ export default function RecyclerFleet() {
     const onRoute = driver?.status === 'on_route' || !!activeRoute;
     const status: FleetRow['status'] = !driver
       ? 'inactive'
-      : (driver.status === 'off_duty' ? 'maintenance' : 'active');
+      : (driver.status === 'off_duty' ? 'offline' : 'active');
     const routeLabel = onRoute
       ? (activeRoute?.location || activeRoute?.hotel_name || `Collection #${activeRoute?.id ?? ''}`)
       : 'Idle';
@@ -306,7 +306,7 @@ export default function RecyclerFleet() {
       rating: driver.rating ?? 0,
       routeLabel,
       onRoute,
-      status: driver.status === 'off_duty' ? 'maintenance' : 'inactive',
+      status: 'inactive',
       activeAssignments: activeAssignmentsInfo.length,
       nearestDistanceM: nearestDestination?.distanceM ?? null,
       nearestDestination,
@@ -388,7 +388,7 @@ export default function RecyclerFleet() {
         <StatCard title="Fleet Vehicles" value={vehicles.length} icon={<Truck size={22} />} color="cyan" />
         <StatCard title="Assigned Vehicles" value={fleetRows.filter(f => !!f.driver).length} icon={<CheckCircle size={22} />} color="blue" />
         <StatCard title="On Route" value={myDrivers.filter(d => d.status === 'on_route').length} icon={<Activity size={22} />} color="purple" />
-        <StatCard title="Maintenance" value={myDrivers.filter(d => d.status === 'off_duty').length} icon={<AlertTriangle size={22} />} color="yellow" />
+        <StatCard title="Offline / Idle" value={myDrivers.filter(d => d.status === 'off_duty' || d.status === 'inactive').length} icon={<AlertTriangle size={22} />} color="yellow" />
       </div>
 
       {/* Fleet Vehicles table */}
@@ -420,7 +420,7 @@ export default function RecyclerFleet() {
                   <td className="px-3 py-2 text-gray-500 dark:text-gray-400">{[v.make, v.model, v.year].filter(Boolean).join(' ') || '—'}</td>
                   <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{v.capacity_kg.toLocaleString()} kg</td>
                   <td className="px-3 py-2">
-                    <span className={`capitalize text-xs px-2 py-0.5 rounded font-medium ${v.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : v.status === 'maintenance' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>{v.status}</span>
+                    <span className={`capitalize text-xs px-2 py-0.5 rounded font-medium ${v.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>{v.status}</span>
                   </td>
                   <td className="px-3 py-2">
                     {assignedDriver ? (
@@ -458,7 +458,7 @@ export default function RecyclerFleet() {
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
             <option value="all">All Status</option>
             <option value="active">Active</option>
-            <option value="maintenance">Maintenance</option>
+            <option value="offline">Offline</option>
             <option value="inactive">Inactive</option>
           </select>
         </div>
@@ -492,7 +492,13 @@ export default function RecyclerFleet() {
                   </td>
                   <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{f.capacity}</td>
                   <td className="px-3 py-2 text-gray-700 dark:text-gray-300 font-medium">{f.activeAssignments}</td>
-                  <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{typeof f.nearestDistanceM === 'number' ? formatDist(f.nearestDistanceM) : '—'}</td>
+                  <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
+                    {typeof f.nearestDistanceM === 'number'
+                      ? formatDist(f.nearestDistanceM)
+                      : f.activeAssignments === 0
+                        ? <span className="text-xs text-gray-400">No active jobs</span>
+                        : <span className="text-xs text-gray-400">No GPS</span>}
+                  </td>
                   <td className="px-3 py-2 text-gray-600 dark:text-gray-300 text-xs">{formatLastSeen(f.driver)}</td>
                   <td className="px-3 py-2 text-gray-600 dark:text-gray-300">{f.trips}</td>
                   <td className="px-3 py-2 text-yellow-600 font-semibold">{f.driver ? <span className="flex items-center gap-1"><Star size={12} className="fill-yellow-500"/> {f.rating.toFixed(1)}</span> : '—'}</td>

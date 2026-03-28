@@ -5,7 +5,7 @@ import { CheckCircle, Phone, ChevronRight } from 'lucide-react';
 const faqs = [
   { q: 'What do I do if I miss a collection stop?', a: 'Immediately contact fleet dispatch via the app or call the emergency line. Log the reason for the miss in the job notes.' },
   { q: 'How are my earnings calculated?', a: 'Earnings are based on completed stops × base rate + distance bonus + on-time bonus. Payouts are processed daily.' },
-  { q: 'What should I do if my vehicle breaks down?', a: 'Call the emergency maintenance line (0788-MAINT). Activate the hazard warning in the app and wait for roadside support.' },
+  { q: 'What should I do if my vehicle breaks down?', a: 'Pull over safely and activate your hazard lights. Contact fleet dispatch via the app or call the support line. Wait for roadside assistance.' },
   { q: 'How do I report a safety incident?', a: 'Use the "Report Incident" button in the app menu, or file a report through Support below. Include time, location, and a brief description.' },
 ];
 
@@ -32,7 +32,7 @@ export default function DriverSupport() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: 'Fleet Dispatch', value: '0788-FLEET-01', icon: <Phone size={20} className="text-cyan-600" /> },
-          { label: 'Emergency Maintenance', value: '0788-MAINT', icon: <Phone size={20} className="text-red-500" /> },
+          { label: 'Roadside Assistance', value: '0788-ROAD-01', icon: <Phone size={20} className="text-amber-500" /> },
           { label: 'Support Office Hours', value: 'Mon–Sat, 6am–9pm', icon: <ChevronRight size={20} className="text-gray-500 dark:text-gray-400" /> },
         ].map(item => (
           <div key={item.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-100 dark:border-gray-800 flex items-center gap-4">

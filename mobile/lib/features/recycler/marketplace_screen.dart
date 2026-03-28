@@ -62,7 +62,8 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
   }
 
   void _showBidModal(BuildContext context, WasteListing listing) {
-    final controller = TextEditingController();
+    final minTotal = (listing.volume * listing.minBid).ceil();
+    final controller = TextEditingController(text: minTotal.toString());
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -130,7 +131,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text('Your Bid Amount (RWF)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+            const Text('Your Total Bid Amount (RWF)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             const SizedBox(height: 8),
             TextField(
               controller: controller,
@@ -153,9 +154,12 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
             ),
             const SizedBox(height: 8),
             Row(
-              children: ['12,000', '15,000', '18,000'].map((amount) {
+              children: [minTotal, minTotal + 500, minTotal + 1000].map((amount) {
+                final label = amount >= 1000
+                    ? '${(amount / 1000).toStringAsFixed(amount % 1000 == 0 ? 0 : 1)}K'
+                    : amount.toString();
                 return GestureDetector(
-                  onTap: () => controller.text = amount.replaceAll(',', ''),
+                  onTap: () => controller.text = amount.toString(),
                   child: Container(
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -164,7 +168,7 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      'RWF $amount',
+                      'RWF $label',
                       style: const TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -177,7 +181,20 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
               onPressed: () async {
                 final amount = double.tryParse(
                         controller.text.replaceAll(',', '')) ??
-                    listing.minBid;
+                    minTotal.toDouble();
+                if (amount < minTotal) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Bid must be at least RWF ${minTotal.toString()} (${listing.minBid.toStringAsFixed(0)} × ${listing.volume.toStringAsFixed(0)} ${listing.unit}).',
+                      ),
+                      backgroundColor: Colors.red,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
                 final auth = ref.read(authProvider);
                 if (auth.user != null) {
                   await ref.read(bidsNotifierProvider.notifier).placeBid(

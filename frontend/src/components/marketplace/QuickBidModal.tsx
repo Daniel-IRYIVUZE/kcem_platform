@@ -1,6 +1,6 @@
 // components/marketplace/QuickBidModal.tsx
 import { useState, useEffect } from 'react';
-import { X, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { X, TrendingUp, AlertCircle } from 'lucide-react';
 
 interface QuickBidModalProps {
   listing: any;
@@ -9,16 +9,29 @@ interface QuickBidModalProps {
 }
 
 const QuickBidModal = ({ listing, onClose, onPlaceBid }: QuickBidModalProps) => {
-  // Safe access to currentBid with fallback
-  const currentBid = typeof listing.currentBid === 'number' ? listing.currentBid : 0;
   const availableVolume = Math.max(1, Number(listing.volume) || 1);
-  const minUnitBid = Math.max(0, Number(listing.currentBid || 0));
+
+  // currentBid is the TOTAL highest bid amount (e.g. 40,000 RWF for 200 kg)
+  const currentBidTotal = typeof listing.currentBid === 'number' ? listing.currentBid : 0;
+
+  // minBid is per-unit floor set by the hotel (e.g. 100 RWF/kg)
+  const listingMinPerUnit = Math.max(0, Number(listing.minBid || 0));
+
+  // Derive current per-unit price from total bid ÷ volume
+  const currentBidPerUnit = currentBidTotal > 0 ? Math.ceil(currentBidTotal / availableVolume) : 0;
+
+  // New bid must beat both the hotel's floor and the current highest per-unit price
+  const minUnitBid = Math.max(listingMinPerUnit, currentBidPerUnit);
+
   const [quantity, setQuantity] = useState<number>(availableVolume);
-  const [unitBidPrice, setUnitBidPrice] = useState<number>(minUnitBid + 100);
+  const [unitBidPrice, setUnitBidPrice] = useState<number>(minUnitBid + 1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [bidPlaced, setBidPlaced] = useState(false);
   const [error, setError] = useState('');
-  const totalBidPrice = Math.round(unitBidPrice * quantity);
+
+  // Recalculate initial price whenever minUnitBid changes (e.g. listing prop update)
+  useEffect(() => {
+    setUnitBidPrice(minUnitBid + 1);
+  }, [minUnitBid]);
 
   // Close on Escape
   useEffect(() => {
@@ -27,11 +40,14 @@ const QuickBidModal = ({ listing, onClose, onPlaceBid }: QuickBidModalProps) => 
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
+  const totalBidPrice = Math.round(unitBidPrice * quantity);
+
+  // Suggested per-unit prices (small increments above the minimum)
   const suggestedUnitBids = [
+    minUnitBid + 1,
+    minUnitBid + 50,
     minUnitBid + 100,
-    minUnitBid + 250,
-    minUnitBid + 500,
-    minUnitBid + 1000,
+    minUnitBid + 200,
   ];
 
   const handleSubmit = () => {
@@ -39,34 +55,27 @@ const QuickBidModal = ({ listing, onClose, onPlaceBid }: QuickBidModalProps) => 
       setError('Enter a valid price per unit.');
       return;
     }
-
     if (!Number.isFinite(quantity) || quantity <= 0) {
       setError('Enter a valid quantity/volume.');
       return;
     }
-
     if (quantity > availableVolume) {
       setError(`Quantity cannot exceed available volume (${availableVolume.toLocaleString()} ${listing.unit}).`);
       return;
     }
-
     if (unitBidPrice <= minUnitBid) {
-      setError(`Price per unit must be higher than current price per unit (RWF ${minUnitBid.toLocaleString()}).`);
+      setError(`Price per unit must be above RWF ${minUnitBid.toLocaleString()} / ${listing.unit}.`);
       return;
     }
-
-    if (totalBidPrice <= currentBid) {
-      setError(`Total bid price must be higher than current total bid (RWF ${currentBid.toLocaleString()}).`);
+    if (currentBidTotal > 0 && totalBidPrice <= currentBidTotal) {
+      setError(`Total bid must exceed current total bid (RWF ${currentBidTotal.toLocaleString()}).`);
       return;
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setBidPlaced(true);
-      // Notify parent after short delay so user sees success
-      setTimeout(() => onPlaceBid(totalBidPrice), 1200);
-    }, 1500);
+    setError('');
+    // Call parent handler which performs the actual API call
+    onPlaceBid(totalBidPrice);
   };
 
   return (
@@ -89,16 +98,27 @@ const QuickBidModal = ({ listing, onClose, onPlaceBid }: QuickBidModalProps) => 
         {/* Content */}
         <div className="p-4 sm:p-6">
           {/* Listing Summary */}
-          <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl mb-6">
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl mb-6">
             <p className="font-semibold text-gray-900 dark:text-white">{listing.business || listing.hotel}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{listing.type} • {Math.round(listing.volume).toLocaleString()} {listing.unit}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              {listing.type} • {Math.round(listing.volume).toLocaleString()} {listing.unit}
+            </p>
             <div className="flex justify-between mt-2">
-              <span className="text-sm text-gray-500 dark:text-gray-400">Current Total Bid</span>
-              <span className="font-bold text-cyan-600">RWF {currentBid.toLocaleString()}</span>
+              {currentBidTotal > 0 ? (
+                <>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Current Total Bid</span>
+                  <span className="font-bold text-cyan-600">RWF {currentBidTotal.toLocaleString()}</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Min Bid (per {listing.unit})</span>
+                  <span className="font-bold text-cyan-600">RWF {listingMinPerUnit.toLocaleString()} / {listing.unit}</span>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Bid Input */}
+          {/* Price per Unit Input */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Your Price per Unit (RWF/{listing.unit})
@@ -108,20 +128,21 @@ const QuickBidModal = ({ listing, onClose, onPlaceBid }: QuickBidModalProps) => 
               <input
                 type="number"
                 value={unitBidPrice}
-                onChange={(e) => {
-                  setUnitBidPrice(Number(e.target.value));
-                  setError('');
-                }}
+                onChange={(e) => { setUnitBidPrice(Number(e.target.value)); setError(''); }}
                 min={minUnitBid + 1}
-                step={10}
+                step={1}
                 className="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
               Minimum price per unit: RWF {minUnitBid.toLocaleString()} / {listing.unit}
+              {currentBidTotal > 0 && currentBidPerUnit > listingMinPerUnit && (
+                <span className="ml-1 text-gray-400">(based on current bid)</span>
+              )}
             </p>
           </div>
 
+          {/* Quantity Input */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Quantity / Volume ({listing.unit})
@@ -129,10 +150,7 @@ const QuickBidModal = ({ listing, onClose, onPlaceBid }: QuickBidModalProps) => 
             <input
               type="number"
               value={quantity}
-              onChange={(e) => {
-                setQuantity(Number(e.target.value));
-                setError('');
-              }}
+              onChange={(e) => { setQuantity(Number(e.target.value)); setError(''); }}
               min={1}
               max={availableVolume}
               step={1}
@@ -142,31 +160,28 @@ const QuickBidModal = ({ listing, onClose, onPlaceBid }: QuickBidModalProps) => 
               Available: {availableVolume.toLocaleString()} {listing.unit}
             </p>
             {error && (
-              <p className="text-red-500 text-sm mt-2 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-1" />
+              <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 {error}
               </p>
             )}
           </div>
 
-          {/* Suggested Bids */}
+          {/* Suggested Prices */}
           <div className="mb-6">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 flex items-center">
-              <TrendingUp className="w-4 h-4 mr-1" />
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 flex items-center gap-1">
+              <TrendingUp className="w-4 h-4" />
               Suggested price per unit
             </p>
             <div className="grid grid-cols-2 gap-2">
               {suggestedUnitBids.map((amount) => (
                 <button
                   key={amount}
-                  onClick={() => {
-                    setUnitBidPrice(amount);
-                    setError('');
-                  }}
+                  onClick={() => { setUnitBidPrice(amount); setError(''); }}
                   className={`p-2 border rounded-xl text-sm font-medium transition-colors ${
                     unitBidPrice === amount
                       ? 'border-cyan-600 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-400'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-cyan-300 dark:border-cyan-700'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-cyan-300 dark:hover:border-cyan-700 text-gray-700 dark:text-gray-300'
                   }`}
                 >
                   RWF {amount.toLocaleString()} / {listing.unit}
@@ -188,7 +203,7 @@ const QuickBidModal = ({ listing, onClose, onPlaceBid }: QuickBidModalProps) => 
                 <span className="text-cyan-800 dark:text-cyan-300">{quantity.toLocaleString()} {listing.unit}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-cyan-700 dark:text-cyan-400">Your Total Bid Price</span>
+                <span className="text-cyan-700 dark:text-cyan-400">Your Total Bid</span>
                 <span className="font-bold text-cyan-800 dark:text-cyan-300">RWF {totalBidPrice.toLocaleString()}</span>
               </div>
               <div className="flex justify-between text-sm">
@@ -209,48 +224,30 @@ const QuickBidModal = ({ listing, onClose, onPlaceBid }: QuickBidModalProps) => 
             By placing a bid, you agree to EcoTrade's terms of service and commit to completing the collection if you win.
           </p>
 
-          {/* Action ButKilograms */}
+          {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900 transition-colors text-gray-700 dark:text-gray-300"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900 transition-colors text-gray-700 dark:text-gray-300 disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !!error || unitBidPrice <= 0 || quantity <= 0}
+              disabled={isSubmitting || unitBidPrice <= minUnitBid || quantity <= 0 || quantity > availableVolume}
               className="flex-1 bg-cyan-600 text-white py-3 rounded-xl font-semibold hover:bg-cyan-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isSubmitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Placing...
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Placing…
                 </>
               ) : (
                 'Place Bid'
               )}
             </button>
           </div>
-
-          {/* Success Message */}
-          {bidPlaced && (
-            <div className="mt-4 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400 rounded-xl flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 flex-shrink-0 text-cyan-600" />
-              <div>
-                <p className="font-semibold">Bid placed successfully!</p>
-                <p className="text-sm">Total bid price RWF {totalBidPrice.toLocaleString()} on {listing.business || listing.hotel}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Processing indicator */}
-          {isSubmitting && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 rounded-xl flex items-center">
-              <AlertCircle className="w-4 h-4 mr-2" />
-              Processing your bid...
-            </div>
-          )}
         </div>
       </div>
     </div>

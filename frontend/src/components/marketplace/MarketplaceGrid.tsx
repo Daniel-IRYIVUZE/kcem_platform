@@ -128,15 +128,24 @@ const MarketplaceGrid = ({ listings, onListingClick, onBidClick, onClearFilters 
               <span className="truncate">{listing.location} • {listing.distance} km</span>
             </div>
 
-            {/* Volume & Current Bid */}
+            {/* Volume & Bid Info */}
             <div className="flex justify-between items-center mb-3">
               <div>
                 <p className="text-xs text-gray-400 dark:text-gray-500">Volume</p>
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{Math.round(listing.volume).toLocaleString()} {listing.unit}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-gray-400 dark:text-gray-500">Current Bid</p>
-                <p className="text-sm font-bold text-cyan-600">RWF {Math.round(listing.currentBid).toLocaleString()}</p>
+                {listing.bidCount > 0 ? (
+                  <>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Current Bid</p>
+                    <p className="text-sm font-bold text-cyan-600">RWF {Math.round(listing.currentBid).toLocaleString()}</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">Min Bid</p>
+                    <p className="text-sm font-bold text-cyan-600">RWF {Math.round(listing.minBid || listing.currentBid).toLocaleString()} / {listing.unit}</p>
+                  </>
+                )}
               </div>
             </div>
 

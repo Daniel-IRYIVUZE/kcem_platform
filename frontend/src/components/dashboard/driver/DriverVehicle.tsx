@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { driversAPI, vehiclesAPI, type DriverProfile, type VehicleItem } from '../../../services/api';
-import { Truck, Battery, Fuel, Activity, AlertTriangle } from 'lucide-react';
+import { Truck, Battery, Fuel, Activity } from 'lucide-react';
 
 const ProgressBar = ({ value, color }: { value: number; color: string }) => (
   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
@@ -29,16 +29,6 @@ export default function DriverVehicle() {
   const capacity = vehicle?.capacity_kg ? `${vehicle.capacity_kg} kg` : (driver?.capacity_kg ? `${driver.capacity_kg} kg` : '—');
   const vehicleStatus = vehicle?.status || 'active';
   const year = vehicle?.year ? String(vehicle.year) : '—';
-
-  const maintenance = [
-    { item: 'Oil Change', due: '2026-05-15', status: 'OK', daysLeft: 66 },
-    { item: 'Tire Rotation', due: '2026-04-30', status: 'Due Soon', daysLeft: 51 },
-    { item: 'Brake Inspection', due: '2026-06-01', status: 'OK', daysLeft: 83 },
-    { item: 'Air Filter', due: '2026-04-25', status: 'Action Required', daysLeft: 46 },
-  ];
-  const statusColor: Record<string, string> = {
-    'OK': 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20', 'Due Soon': 'text-yellow-700 dark:text-yellow-700 bg-yellow-50 dark:bg-yellow-900/20', 'Action Required': 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20',
-  };
 
   return (
     <div className="space-y-6">
@@ -84,22 +74,6 @@ export default function DriverVehicle() {
               <ProgressBar value={item.value} color={item.color} />
             </div>
           ))}
-        </div>
-      </div>
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-100 dark:border-gray-800">
-        <div className="flex items-center gap-2 mb-4"><AlertTriangle size={20} className="text-amber-500" /><h2 className="text-lg font-semibold text-gray-900 dark:text-white">Maintenance Schedule</h2></div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead><tr className="border-b border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 text-xs uppercase">{['Item','Due Date','Status','Days Left'].map(h => <th key={h} className="pb-3 pr-4">{h}</th>)}</tr></thead>
-            <tbody>{maintenance.map(m => (
-              <tr key={m.item} className="border-b border-gray-50 hover:bg-gray-50 dark:hover:bg-gray-700/50 dark:bg-gray-900">
-                <td className="py-3 pr-4 font-medium">{m.item}</td>
-                <td className="py-3 pr-4 text-gray-600 dark:text-gray-400">{m.due}</td>
-                <td className="py-3 pr-4"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColor[m.status]}`}>{m.status}</span></td>
-                <td className="py-3 text-gray-600 dark:text-gray-400">{m.daysLeft}d</td>
-              </tr>
-            ))}</tbody>
-          </table>
         </div>
       </div>
     </div>

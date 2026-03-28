@@ -37,7 +37,8 @@ interface ListingViewModel {
   timeLeftMinutes: number;
   image: string;
   bidCount: number;
-  currentBid: number;
+  currentBid: number;   // total amount of the highest bid
+  minBid: number;       // per-unit minimum price set by the hotel (RWF/kg)
   estimatedValue: number;
   quality: string;
   description: string;
@@ -120,7 +121,8 @@ function toListingViewModel(listing: WasteListing): ListingViewModel {
     timeLeftMinutes,
     image: imageUrl,
     bidCount: listing.bid_count || 0,
-    currentBid,
+    currentBid,  // total amount of the highest bid
+    minBid,      // per-unit floor set by hotel
     estimatedValue: Math.round((currentBid || minBid) * 1.2),
     quality: 'Grade A',
     description: listing.notes || listing.description || `${listing.waste_type} — ${Math.round(listing.volume)} ${listing.unit || 'kg'}`,
