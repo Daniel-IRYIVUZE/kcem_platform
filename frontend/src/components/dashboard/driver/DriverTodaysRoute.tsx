@@ -358,14 +358,6 @@ export default function DriverTodaysRoute() {
   const profileRating = driver?.rating ?? 0;
   const profileTrips = driver?.total_trips ?? 0;
 
-  const _handleMarkCollected = (dsId: number | undefined, _stopId: number | string) => {
-    if (dsId) {
-      collectionsAPI.updateStatus(dsId, { status: 'collected' }).then(load).catch(() => {});
-    }
-    setFlash(`Stop marked as collected!`);
-    setTimeout(() => setFlash(null), 2500);
-  };
-
   const handleNavigate = (address: string) => {
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address + ', Kigali, Rwanda')}`, '_blank');
   };
