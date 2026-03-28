@@ -388,7 +388,7 @@ export default function RecyclerFleet() {
         <StatCard title="Fleet Vehicles" value={vehicles.length} icon={<Truck size={22} />} color="cyan" />
         <StatCard title="Assigned Vehicles" value={fleetRows.filter(f => !!f.driver).length} icon={<CheckCircle size={22} />} color="blue" />
         <StatCard title="On Route" value={myDrivers.filter(d => d.status === 'on_route').length} icon={<Activity size={22} />} color="purple" />
-        <StatCard title="Offline / Idle" value={myDrivers.filter(d => d.status === 'off_duty' || d.status === 'inactive').length} icon={<AlertTriangle size={22} />} color="yellow" />
+        <StatCard title="Offline / Idle" value={myDrivers.filter(d => d.status === 'off_duty').length} icon={<AlertTriangle size={22} />} color="yellow" />
       </div>
 
       {/* Fleet Vehicles table */}

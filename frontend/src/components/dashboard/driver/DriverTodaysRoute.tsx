@@ -358,7 +358,7 @@ export default function DriverTodaysRoute() {
   const profileRating = driver?.rating ?? 0;
   const profileTrips = driver?.total_trips ?? 0;
 
-  const handleMarkCollected = (dsId: number | undefined, _stopId: number | string) => {
+  const _handleMarkCollected = (dsId: number | undefined, _stopId: number | string) => {
     if (dsId) {
       collectionsAPI.updateStatus(dsId, { status: 'collected' }).then(load).catch(() => {});
     }
