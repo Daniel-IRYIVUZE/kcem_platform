@@ -22,7 +22,7 @@ const RecyclerOverviewSection = () => {
       const totalSpent = transactions
         .filter((t: { status: string }) => t.status === 'completed')
         .reduce((s: number, t: { gross_amount?: number }) => s + (t.gross_amount || 0), 0);
-      const materialsProcessed = inventory.reduce(
+      const materialsProcessed = (inventory as { quantity?: number; weight_kg?: number }[]).reduce(
         (s: number, i: { quantity?: number; weight_kg?: number }) => s + (i.weight_kg || i.quantity || 0),
         0
       );
