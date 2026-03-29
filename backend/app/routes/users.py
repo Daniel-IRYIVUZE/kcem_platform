@@ -93,11 +93,16 @@ def delete_my_document(
 
 @router.get("", response_model=list[UserRead],
             dependencies=[Depends(require_admin)])
-def list_users(role: str | None = None, skip: int = 0, limit: int = 20,
+def list_users(role: str | None = None, status: str | None = None,
+               skip: int = 0, limit: int = 20,
                db: Session = Depends(get_db)):
+    from sqlalchemy.orm import Query as OrmQuery
+    q: OrmQuery = db.query(User)
     if role:
-        return crud_user.list_by_role(db, role=UserRole(role), skip=skip, limit=limit)
-    return crud_user.get_multi(db, skip=skip, limit=limit)
+        q = q.filter(User.role == UserRole(role))
+    if status:
+        q = q.filter(User.status == UserStatus(status))
+    return q.offset(skip).limit(limit).all()
 
 
 @router.get("/{user_id}", response_model=UserRead,

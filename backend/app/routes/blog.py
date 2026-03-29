@@ -1,6 +1,6 @@
 """routes/blog.py — Blog post endpoints."""
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
@@ -90,7 +90,7 @@ def get_post(post_id: int, db: Session = Depends(get_db)):
 # ── Admin Routes ─────────────────────────────────────────────────────────────
 
 
-@router.post("/", response_model=BlogPostRead, dependencies=[Depends(require_admin)])
+@router.post("/", response_model=BlogPostRead, status_code=201, dependencies=[Depends(require_admin)])
 def create_post(
     post_in: BlogPostCreate,
     current_user: User = Depends(get_current_user),
@@ -138,15 +138,14 @@ def update_post(
     return _to_read(updated)
 
 
-@router.delete("/{post_id}", dependencies=[Depends(require_admin)])
+@router.delete("/{post_id}", status_code=204, dependencies=[Depends(require_admin)])
 def delete_post(post_id: int, db: Session = Depends(get_db)):
     """Delete a blog post (admin only)."""
     post = crud_blog.get(db, id=post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Blog post not found")
-    
     crud_blog.remove(db, id=post_id)
-    return {"message": "Blog post deleted successfully"}
+    return Response(status_code=204)
 
 
 @router.post("/{post_id}/publish", response_model=BlogPostRead, dependencies=[Depends(require_admin)])

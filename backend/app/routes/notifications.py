@@ -1,5 +1,5 @@
 """routes/notifications.py — Notification endpoints."""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.crud import crud_notification
@@ -27,7 +27,9 @@ def unread_count(db: Session = Depends(get_db),
 @router.post("/{notif_id}/read", status_code=200)
 def mark_read(notif_id: int, db: Session = Depends(get_db),
               current_user: User = Depends(get_current_active_user)):
-    crud_notification.mark_read(db, notif_id=notif_id, user_id=current_user.id)
+    notif = crud_notification.mark_read(db, notif_id=notif_id, user_id=current_user.id)
+    if notif is None:
+        raise HTTPException(404, "Notification not found.")
     return {"ok": True}
 
 

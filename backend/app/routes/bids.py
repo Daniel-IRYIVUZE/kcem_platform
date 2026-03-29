@@ -64,6 +64,8 @@ def place_bid(payload: BidCreate, db: Session = Depends(get_db),
     listing = crud_listing.get(db, payload.listing_id)
     if not listing:
         raise HTTPException(404, "Listing not found.")
+    if payload.amount < listing.min_bid:
+        raise HTTPException(400, f"Bid amount must be at least {listing.min_bid}.")
     bid = crud_bid.create(db, obj_in=payload, recycler_id=recycler.id)
     crud_listing.update_bid_stats(db, listing=listing, new_bid_amount=bid.amount)
     # notify hotel
@@ -186,7 +188,10 @@ def increase_bid(bid_id: int, payload: dict, db: Session = Depends(get_db),
     recycler = _ensure_recycler_profile(db, current_user)
     if not recycler or bid.recycler_id != recycler.id:
         raise HTTPException(403, "Not your bid.")
-    bid = crud_bid.increase_bid(db, bid=bid, new_amount=payload["amount"])
+    new_amount = payload.get("amount", 0)
+    if new_amount <= bid.amount:
+        raise HTTPException(400, "New amount must be greater than the current bid amount.")
+    bid = crud_bid.increase_bid(db, bid=bid, new_amount=new_amount)
     db.refresh(bid)
     return enrich_bid(bid)
 

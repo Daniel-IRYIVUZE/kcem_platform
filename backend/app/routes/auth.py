@@ -8,6 +8,7 @@ from app.database import get_db
 from app.crud import crud_user, crud_audit_log
 from app.auth.jwt import create_access_token, create_refresh_token, verify_refresh_token, _decode_token
 from app.auth.dependencies import get_current_active_user
+from app.auth.password import verify_password
 from app.schemas.user import (
     UserCreate, UserRead, TokenResponse,
 )
@@ -192,7 +193,11 @@ def change_password(
     db: Session = Depends(get_db),
 ):
     """Change password (used for first-login forced change or voluntary change)."""
+    current_password = payload.get("current_password")
     new_password = payload.get("new_password", "")
+    if current_password is not None:
+        if not verify_password(current_password, current_user.password_hash):
+            raise HTTPException(status_code=400, detail="Current password is incorrect.")
     if len(new_password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters.")
     crud_user.change_password(db, user=current_user, new_password=new_password)

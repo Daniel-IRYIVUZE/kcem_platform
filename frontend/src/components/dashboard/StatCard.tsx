@@ -115,7 +115,7 @@ const StatCard = ({ title, value, icon, subtitle, change, progress, color = 'cya
       {/* Sparkline */}
       {sparkData && sparkData.length > 2 && (
         <div className="mt-3 -mx-1 opacity-70" style={{ height: 40, minWidth: 0 }}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <LineChart data={sparkData}>
               <Tooltip
                 content={() => null}

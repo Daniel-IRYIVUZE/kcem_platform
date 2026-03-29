@@ -41,5 +41,5 @@ class SupportTicketRead(BaseModel):
 
 
 class TicketResponseCreate(BaseModel):
-    from_name: str
+    from_name: Optional[str] = "Support Team"
     message:   str

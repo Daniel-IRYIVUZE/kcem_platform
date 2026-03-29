@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 import { tmpdir } from 'os'
+/// <reference types="vitest" />
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const r = (p: string) => resolve(__dirname, 'node_modules', p)
@@ -46,6 +47,17 @@ export default defineConfig({
       '@ant-design/icons',
       '@ant-design/cssinjs',
     ],
+  },
+
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    include: ['src/**/*.test.{ts,tsx}'],
+    coverage: {
+      reporter: ['text'],
+      include: ['src/services', 'src/utils', 'src/components/dashboard/StatCard.tsx'],
+    },
   },
 
   build: {
