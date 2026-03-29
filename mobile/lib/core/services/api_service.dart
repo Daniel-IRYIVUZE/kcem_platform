@@ -334,7 +334,7 @@ class ApiService {
     if (minVolume != null) queryParams['min_volume'] = minVolume.toString();
     if (status != null) queryParams['status'] = status;
     
-    final res = await _request('GET', '/listings', queryParams: queryParams, requiresAuth: false);
+    final res = await _request('GET', '/listings/', queryParams: queryParams, requiresAuth: false);
     if (res is List) return {'items': res};
     if (res is Map<String, dynamic>) return res;
     return {'items': <dynamic>[]};
@@ -782,7 +782,7 @@ class ApiService {
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
     if (featuredOnly != null) queryParams['featured_only'] = featuredOnly.toString();
     
-    return await _request('GET', '/blog', queryParams: queryParams, requiresAuth: false) as List<dynamic>;
+    return await _request('GET', '/blog/', queryParams: queryParams, requiresAuth: false) as List<dynamic>;
   }
   
   /// Get blog post by slug (public, increments view count)
@@ -823,7 +823,7 @@ class ApiService {
     bool? isPublished,
     bool? isFeatured,
   }) async {
-    return await _request('POST', '/blog', body: {
+    return await _request('POST', '/blog/', body: {
       'title': title,
       if (slug != null) 'slug': slug,
       'excerpt': excerpt,

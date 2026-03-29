@@ -650,7 +650,7 @@ export const listingsAPI = {
         Object.entries(params || {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
       )
     ).toString();
-    return request<WasteListing[]>(`/listings${q ? `?${q}` : ''}`);
+    return request<WasteListing[]>(`/listings/${q ? `?${q}` : ''}`);
   },
 
   get: (id: number) => request<WasteListing>(`/listings/${id}`),
@@ -669,7 +669,7 @@ export const listingsAPI = {
   getBids: (listingId: number) => request<Bid[]>(`/bids/listing/${listingId}`),
 
   placeBid: (listingId: number, data: { amount: number; quantity?: number; note?: string; collection_preference?: string }) =>
-    request<Bid>('/bids', {
+    request<Bid>('/bids/', {
       method: 'POST',
       body: JSON.stringify({
         listing_id: listingId,
@@ -728,7 +728,7 @@ export const bidsAPI = {
 export const transactionsAPI = {
   list: (params?: { status?: string; skip?: number; limit?: number }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
-    return request<Transaction[]>(`/transactions${q ? `?${q}` : ''}`);
+    return request<Transaction[]>(`/transactions/${q ? `?${q}` : ''}`);
   },
 
   get: (id: number) => request<Transaction>(`/transactions/${id}`),
@@ -761,7 +761,7 @@ export const collectionsAPI = {
         Object.entries(params || {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
       )
     ).toString();
-    return request<Collection[]>(`/collections${q ? `?${q}` : ''}`);
+    return request<Collection[]>(`/collections/${q ? `?${q}` : ''}`);
   },
 
   // Role-scoped: returns only the current user's collections
@@ -777,7 +777,7 @@ export const collectionsAPI = {
   get: (id: number) => request<Collection>(`/collections/${id}`),
 
   create: (data: Partial<Collection>) =>
-    request<Collection>('/collections', { method: 'POST', body: JSON.stringify(data) }),
+    request<Collection>('/collections/', { method: 'POST', body: JSON.stringify(data) }),
 
   updateStatus: (id: number, data: { status: string; actual_weight?: number; rating?: number; notes?: string }) =>
     request<Collection>(`/collections/${id}/advance`, { method: 'POST', body: JSON.stringify(data) }),
@@ -818,13 +818,13 @@ export const collectionsAPI = {
 export const supportAPI = {
   list: (params?: { status?: string; priority?: string; skip?: number; limit?: number }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
-    return request<SupportTicket[]>(`/support${q ? `?${q}` : ''}`);
+    return request<SupportTicket[]>(`/support/${q ? `?${q}` : ''}`);
   },
 
   get: (id: number) => request<SupportTicket>(`/support/${id}`),
 
   create: (data: { subject: string; message: string; priority?: string }) =>
-    request<SupportTicket>('/support', { method: 'POST', body: JSON.stringify(data) }),
+    request<SupportTicket>('/support/', { method: 'POST', body: JSON.stringify(data) }),
 
   createPublic: (data: {
     name: string;
@@ -849,12 +849,12 @@ export const supportAPI = {
 // ─── Messages ─────────────────────────────────────────────────────────────────
 
 export const messagesAPI = {
-  list: () => request<Message[]>('/messages'),
+  list: () => request<Message[]>('/messages/'),
 
   get: (id: number) => request<Message>(`/messages/${id}`),
 
   send: (data: { to_user_id: number; to_name: string; subject: string; body: string }) =>
-    request<Message>('/messages', { method: 'POST', body: JSON.stringify(data) }),
+    request<Message>('/messages/', { method: 'POST', body: JSON.stringify(data) }),
 
   reply: (id: number, body: string) =>
     request<MessageReply>(`/messages/${id}/replies`, { method: 'POST', body: JSON.stringify({ body }) }),
@@ -897,11 +897,11 @@ export const recyclingAPI = {
         Object.entries(params || {}).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
       )
     ).toString();
-    return request<RecyclingEvent[]>(`/recycling${q ? `?${q}` : ''}`);
+    return request<RecyclingEvent[]>(`/recycling/${q ? `?${q}` : ''}`);
   },
 
   create: (data: { date: string; waste_type: string; weight: number; location?: string; points?: number; notes?: string }) =>
-    request<RecyclingEvent>('/recycling', { method: 'POST', body: JSON.stringify(data) }),
+    request<RecyclingEvent>('/recycling/', { method: 'POST', body: JSON.stringify(data) }),
 
   verify: (id: number) =>
     request<RecyclingEvent>(`/recycling/${id}/verify`, { method: 'POST' }),
@@ -953,7 +953,7 @@ export const blogAPI = {
     featured_only?: boolean;
   }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
-    return request<BlogPost[]>(`/blog${q ? `?${q}` : ''}`);
+    return request<BlogPost[]>(`/blog/${q ? `?${q}` : ''}`);
   },
 
   getBySlug: (slug: string) =>
@@ -972,7 +972,7 @@ export const blogAPI = {
   },
 
   create: (data: BlogPostCreate) =>
-    request<BlogPost>('/blog', { method: 'POST', body: JSON.stringify(data) }),
+    request<BlogPost>('/blog/', { method: 'POST', body: JSON.stringify(data) }),
 
   update: (id: number, data: BlogPostUpdate) =>
     request<BlogPost>(`/blog/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
@@ -1017,7 +1017,7 @@ export const adminAPI = {
         ),
       ).toString();
 
-      const items = await request<WasteListing[]>(`/listings${fallbackParams ? `?${fallbackParams}` : ''}`);
+      const items = await request<WasteListing[]>(`/listings/${fallbackParams ? `?${fallbackParams}` : ''}`);
       return { items, usedFallback: true };
     }
   },
@@ -1102,10 +1102,10 @@ export interface HotelProfile {
 export const hotelsAPI = {
   me: () => request<HotelProfile>('/hotels/me'),
   create: (data: { hotel_name: string; address: string; city?: string; phone?: string; website?: string; description?: string; tin_number?: string; latitude?: number; longitude?: number }) =>
-    request<HotelProfile>('/hotels', { method: 'POST', body: JSON.stringify(data) }),
+    request<HotelProfile>('/hotels/', { method: 'POST', body: JSON.stringify(data) }),
   list: (params?: { skip?: number; limit?: number }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
-    return request<HotelProfile[]>(`/hotels${q ? `?${q}` : ''}`);
+    return request<HotelProfile[]>(`/hotels/${q ? `?${q}` : ''}`);
   },
   get: (id: number) => request<HotelProfile>(`/hotels/${id}`),
   update: (data: Partial<HotelProfile>) =>
@@ -1152,7 +1152,7 @@ export const recyclersAPI = {
     tin_number?: string;
     latitude?: number;
     longitude?: number;
-  }) => request<RecyclerProfile>('/recyclers', { method: 'POST', body: JSON.stringify(data) }),
+  }) => request<RecyclerProfile>('/recyclers/', { method: 'POST', body: JSON.stringify(data) }),
   update: (data: {
     company_name?: string;
     address?: string;
@@ -1166,7 +1166,7 @@ export const recyclersAPI = {
   }) => request<RecyclerProfile>('/recyclers/me', { method: 'PATCH', body: JSON.stringify(data) }),
   list: (params?: { skip?: number; limit?: number }) => {
     const q = new URLSearchParams(params as Record<string, string>).toString();
-    return request<RecyclerProfile[]>(`/recyclers${q ? `?${q}` : ''}`);
+    return request<RecyclerProfile[]>(`/recyclers/${q ? `?${q}` : ''}`);
   },
   get: (id: number) => request<RecyclerProfile>(`/recyclers/${id}`),
 };
@@ -1188,7 +1188,7 @@ export interface InventoryItem {
 export const inventoryAPI = {
   mine: () => request<InventoryItem[]>('/inventory/mine'),
   create: (data: { material_type: string; current_stock?: number; capacity?: number; unit?: string; notes?: string }) =>
-    request<InventoryItem>('/inventory', { method: 'POST', body: JSON.stringify(data) }),
+    request<InventoryItem>('/inventory/', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: number, data: { material_type?: string; current_stock?: number; capacity?: number; unit?: string; notes?: string }) =>
     request<InventoryItem>(`/inventory/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: (id: number) => request<void>(`/inventory/${id}`, { method: 'DELETE' }),
@@ -1247,7 +1247,7 @@ export const vehiclesAPI = {
 export const driversAPI = {
   list: (params?: { skip?: number; limit?: number }) => {
     const q = new URLSearchParams(params as Record<string, string> || {}).toString();
-    return request<DriverProfile[]>(`/drivers${q ? `?${q}` : ''}`);
+    return request<DriverProfile[]>(`/drivers/${q ? `?${q}` : ''}`);
   },
   available: () => request<DriverProfile[]>('/drivers/available'),
   get: (id: number) => request<DriverProfile>(`/drivers/details/${id}`),
