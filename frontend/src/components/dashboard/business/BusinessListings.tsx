@@ -1,7 +1,7 @@
 // components/dashboard/business/BusinessListings.tsx
 import { useState, useEffect } from 'react';
 import { toDataURL as qrToDataURL } from 'qrcode';
-import { listingsAPI, resolveMediaUrl, type WasteListing, type Bid, type ListingImage } from '../../../services/api';
+import { listingsAPI, bidsAPI, resolveMediaUrl, type WasteListing, type Bid, type ListingImage } from '../../../services/api';
 import { downloadCSV, saveAll } from '../../../utils/dataStore';
 import { Package, CheckCircle, Clock, Eye, PlusCircle, Download, Search, Trash2, X, Edit2, Image as ImageIcon, Star, Check, QrCode } from 'lucide-react';
 import StatCard from '../StatCard';
@@ -168,6 +168,20 @@ export default function BusinessListings() {
       listingsAPI.getBids(listingId).then(setSelectedBids).catch(() => {});
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Failed to accept bid.';
+      setBidModalMessageType('error');
+      setBidModalMessage(msg);
+    }
+  };
+
+  const handleRejectBid = async (listingId: number, bidId: number) => {
+    try {
+      await bidsAPI.reject(bidId);
+      setBidModalMessageType('success');
+      setBidModalMessage('Bid rejected.');
+      loadListings();
+      listingsAPI.getBids(listingId).then(setSelectedBids).catch(() => {});
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to reject bid.';
       setBidModalMessageType('error');
       setBidModalMessage(msg);
     }
@@ -586,7 +600,12 @@ export default function BusinessListings() {
                       <div className="text-right">
                         <p className="text-xs text-gray-500 dark:text-gray-400">{(bid as any).quantity ? `For ${(bid as any).quantity} ${selectedListing.unit}` : 'Total Bid Price'}</p>
                         <p className="text-lg font-bold text-cyan-600">RWF {(bid.amount ?? 0).toLocaleString()}</p>
-                        {bid.status === 'active' && <button onClick={() => handleAcceptBid(selectedListing.id, bid.id)} className="mt-1 px-3 py-1 text-xs bg-cyan-600 text-white rounded hover:bg-cyan-700">Accept Bid</button>}
+                        {bid.status === 'active' && (
+                          <div className="flex gap-1 mt-1">
+                            <button onClick={() => handleAcceptBid(selectedListing.id, bid.id)} className="px-3 py-1 text-xs bg-cyan-600 text-white rounded hover:bg-cyan-700">Accept</button>
+                            <button onClick={() => handleRejectBid(selectedListing.id, bid.id)} className="px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600">Reject</button>
+                          </div>
+                        )}
                         {bid.status === 'accepted' && <span className="text-xs text-green-600 dark:text-green-400 font-semibold flex items-center gap-0.5"><Check size={11}/> Accepted</span>}
                       </div>
                     </div>

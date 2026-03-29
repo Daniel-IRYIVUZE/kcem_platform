@@ -713,6 +713,9 @@ export const bidsAPI = {
     return request<Bid[]>(`/bids/mine${q ? `?${q}` : ''}`);
   },
 
+  reject: (bidId: number) =>
+    request<Bid>(`/bids/${bidId}/reject`, { method: 'POST' }),
+
   withdraw: (bidId: number) =>
     request<Bid>(`/bids/${bidId}/withdraw`, { method: 'POST' }),
 
