@@ -91,7 +91,7 @@ def delete_my_document(
 
 # ── Admin endpoints ────────────────────────────────────────────────────────────
 
-@router.get("/", response_model=list[UserRead],
+@router.get("", response_model=list[UserRead],
             dependencies=[Depends(require_admin)])
 def list_users(role: str | None = None, skip: int = 0, limit: int = 20,
                db: Session = Depends(get_db)):
