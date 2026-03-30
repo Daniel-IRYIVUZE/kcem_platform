@@ -45,6 +45,9 @@ export default defineConfig({
       'antd',
       '@ant-design/icons',
       '@ant-design/cssinjs',
+      'framer-motion',
+      'leaflet',
+      'react-leaflet',
     ],
   },
 

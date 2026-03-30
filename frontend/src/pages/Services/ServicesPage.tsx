@@ -9,7 +9,7 @@ import RecyclerServices from '../../components/services/RecyclerServices';
 import DriverServices from '../../components/services/DriverServices';
 import ServiceComparison from '../../components/services/ServiceComparison';
 import FAQSection from '../../components/services/FAQSection';
-import TestimonialsSection from '../../components/services/TestimonialsSection';
+// import TestimonialsSection from '../../components/services/TestimonialsSection';
 import CTASection from '../../components/services/CTASection';
 
 const ServicesPage = () => {
@@ -38,7 +38,7 @@ const ServicesPage = () => {
         <ServiceComparison />
 
         {/* Testimonials */}
-        <TestimonialsSection />
+        {/* <TestimonialsSection /> */}
 
         {/* FAQ Section */}
         <FAQSection />

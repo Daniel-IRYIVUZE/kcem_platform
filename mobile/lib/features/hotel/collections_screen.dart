@@ -20,6 +20,10 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  Future<void> _refresh() async {
+    await ref.read(collectionsNotifierProvider.notifier).refresh();
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+  }
 
   @override
   void initState() {
@@ -60,8 +64,8 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _ScheduledList(collections: scheduled),
-          _HistoryList(history: history),
+          _ScheduledList(collections: scheduled, onRefresh: _refresh),
+          _HistoryList(history: history, onRefresh: _refresh),
         ],
       ),
     );
@@ -70,31 +74,45 @@ class _CollectionsScreenState extends ConsumerState<CollectionsScreen>
 
 class _ScheduledList extends StatelessWidget {
   final List<Collection> collections;
-  const _ScheduledList({required this.collections});
+  final Future<void> Function() onRefresh;
+  const _ScheduledList({required this.collections, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
     if (collections.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.local_shipping_outlined, size: 56, color: AppColors.textTertiary),
-            SizedBox(height: 12),
-            Text('No scheduled collections', style: TextStyle(color: AppColors.textSecondary)),
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.local_shipping_outlined, size: 56, color: AppColors.textTertiary),
+                  SizedBox(height: 12),
+                  Text('No scheduled collections', style: TextStyle(color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
           ],
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      itemCount: collections.length,
-      itemBuilder: (context, index) {
-        return _CollectionCard(collection: collections[index])
-            .animate()
-            .slideY(begin: 0.15, duration: 300.ms, delay: (index * 80).ms)
-            .fadeIn();
-      },
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        itemCount: collections.length,
+        itemBuilder: (context, index) {
+          return _CollectionCard(collection: collections[index])
+              .animate()
+              .slideY(begin: 0.15, duration: 300.ms, delay: (index * 80).ms)
+              .fadeIn();
+        },
+      ),
     );
   }
 }
@@ -167,7 +185,10 @@ class _CollectionCard extends StatelessWidget {
                     ? StatusType.success
                     : collection.status == CollectionStatus.enRoute
                         ? StatusType.warning
-                        : StatusType.neutral,
+                        : collection.status == CollectionStatus.collected ||
+                                collection.status == CollectionStatus.verified
+                            ? StatusType.success
+                            : StatusType.neutral,
               ),
             ],
           ),
@@ -269,25 +290,38 @@ class _CollectionCard extends StatelessWidget {
 
 class _HistoryList extends StatelessWidget {
   final List<Collection> history;
-  const _HistoryList({required this.history});
+  final Future<void> Function() onRefresh;
+  const _HistoryList({required this.history, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
     if (history.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.history, size: 56, color: AppColors.textTertiary),
-            SizedBox(height: 12),
-            Text('No collection history', style: TextStyle(color: AppColors.textSecondary)),
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.history, size: 56, color: AppColors.textTertiary),
+                  SizedBox(height: 12),
+                  Text('No collection history', style: TextStyle(color: AppColors.textSecondary)),
+                ],
+              ),
+            ),
           ],
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      itemCount: history.length,
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        itemCount: history.length,
       itemBuilder: (context, index) {
         final item = history[index];
         return Container(
@@ -335,6 +369,7 @@ class _HistoryList extends StatelessWidget {
           ),
         ).animate().slideY(begin: 0.15, duration: 300.ms, delay: (index * 60).ms).fadeIn();
       },
+      ),
     );
   }
 }

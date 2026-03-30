@@ -22,6 +22,7 @@ function TrackingModal({ collectionId, onClose }: { collectionId: number; onClos
   const leafletRef = useRef<any>(null);
   const driverMarkerRef = useRef<any>(null);
   const hotelMarkerRef = useRef<any>(null);
+  const routeLineRef = useRef<any>(null);
   const isMapReady = useRef(false);
 
   const fetchTracking = useCallback(async () => {
@@ -60,6 +61,9 @@ function TrackingModal({ collectionId, onClose }: { collectionId: number; onClos
     };
     init();
     return () => {
+      routeLineRef.current = null;
+      driverMarkerRef.current = null;
+      hotelMarkerRef.current = null;
       leafletMapRef.current?.remove();
       leafletMapRef.current = null;
       leafletRef.current = null;
@@ -68,7 +72,7 @@ function TrackingModal({ collectionId, onClose }: { collectionId: number; onClos
   }, []);
 
   // Update markers when tracking data or map readiness changes
-  const updateMarkers = useCallback((data: CollectionTracking) => {
+  const updateMarkers = useCallback(async (data: CollectionTracking) => {
     const L = leafletRef.current;
     const map = leafletMapRef.current;
     if (!L || !map || !isMapReady.current) return;
@@ -109,12 +113,35 @@ function TrackingModal({ collectionId, onClose }: { collectionId: number; onClos
       }
     }
 
-    // Fit map to show both markers
     if (points.length === 2) {
-      // Draw/update route line
-      L.polyline(points, { color: '#06b6d4', weight: 3, dashArray: '6 4', opacity: 0.8 }).addTo(map);
-      const group = L.latLngBounds(points);
-      map.fitBounds(group.pad(0.3));
+      // Remove previous route line before drawing a new one
+      if (routeLineRef.current) {
+        routeLineRef.current.remove();
+        routeLineRef.current = null;
+      }
+
+      // Fetch road-following route from OSRM, fall back to straight dashed line
+      const [p1, p2] = points;
+      try {
+        const res = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${p1[1]},${p1[0]};${p2[1]},${p2[0]}?overview=full&geometries=geojson`
+        );
+        const json = await res.json();
+        if (json.code === 'Ok' && json.routes?.[0]?.geometry?.coordinates?.length) {
+          // OSRM returns [lng, lat] — convert to Leaflet [lat, lng]
+          const roadCoords: [number, number][] = json.routes[0].geometry.coordinates.map(
+            ([lng, lat]: [number, number]) => [lat, lng]
+          );
+          routeLineRef.current = L.polyline(roadCoords, { color: '#06b6d4', weight: 4, opacity: 0.85 }).addTo(map);
+        } else {
+          throw new Error('No route');
+        }
+      } catch {
+        // OSRM unavailable — fall back to straight dashed line
+        routeLineRef.current = L.polyline(points, { color: '#06b6d4', weight: 3, dashArray: '6 4', opacity: 0.8 }).addTo(map);
+      }
+
+      map.fitBounds(L.latLngBounds(points).pad(0.3));
     } else if (points.length === 1) {
       map.setView(points[0], 15);
     }

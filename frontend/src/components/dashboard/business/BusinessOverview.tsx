@@ -126,7 +126,7 @@ export default function BusinessOverview() {
       />
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Active Listings"
           value={openListings.length}
@@ -134,13 +134,13 @@ export default function BusinessOverview() {
           color="cyan"
           sparkline={[2, 4, 3, 5, 6, 4, 7, openListings.length]}
         />
-        <StatCard
+        {/* <StatCard
           title="Total Revenue"
           value={`RWF ${(totalRevenue / 1000).toFixed(0)}K`}
           icon={<DollarSign size={22}/>}
           color="blue"
           sparkline={sparkRevenue}
-        />
+        /> */}
         <StatCard
           title="Green Score"
           value={greenScore}
@@ -219,7 +219,7 @@ export default function BusinessOverview() {
       </div>
 
       {/* Recent Messages */}
-      <Widget
+      {/* <Widget
         title="Recent Messages"
         icon={<MessageSquare size={18} className="text-cyan-600 dark:text-cyan-400"/>}
         badge={unreadMsgs > 0 ? `${unreadMsgs} new` : undefined}
@@ -242,7 +242,7 @@ export default function BusinessOverview() {
           ))}
           {messages.length === 0 && <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-6">No messages yet</p>}
         </div>
-      </Widget>
+      </Widget> */}
 
       {/* Activity + Eco Impact */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
