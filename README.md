@@ -1,45 +1,81 @@
-# EcoTrade Rwanda Platform
+# EcoTrade Rwanda
 
-EcoTrade Rwanda is a digital B2B circular economy marketplace that connects waste generators (hotels, restaurants, and businesses) with recyclers, drivers, and individual collectors in Kigali, Rwanda. The platform enables transparent waste-to-resource transactions, promotes environmental sustainability, and creates economic opportunities.
+**A circular-economy waste marketplace connecting HORECA businesses, recyclers, and drivers across Rwanda.**
 
-The platform consists of three fully implemented codebases:
+EcoTrade Rwanda digitises waste collection — hotels and restaurants list their recyclable waste, licensed recyclers bid to collect it, and drivers are routed to each pickup. Every completed collection earns GreenScore points, closing the loop between environmental impact and business incentive.
 
-- **Web Frontend** — a React and TypeScript single-page application connected to the live backend
-- **Mobile Application** — a Flutter app for Android, iOS, and Web with real OpenStreetMap integration
-- **Backend API** — a production-ready FastAPI REST server with SQLite, JWT auth, and 14 route modules
+---
 
-GitHub: https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git
-Live Demo: https://ecotrade-rwanda.netlify.app
+## Important Links
+
+| Resource | URL |
+|---|---|
+| **Live Web App** | https://ecotrade-rwanda.netlify.app |
+| **Backend API** | https://api.ecotrade-rwanda.com/api |
+| **API Docs (Swagger)** | https://api.ecotrade-rwanda.com/api/docs |
+| **GitHub Repository** | https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git |
+| **Project Report** | _[Insert report link here]_ |
+| **Demo Video** | _[Insert demo video link here]_ |
+| **Presentation Slides** | _[Insert slides link here]_ |
 
 ---
 
 ## Table of Contents
 
-- [Platform Overview](#platform-overview)
+- [Project Overview](#project-overview)
+- [System Architecture](#system-architecture)
 - [Repository Structure](#repository-structure)
-- [Frontend — Quick Start](#frontend--quick-start)
-- [Mobile — Quick Start](#mobile--quick-start)
-- [Backend — Quick Start](#backend--quick-start)
-- [Demo Login Credentials](#demo-login-credentials)
+- [Quick Start](#quick-start)
+- [Demo Credentials](#demo-credentials)
+- [User Roles](#user-roles)
 - [Key Features](#key-features)
+- [GreenScore System](#greenscore-system)
 - [Technology Stack](#technology-stack)
+- [API Overview](#api-overview)
+- [Environment Variables](#environment-variables)
 - [Deployment](#deployment)
 - [Contact](#contact)
 - [License](#license)
 
 ---
 
-## Platform Overview
+## Project Overview
 
 EcoTrade Rwanda addresses the waste management challenge in Kigali by providing a structured digital marketplace where:
 
-- Businesses list recyclable waste materials (used cooking oil, glass, paper, plastic)
-- Recyclers browse listings and submit bids
-- Drivers are assigned collection routes and track their earnings
-- Administrators oversee platform activity, users, and financial reporting
-- Individual users participate in community waste collection initiatives
+- **HORECA businesses** (Hotels, Restaurants, Cafes) list recyclable waste — used cooking oil, glass, paper, plastic, metal, e-waste, textiles, and organic material
+- **Recyclers** browse all open listings on an interactive map and submit bids through an auction system with minimum bids, reserve prices, and auto-accept thresholds
+- **Drivers** are assigned to collection routes, scan QR codes on arrival to verify each pickup, and track daily earnings
+- **Administrators** oversee platform activity — users, listings, bids, transactions, blog posts, support tickets, and system configuration
+- **Individual users** participate in community waste listings and track their personal environmental impact
 
-The platform tracks environmental impact metrics including CO2 savings, water saved, and total waste diverted from landfills.
+The platform is built on three independent but connected codebases (backend API, web frontend, Flutter mobile) all sharing a single JWT-based authentication system.
+
+---
+
+## System Architecture
+
+```
+┌───────────────────────────────────────────────────────────────────┐
+│                         EcoTrade Rwanda                           │
+│                                                                   │
+│  ┌─────────────────┐   ┌─────────────────┐   ┌───────────────┐  │
+│  │  Web Frontend   │   │  Mobile (Flutter)│   │  Mobile Build │  │
+│  │  React + TS     │   │  Chrome / Web    │   │  Android APK  │  │
+│  │  Netlify        │   │  (flutter run)   │   │  Windows EXE  │  │
+│  └────────┬────────┘   └────────┬─────────┘   └───────┬───────┘  │
+│           │                    │                      │           │
+│           └────────────────────┴──────────────────────┘           │
+│                                │  HTTPS + JWT                     │
+│                     ┌──────────▼──────────┐                       │
+│                     │   FastAPI Backend    │                       │
+│                     │   Python 3.11+       │                       │
+│                     │   SQLAlchemy ORM     │                       │
+│                     │   SQLite database    │                       │
+│                     │   18 route modules   │                       │
+│                     └─────────────────────┘                       │
+└───────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -47,294 +83,370 @@ The platform tracks environmental impact metrics including CO2 savings, water sa
 
 ```
 EcoTrade_Rwanda/
-├── README.md          # This file — combined platform overview
-├── LICENSE
-├── frontend/          # React + TypeScript web application
+├── README.md                  # This file — platform overview and all links
+├── LICENSE                    # MIT License
+├── .gitignore
+├── alembic/                   # Database migration scripts
+├── alembic.ini                # Alembic configuration
+├── run_tests.sh               # Test runner script
+├── backend/                   # FastAPI REST API (Python)
+│   ├── app/
+│   │   ├── main.py            # App factory + router registration
+│   │   ├── config.py          # Environment config (pydantic-settings)
+│   │   ├── database.py        # SQLAlchemy engine + auto table creation
+│   │   ├── auth/              # JWT, bcrypt, role dependencies
+│   │   ├── models/            # 17 ORM models
+│   │   ├── schemas/           # 17 Pydantic v2 schemas
+│   │   ├── crud/              # 13 CRUD modules
+│   │   ├── routes/            # 18 API route files
+│   │   └── services/          # green_score, notifications, payments, email
+│   ├── seed_comprehensive.py  # Full Kigali demo data with real GPS
+│   ├── seed_blogs.py          # Blog post seeder
+│   ├── requirements.txt
+│   └── README.md              # Backend setup guide
+├── frontend/                  # React + TypeScript web application
 │   ├── src/
-│   ├── public/
+│   │   ├── components/        # 150+ React components (5 dashboards)
+│   │   ├── context/           # Auth, Theme, Notification contexts
+│   │   ├── services/api.ts    # Centralised API client
+│   │   ├── pages/             # Route-level page components
+│   │   └── utils/             # Data store, offline sync, toast helpers
+│   ├── netlify.toml           # Netlify build + redirect config
 │   ├── package.json
-│   └── README.md      # Frontend-specific setup guide
-├── mobile/            # Flutter mobile and web application
-│   ├── lib/
-│   ├── assets/
-│   ├── pubspec.yaml
-│   └── README.md      # Mobile-specific setup guide
-└── backend/           # FastAPI Python REST API
-    ├── app/
-    ├── seed_comprehensive.py
-    ├── requirements.txt
-    └── README.md      # Backend-specific setup guide
+│   └── README.md              # Frontend setup guide
+└── mobile/                    # Flutter mobile / desktop / web app
+    ├── lib/
+    │   ├── main.dart           # App entry point (Hive + Riverpod init)
+    │   ├── core/               # Models, providers, services, router, theme
+    │   └── features/           # hotel/, recycler/, driver/, auth/, shared/
+    ├── assets/                 # Images, icons, Lottie animations
+    ├── pubspec.yaml
+    └── README.md               # Mobile setup guide
 ```
 
 ---
 
-## Frontend — Quick Start
-
-The web frontend runs on Node.js. Full instructions are in [frontend/README.md](./frontend/README.md).
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 18.0.0 or higher
-- npm 9.0.0 or higher
-
-### Steps
-
-1. Navigate to the frontend directory:
-
-```bash
-cd frontend
-```
-
-2. Install dependencies:
-
-```bash
-npm install
-```
-
-3. Start the development server:
-
-```bash
-npm run dev
-```
-
-The application will be available at http://localhost:5174
-
-4. Build for production:
-
-```bash
-npm run build
-```
+| Tool | Minimum Version |
+|---|---|
+| Python | 3.11 |
+| Node.js | 18.0 |
+| npm | 9.0 |
+| Flutter SDK | 3.2 |
+| Dart SDK | 3.2 (bundled with Flutter) |
 
 ---
 
-## Mobile — Quick Start
-
-The mobile application runs on Flutter. Full instructions are in [mobile/README.md](./mobile/README.md).
-
-### Prerequisites
-
-- Flutter SDK 3.2.0 or higher
-- Dart SDK 3.2.0 or higher (included with Flutter)
-- Android Studio (for Android) or Xcode (for iOS)
-- A connected device, emulator, or Windows desktop
-
-### Steps
-
-1. Navigate to the mobile directory:
-
-```bash
-cd mobile
-```
-
-2. Verify your Flutter setup:
-
-```bash
-flutter doctor
-```
-
-3. Install dependencies:
-
-```bash
-flutter pub get
-```
-
-4. List available devices:
-
-```bash
-flutter devices
-```
-
-5. Run on your chosen device:
-
-```bash
-flutter run -d <device-id>
-```
-
-Common device targets:
-
-```bash
-flutter run -d android # Android emulator or device
-flutter run -d windows # Windows desktop
-flutter run -d chrome # Web browser
-```
-
----
-
-## Backend — Quick Start
-
-The backend API is a fully implemented FastAPI server. Full instructions are in [backend/README.md](./backend/README.md).
-
-### Prerequisites
-
-- Python 3.10 or higher
-- pip
-
-### Steps
-
-1. Navigate to the backend directory:
+### 1 — Backend
 
 ```bash
 cd backend
-```
 
-2. Create and activate a virtual environment:
-
-```bash
+# Create and activate virtual environment
 python -m venv venv
-venv\Scripts\activate         # Windows
-source venv/bin/activate      # Linux or macOS
-```
+venv\Scripts\activate          # Windows
+source venv/bin/activate       # macOS / Linux
 
-3. Install dependencies:
-
-```bash
+# Install dependencies
+pip install --upgrade pip setuptools wheel
 pip install --prefer-binary -r requirements.txt
-```
 
-4. Seed demo data:
-
-```bash
+# Seed demo data (hotels, listings, bids, drivers, recyclers at real Kigali GPS)
 python seed_comprehensive.py
-```
+python seed_blogs.py           # optional: adds blog posts
 
-5. Start the development server:
-
-```bash
+# Start the development server
 python -m uvicorn app.main:app --reload --port 8000
 ```
 
-The API will be available at http://localhost:8000  
-Interactive docs (Swagger UI) at http://localhost:8000/api/docs
+API → `http://localhost:8000`
+Swagger UI → `http://localhost:8000/api/docs`
+ReDoc → `http://localhost:8000/redoc`
 
-> **Deployed API:** https://api.ecotrade-rwanda.com/api/docs
+> The SQLite database (`ecotrade.db`) is created automatically from ORM models on first run — no migration step needed.
 
 ---
 
-## Demo Login Credentials
+### 2 — Web Frontend
 
-All demo accounts share the same password after running `seed_comprehensive.py`.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-| Role | Email | Password |
-|------------|--------------------------------|----------------|
-| Admin | admin@ecotrade.rw | Password123! |
-| Business | hotel@kigali.rw | Password123! |
-| Recycler | recycler@greencycle.rw | Password123! |
-| Driver | driver@greencycle.rw | Password123! |
-| Individual | individual@example.com | Password123! |
+Web app → `http://localhost:5174`
+
+> The frontend points to the deployed API (`https://api.ecotrade-rwanda.com/api`) by default.
+> To use your local backend, set `VITE_API_URL=http://localhost:8000/api` in `frontend/.env`.
+
+---
+
+### 3 — Mobile App
+
+```bash
+cd mobile
+flutter pub get
+
+# Run on your preferred target
+flutter run -d chrome          # Web browser
+flutter run -d android         # Android emulator or device
+flutter run -d windows         # Windows desktop
+```
+
+> The mobile app points to the deployed backend by default. To use local backend, update `_baseUrl` in `mobile/lib/core/services/api_service.dart`.
+
+---
+
+## Demo Credentials
+
+All demo accounts use the same password after running `seed_comprehensive.py`.
+
+| Role | Email | Password | Notes |
+|---|---|---|---|
+| **Admin** | admin@ecotrade.rw | Password123! | Full platform control |
+| **Business / Hotel** | hotel@kigali.rw | Password123! | List waste, manage bids |
+| **Recycler** | recycler@greencycle.rw | Password123! | Browse marketplace, bid |
+| **Driver** | driver@greencycle.rw | Password123! | Route map, scan QR codes |
+| **Individual** | individual@example.com | Password123! | Personal listings |
+
+---
+
+## User Roles
+
+| Role | What They Do |
+|---|---|
+| **HORECA Business** | Create waste listings, view and accept bids, track pickups, earn GreenScore |
+| **Recycler** | Browse listings on map, place bids, manage drivers and fleet, track inventory |
+| **Driver** | Follow assigned pickup routes, scan QR codes to verify collections, view earnings |
+| **Admin** | Manage all users, listings, transactions, blog, support tickets, and settings |
+| **Individual** | Create personal waste listings, view environmental impact |
 
 ---
 
 ## Key Features
 
-### Multi-Role Dashboards
-- Admin — platform oversight, user management, analytics, PDF reports
-- Business — waste listings, pickup scheduling, Green Score, financials
-- Recycler — marketplace browsing, bidding, inventory, supplier network
-- Driver — real-time route map, daily schedule, earnings statements
-- Individual — impact metrics, waste listings, community participation
-
 ### Waste Marketplace
-- Listings for used cooking oil, glass, paper/cardboard, plastic, metal, e-waste, and mixed waste
-- Real-time bid submission, acceptance, and outbid notifications
-- Status tracking from open through assigned, collected, and completed
-- **Web:** Interactive Leaflet map with hotel clustering, colored waste-type pins, cyan distance lines, and business card popups
-- **Mobile:** Real OpenStreetMap tiles via flutter_map on every map surface
+- Listings for: **UCO** (Used Cooking Oil), Glass, Paper/Cardboard, Plastic, Metal, Electronic, Textile, Organic, Mixed
+- Configurable auction: minimum bid, reserve price, auto-accept-above threshold, auction duration
+- Recycler marketplace with interactive map — colored pins per waste type, hotel clustering, distance lines
+- Bid workflow: submit → accept/reject → assign driver → collect → complete
 
-### Real OpenStreetMap Integration (flutter_map)
-- Register screen — interactive location picker with draggable marker
-- Driver navigation — live route map with stop markers and zoom controls
-- Recycler home — nearby listings preview map (Kigali, non-interactive)
-- Marketplace map view — all listings plotted at real hotel coordinates
-- List Waste screen — tap-to-move pin for picking pickup location
+### Collection Lifecycle
+```
+Open → Assigned → En Route → Collected → Verified → Completed
+```
+- QR code generated per listing; driver scans on arrival to confirm pickup
+- Live GPS tracking — hotel sees driver position and ETA in real time
+- Auto driver assignment using Haversine (nearest available driver)
+- Driver fee: 10% of bid amount (minimum RWF 500 per collection)
 
-### Environmental Impact
-- Green Score certification per business
-- CO2 savings, water saved, and waste diverted tracking
-- Monthly sustainability reports with PDF export
+### My Listings (Hotel — List Mode)
+- Image on the left (84 px), full details on the right
+- Status pill, min-bid price, waste type, volume, quality, pickup date, bids count
+- Eye icon → full detail sheet (photo strip, all fields, bids list)
+- Edit / Delete — only available for **Open** and **Draft** listings
+- Assigned, Collected, and Completed listings are **protected from deletion**
 
-### Security
-- Email and password authentication with JWT (access + refresh tokens)
-- Role-based access control on all API routes
-- bcrypt password hashing
+### GreenScore System _(see section below)_
+
+### PDF Reports
+- Driver collection history and earnings exported as A4 PDF with EcoTrade logo
+- All dates and times displayed in **Central African Time (CAT = UTC+2)**
 
 ### Offline Support
-- Web frontend falls back to localStorage when backend is unreachable
-- Mobile app falls back to cached Riverpod state when API is unavailable
-- Data syncs to the backend when connectivity is restored
+- **Mobile**: Hive local cache (24-hour TTL) + offline mutation queue; auto-syncs on reconnect
+- **Web**: localStorage fallback for read data; mutations queued and replayed on reconnect
+
+### Multi-Platform
+- Web (Netlify SPA), Android APK, Windows desktop, Flutter web (Chrome)
+
+---
+
+## GreenScore System
+
+GreenScore rewards HORECA businesses and recyclers for every completed waste collection.
+
+### Formula
+
+```
+score = min(100, total_kg_or_litres_collected / 100)
+```
+
+**Every 100 kg / L of waste collected = 1 GreenScore point, capped at 100.**
+
+### How It Works
+1. Driver marks collection as **Completed** via the advance-status API
+2. Backend automatically:
+   - Adds the collected volume to the hotel's `total_waste_listed`
+   - Recomputes `hotel.green_score = min(100, total_waste_listed / 100)`
+   - Adds the same volume to the recycler's `total_collected`
+   - Recomputes `recycler.green_score = min(100, total_collected / 100)`
+3. A monthly entry is also written to the `green_scores` table for history tracking
+
+### Tiers (consistent across mobile and web)
+
+| Tier | Score Range | Waste Required |
+|---|---|---|
+| Eco Beginner | 0 – 39 | < 3,900 kg/L |
+| Eco Starter | 40 – 59 | 4,000 – 5,900 kg/L |
+| Eco Champion | 60 – 79 | 6,000 – 7,900 kg/L |
+| Eco Master | 80 – 100 | ≥ 8,000 kg/L |
 
 ---
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------------------|-----------------------------------|
-| Web Framework | React 19 with TypeScript |
-| Web Build Tool | Vite 7 |
-| Web Styling | TailwindCSS 4 |
-| Web Maps | Leaflet.js (react-leaflet) |
-| Web State | React Context API |
-| Mobile Framework | Flutter 3.2+ |
-| Mobile Language | Dart 3.2+ |
-| Mobile State | flutter_riverpod 2.6 |
-| Mobile Maps | flutter_map 6.2 + OpenStreetMap |
-| Mobile Navigation | go_router 13 |
-| Backend Framework | FastAPI (Python 3.10+) |
-| Backend ORM | SQLAlchemy + SQLite |
-| Backend Auth | JWT (python-jose) + bcrypt |
+| Layer | Technology | Version |
+|---|---|---|
+| **Backend framework** | FastAPI | 0.115+ |
+| **Backend language** | Python | 3.11+ |
+| **ORM** | SQLAlchemy | 2.0+ |
+| **Database** | SQLite (auto-created) | — |
+| **Validation** | Pydantic v2 | 2.9+ |
+| **Authentication** | JWT (PyJWT) + bcrypt | — |
+| **Web framework** | React | 19.2 |
+| **Web language** | TypeScript | 5.9 |
+| **Web build tool** | Vite | 6.3 |
+| **Web styling** | TailwindCSS | 4.1 |
+| **Web routing** | React Router | 7.13 |
+| **Web maps** | Leaflet.js + react-leaflet | 1.9 / 5.0 |
+| **Web charts** | Recharts + Chart.js | 3.7 / 4.5 |
+| **Web UI library** | Ant Design | 6.2 |
+| **Web animations** | Framer Motion | 12.33 |
+| **Mobile framework** | Flutter | 3.2+ |
+| **Mobile language** | Dart | 3.2+ |
+| **Mobile state** | flutter_riverpod | 2.5 |
+| **Mobile routing** | go_router | 13.2 |
+| **Mobile maps** | flutter_map + OpenStreetMap | 6.1 |
+| **Mobile offline** | Hive | 2.2 |
+| **Mobile QR** | mobile_scanner + qr_flutter | 5.2 / 4.1 |
+| **Mobile PDF** | pdf + printing | 3.10 / 5.13 |
+| **Deployment (web)** | Netlify | — |
+
+---
+
+## API Overview
+
+All 18 route groups are served under `/api`:
+
+| Group | Prefix | Key Operations |
+|---|---|---|
+| Auth | `/auth` | Login, register, refresh token, logout |
+| Users | `/users` | Profile CRUD, role management |
+| Hotels | `/hotels` | Business profiles, stats, logo upload |
+| Recyclers | `/recyclers` | Company profiles, fleet info |
+| Drivers | `/drivers` | Profiles, GPS updates, vehicle management |
+| Listings | `/listings` | Waste listing CRUD, photo upload, QR tokens |
+| Bids | `/bids` | Place, accept, reject, withdraw, increase bids |
+| Collections | `/collections` | Pickup scheduling, status advance, QR verify, tracking |
+| Transactions | `/transactions` | Payment records and history |
+| Notifications | `/notifications` | In-app notification feed, mark read |
+| Messages | `/messages` | Direct messaging between users |
+| Reviews | `/reviews` | User ratings and feedback |
+| Inventory | `/inventory` | Recycler waste stock management |
+| Admin | `/admin` | Platform-wide administration |
+| Blog | `/blog` | Blog CRUD with admin moderation |
+| Support | `/support` | Support ticket system |
+| Stats | `/stats` | Public platform metrics |
+| Recycling | `/recycling` | Recycling event records |
+
+Full interactive documentation → https://api.ecotrade-rwanda.com/api/docs
+
+---
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+
+```env
+DATABASE_URL=sqlite:///./ecotrade.db
+SECRET_KEY=<random-secret-at-least-32-chars>
+ACCESS_TOKEN_EXPIRE_MINUTES=240
+REFRESH_TOKEN_EXPIRE_DAYS=60
+PLATFORM_FEE_PERCENT=5.0
+ALLOWED_ORIGINS=["http://localhost:5173","http://localhost:5174","https://ecotrade-rwanda.netlify.app"]
+SMTP_HOST=<your-smtp-host>
+SMTP_PORT=587
+SMTP_USER=<sender-email>
+SMTP_PASSWORD=<smtp-password>
+EMAIL_FROM=no-reply@ecotrade.rw
+EMAIL_FROM_NAME=EcoTrade Rwanda
+UPLOAD_DIR=./uploads
+```
+
+All variables have sensible defaults — the server starts with no `.env` file.
+
+### Frontend (`frontend/.env`)
+
+```env
+VITE_API_URL=https://api.ecotrade-rwanda.com/api
+VITE_APP_NAME=EcoTrade Rwanda
+VITE_BRAND_COLOR=06b6d4
+```
+
+### Mobile
+
+API URL is configured in `mobile/lib/core/services/api_service.dart` (`_baseUrl`).
 
 ---
 
 ## Deployment
 
-### Web Frontend
-
-The frontend is deployed on Netlify:
+### Frontend — Netlify
 
 ```bash
 cd frontend
-npm run build
-netlify deploy --prod
+npm run build        # outputs to dist/
+netlify deploy --prod --dir=dist
 ```
+
+`netlify.toml` handles the SPA redirect rule (`/* → /index.html`) and build config automatically.
 
 Live URL: https://ecotrade-rwanda.netlify.app
 
-### Mobile Application
-
-Build a release APK for Android:
+### Backend — VPS / Server
 
 ```bash
-cd mobile
-flutter build apk --release
+cd backend
+pip install -r requirements.txt
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Production: run behind Nginx with SSL (Let's Encrypt)
 ```
 
-Build for Windows:
+Deployed API: https://api.ecotrade-rwanda.com
+
+### Mobile — Release Builds
 
 ```bash
+# Android APK
+cd mobile && flutter build apk --release
+# Output: build/app/outputs/flutter-apk/app-release.apk
+
+# Windows executable
 flutter build windows --release
+# Output: build/windows/x64/runner/Release/
+
+# Web (deploy build/web/ to any static host)
+flutter build web --release
 ```
-
-### Backend API
-
-Deploy the FastAPI server using a WSGI-compatible host (Railway, Render, or a VPS with Gunicorn behind Nginx):
-
-```bash
-gunicorn app.main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
-```
-
-Deployed API: https://api.ecotrade-rwanda.com/api/docs
 
 ---
 
 ## Contact
 
-- Email: contact@ecotrade.rw
-- Phone: +250 780 162 164
-- Website: https://ecotrade-rwanda.netlify.app
-- GitHub: https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git
+- **Website**: https://ecotrade-rwanda.netlify.app
+- **API**: https://api.ecotrade-rwanda.com
+- **GitHub**: https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git
+- **Email**: contact@ecotrade.rw
+- **Phone**: +250 780 162 164
+- **Location**: Kigali, Rwanda
 
 ---
 
 ## License
 
-MIT License. See the [LICENSE](./LICENSE) file for details.
-
+MIT License — see [LICENSE](./LICENSE) for details.

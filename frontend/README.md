@@ -1,61 +1,63 @@
 # EcoTrade Rwanda — Web Frontend
 
-EcoTrade Rwanda is a production-ready React and TypeScript circular economy marketplace platform. It connects waste generators such as hotels and restaurants with recyclers and drivers in Kigali, Rwanda. The frontend provides multi-role dashboards, connects to the FastAPI backend for live data, falls back to localStorage in offline mode, and features a fully responsive UI with dark mode support.
+Production-ready React + TypeScript web application for the EcoTrade Rwanda circular-economy waste marketplace. Provides five role-specific dashboards (Admin, Business, Recycler, Driver, Individual), connects to the FastAPI backend for live data, supports offline fallback via localStorage, and features a fully responsive UI with dark mode.
 
-Live Demo: https://ecotrade-rwanda.netlify.app
+**Live Demo:** https://ecotrade-rwanda.netlify.app
+**Backend API:** https://api.ecotrade-rwanda.com/api/docs
 
+---
 
 ## Table of Contents
 
-- [Introduction](#introduction)
+- [Quick Start](#quick-start)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Running the Application](#running-the-application)
-- [Demo Login Credentials](#demo-login-credentials)
+- [Environment Variables](#environment-variables)
+- [Demo Credentials](#demo-credentials)
 - [Project Structure](#project-structure)
-- [Technology Stack](#technology-stack)
 - [Dashboard Features](#dashboard-features)
+- [Technology Stack](#technology-stack)
 - [Deployment](#deployment)
 - [Known Issues](#known-issues)
 - [License](#license)
 
 ---
 
-## Introduction
+## Quick Start
 
-The EcoTrade Rwanda web frontend is a multi-role dashboard platform built with React 19 and TypeScript. It supports five user roles: Admin, Business, Recycler, Driver, and Individual. The app connects to the FastAPI backend at `http://localhost:8000/api` in development (or the deployed API at https://api.ecotrade-rwanda.com/api/docs in production) and falls back to localStorage-seeded data when the backend is unreachable, making it usable both with and without a running server.
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+App → `http://localhost:5174`
+
+> To use a local backend instead of the deployed one, set `VITE_API_URL=http://localhost:8000/api` in `frontend/.env`.
 
 ---
 
 ## Prerequisites
 
-Before running the frontend, ensure the following are installed on your machine:
-
-- Node.js version 18.0.0 or higher
-- npm version 9.0.0 or higher
-- Git
-
-To verify your Node.js version:
+- Node.js **18.0** or higher
+- npm **9.0** or higher
 
 ```bash
-node --version
-npm --version
+node --version   # 18.0+
+npm --version    # 9.0+
 ```
 
 ---
 
 ## Installation
 
-1. Clone the repository:
-
 ```bash
+# Clone the repository
 git clone https://github.com/Daniel-IRYIVUZE/EcoTrade_Rwanda.git
 cd EcoTrade_Rwanda/frontend
-```
 
-2. Install project dependencies:
-
-```bash
+# Install dependencies
 npm install
 ```
 
@@ -63,57 +65,45 @@ npm install
 
 ## Running the Application
 
-### Development Server
-
-Start the local development server with hot module replacement:
-
-```bash
-npm run dev
-```
-
-The application will be available at http://localhost:5174
-
-### Production Build
-
-Compile and bundle the application for production:
-
-```bash
-npm run build
-```
-
-The output will be placed in the `dist/` directory.
-
-### Preview Production Build Locally
-
-After building, preview the production bundle locally before deploying:
-
-```bash
-npm run preview
-```
-
-### Lint the Code
-
-Check the codebase for linting errors:
-
-```bash
-npm run lint
-```
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev server with HMR at `http://localhost:5174` |
+| `npm run build` | Production build → `dist/` |
+| `npm run preview` | Preview production build locally |
+| `npm run lint` | ESLint code check |
+| `npm run test` | Run Vitest unit tests |
 
 ---
 
-## Demo Login Credentials
+## Environment Variables
 
-Use the following credentials to log in and explore each role's dashboard.
+Create `frontend/.env`:
 
-| Role | Email | Password | Dashboard Path |
-|------------|--------------------------------|--------------|---------------------------|
-| Admin | admin@ecotrade.rw | Password123! | /dashboard/admin |
-| Business | hotel@kigali.rw | Password123! | /dashboard/business |
-| Recycler | recycler@greencycle.rw | Password123! | /dashboard/recycler |
-| Driver | driver@greencycle.rw | Password123! | /dashboard/driver |
-| Individual | individual@example.com | Password123! | /dashboard/individual |
+```env
+VITE_API_URL=https://api.ecotrade-rwanda.com/api
+VITE_APP_NAME=EcoTrade Rwanda
+VITE_BRAND_COLOR=06b6d4
+```
 
-> These credentials work against the live backend. Run `python seed_comprehensive.py` in the backend directory first.
+| Variable | Default | Description |
+|---|---|---|
+| `VITE_API_URL` | `https://api.ecotrade-rwanda.com/api` | Backend API base URL |
+| `VITE_APP_NAME` | `EcoTrade Rwanda` | App display name |
+| `VITE_BRAND_COLOR` | `06b6d4` | Brand colour (hex, no #) |
+
+---
+
+## Demo Credentials
+
+Run `python seed_comprehensive.py` in the backend first (password for all: **Password123!**).
+
+| Role | Email | Password | Dashboard |
+|---|---|---|---|
+| Admin | admin@ecotrade.rw | Password123! | `/dashboard/admin` |
+| Business | hotel@kigali.rw | Password123! | `/dashboard/business` |
+| Recycler | recycler@greencycle.rw | Password123! | `/dashboard/recycler` |
+| Driver | driver@greencycle.rw | Password123! | `/dashboard/driver` |
+| Individual | individual@example.com | Password123! | `/dashboard/individual` |
 
 ---
 
@@ -122,148 +112,214 @@ Use the following credentials to log in and explore each role's dashboard.
 ```
 frontend/
 ├── public/
-│   ├── images/           # SVG illustrations and logos
+│   ├── images/               # SVG illustrations and logos
 │   ├── manifest.json
 │   └── robots.txt
 ├── src/
-│   ├── assets/           # Local images, icons, and global styles
+│   ├── assets/               # Local images, icons, global CSS
 │   ├── components/
-│   │   ├── about/        # About page sections
-│   │   ├── auth/         # Login, signup, OTP, forgot password
-│   │   ├── blog/         # Blog listing and detail components
-│   │   ├── common/       # Shared: Navbar, Footer, Modal, Toast
-│   │   ├── contact/      # Contact page components
-│   │   ├── dashboard/    # Role-specific dashboard sections
-│   │   │   ├── admin/
-│   │   │   ├── business/
-│   │   │   ├── recycler/
-│   │   │   ├── driver/
-│   │   │   └── individual/
-│   │   ├── home/         # Homepage sections
-│   │   ├── layout/       # Sidebar, TopNav, DashboardLayout
-│   │   ├── marketplace/  # Marketplace listing and map
-│   │   └── services/     # Services page components
+│   │   ├── auth/             # Login, signup, OTP, forgot password
+│   │   ├── blog/             # Blog listing and post detail
+│   │   ├── common/           # Navbar, Footer, Modal, Toast, ScrollToTop
+│   │   ├── contact/          # Contact page
+│   │   ├── dashboard/
+│   │   │   ├── admin/        # 14 admin dashboard components
+│   │   │   │   ├── AdminOverview.tsx
+│   │   │   │   ├── AdminAnalytics.tsx
+│   │   │   │   ├── AdminUserManagement.tsx
+│   │   │   │   ├── AdminListings.tsx
+│   │   │   │   ├── AdminTransactions.tsx
+│   │   │   │   ├── AdminGreenScores.tsx
+│   │   │   │   ├── AdminBlogManagement.tsx
+│   │   │   │   ├── AdminBlogEditor.tsx
+│   │   │   │   ├── AdminAuditLogs.tsx
+│   │   │   │   ├── AdminReports.tsx
+│   │   │   │   ├── AdminSupportTickets.tsx
+│   │   │   │   ├── AdminRouteMonitor.tsx
+│   │   │   │   ├── AdminSettings.tsx
+│   │   │   │   └── AdminVerificationQueue.tsx
+│   │   │   ├── business/     # Hotel / HORECA dashboard
+│   │   │   │   ├── BusinessGreenScore.tsx
+│   │   │   │   └── ...
+│   │   │   ├── recycler/     # Recycler dashboard with Leaflet map
+│   │   │   │   ├── _shared.tsx         # computeGreenScore utility
+│   │   │   │   ├── RecyclerOverview.tsx
+│   │   │   │   ├── RecyclerMarketplace.tsx
+│   │   │   │   ├── RecyclerGreenImpact.tsx
+│   │   │   │   └── ...
+│   │   │   ├── driver/       # Driver schedule, earnings, history
+│   │   │   └── individual/   # Personal impact metrics
+│   │   ├── home/             # Homepage sections
+│   │   ├── layout/           # Sidebar, TopNav, DashboardLayout
+│   │   ├── marketplace/      # Public marketplace listing cards + map
+│   │   └── services/         # Services page
 │   ├── context/
-│   │   ├── AuthContext.tsx        # Authentication state and actions
-│   │   ├── ThemeContext.tsx       # Dark/light mode
+│   │   ├── AuthContext.tsx        # Auth state, login/logout, role enrichment
+│   │   ├── ThemeContext.tsx       # Dark / light mode toggle
 │   │   └── NotificationContext.tsx
 │   ├── hooks/
-│   │   └── useApi.ts              # Data access hook
-│   ├── pages/                     # Top-level page components
+│   │   └── useApi.ts              # Unified data-access hook
+│   ├── pages/                     # Route-level page components
+│   │   ├── Home.tsx
+│   │   ├── About.tsx
+│   │   ├── Services.tsx
+│   │   ├── Blog.tsx / BlogDetail.tsx
+│   │   ├── Contact.tsx
+│   │   ├── Marketplace.tsx
+│   │   ├── Login.tsx
+│   │   ├── Dashboard.tsx          # Picks correct sub-dashboard by role
+│   │   ├── TermsPrivacy.tsx
+│   │   └── NotFound.tsx
 │   ├── services/
-│   │   └── api.ts                 # API client configuration
-│   ├── types/                     # TypeScript interfaces
+│   │   └── api.ts                 # Centralised API client (all endpoints)
+│   ├── types/                     # TypeScript interfaces for all entities
 │   ├── utils/
-│   │   ├── dataStore.ts           # localStorage CRUD and seed data
+│   │   ├── dataStore.ts           # localStorage CRUD + seed data
 │   │   ├── dataManagement.ts      # DataManager query class
-│   │   ├── apiSync.ts             # Backend sync layer
+│   │   ├── apiSync.ts             # Backend sync layer for offline mode
 │   │   └── toast.ts               # Toast notification helpers
-│   ├── App.tsx
-│   └── main.tsx
-├── package.json
+│   ├── App.tsx                    # Router setup, protected routes
+│   └── main.tsx                   # React entry point
+├── netlify.toml                   # Netlify build + SPA redirect config
+├── vite.config.ts                 # Vite 6 build config
 ├── tsconfig.json
-├── vite.config.ts
-└── tailwind.config.js
+└── package.json
 ```
-
----
-
-## Technology Stack
-
-| Layer | Technology | Version |
-|---------------|-------------------|----------|
-| Framework | React | 19.2.0 |
-| Language | TypeScript | 5.0 |
-| Build Tool | Vite | 7.2.5 |
-| Styling | TailwindCSS | 4.1 |
-| Routing | React Router | 7.13 |
-| Animations | Framer Motion | Latest |
-| Charts | Chart.js | Latest |
-| Maps | Leaflet.js + react-leaflet | Latest |
-| State | React Context API | Built-in |
-| Storage | localStorage (offline fallback) | Built-in |
 
 ---
 
 ## Dashboard Features
 
 ### Admin Dashboard
-- Platform overview with live stats and user growth
-- User management: add, edit, suspend, and remove users
-- Financial oversight: revenue, fees, and payouts
-- Analytics and PDF report exports
-- System configuration and settings
+- **Overview** — platform stats: total users, listings, revenue, CO₂ saved
+- **User Management** — add, edit, suspend, delete users across all roles; verification queue
+- **Listings** — view and moderate all waste listings platform-wide
+- **Transactions** — financial oversight with revenue breakdown by waste type
+- **Analytics** — charts for user growth, collection trends, GreenScore distribution
+- **GreenScore Leaderboard** — ranked list of top hotels and recyclers
+- **Blog Management** — CRUD for blog posts with draft / published moderation
+- **Audit Logs** — timestamped activity log for all platform events
+- **Reports** — PDF export for platform-wide statistics
+- **Support Tickets** — manage and respond to user support requests
+- **Route Monitor** — live view of all active driver routes
+- **System Settings** — platform fee, SMTP config, feature flags
 
-### Business Dashboard
-- Waste listing management with status tracking
-- Marketplace to browse recyclers and drivers
-- Financial dashboard with revenue by waste type
-- Scheduling and driver assignment calendar
-- Green Score sustainability metrics
+### Business / Hotel Dashboard
+- **My Listings** — list-mode view with image left, details right; status pill; eye icon → full detail sheet; edit / delete (open and draft only; protected for assigned, collected, completed)
+- **Bids Received** — accept or reject incoming recycler bids; bid history
+- **Collections / Pickups** — scheduled and completed pickup tabs; live driver tracking map; call driver button
+- **GreenScore** — circular progress (0–100), tier label (Eco Beginner → Eco Master), impact breakdown (waste diverted, CO₂ saved, collections, listings), downloadable certificate at score 100
+- **Profile** — hotel details, logo, address, contact info
 
 ### Recycler Dashboard
-- Marketplace to browse and bid on available waste listings
-- **Interactive Leaflet map** with hotel clustering by business name, colored pins per waste type, cyan distance lines with km labels, and `maxZoom: 13` so clusters are visible before zooming
-- Marketplace list toggles between card view and map view
-- Distance and waste-type filter chips
-- Inventory management and supplier network
-- Financial dashboard with payment history
+- **Overview** — live stats: total bids, collections, revenue, GreenScore
+- **Marketplace** — browse and bid on all open waste listings; **interactive Leaflet map** with hotel clustering by business name, colored pins by waste type, cyan distance lines with km labels
+- **My Bids** — submitted bids with accept / withdraw actions
+- **Collections** — pickups assigned to this recycler; assign driver; status tracking
+- **Green Impact** — GreenScore history, CO₂ saved, waste types collected
+- **Fleet** — manage vehicles and drivers in the recycler's organisation
+- **Inventory** — stock management for collected and processed materials
+- **Payment History** — transaction records
 
 ### Driver Dashboard
-- Daily schedule and route assignments
-- Collection history with timestamps
-- Earnings statements with PDF export
-- Offline mode for areas with low connectivity
+- **Schedule** — daily assigned collections with address, waste type, volume
+- **Collection History** — all past collections with earnings
+- **Earnings** — period filter (today / this week / this month); total earnings; PDF export
+- **Profile** — vehicle info, rating, availability toggle
 
 ### Individual Dashboard
-- Personal environmental impact metrics
-- Waste listing creation and management
-- Order tracking and payment history
+- **Environmental Impact** — personal CO₂ saved, waste diverted, collections count
+- **My Listings** — personal waste listings
+- **Order Tracking** — collection status for submitted listings
+
+---
+
+## Technology Stack
+
+| Layer | Technology | Version |
+|---|---|---|
+| Framework | React | 19.2 |
+| Language | TypeScript | 5.9 |
+| Build Tool | Vite | 6.3 |
+| Styling | TailwindCSS | 4.1 |
+| Routing | React Router | 7.13 |
+| Animations | Framer Motion | 12.33 |
+| Charts | Recharts | 3.7 |
+| Charts (extra) | Chart.js | 4.5 |
+| Maps | Leaflet.js + react-leaflet | 1.9 / 5.0 |
+| Map clusters | leaflet.markercluster | 1.5 |
+| UI Library | Ant Design | 6.2 |
+| QR codes | qrcode | 1.5 |
+| Icons | lucide-react | latest |
+| State | React Context API | built-in |
+| HTTP | fetch API + custom retry logic | built-in |
+| Offline storage | localStorage | built-in |
+| Testing | Vitest | 4.1 |
+| Linting | ESLint | 9 |
+| Deployment | Netlify | — |
+
+---
+
+## GreenScore (Frontend)
+
+The frontend **always prefers the API value** from `/hotels/me` or `/recyclers/me`.
+
+### Formula (fallback when API unavailable)
+```
+score = min(100, Math.round(totalWasteKg / 100))
+```
+Same formula as the backend: 1 point per 100 kg/L, capped at 100.
+
+### Tiers
+
+| Tier | Score |
+|---|---|
+| Eco Beginner | 0 – 39 |
+| Eco Starter | 40 – 59 |
+| Eco Champion | 60 – 79 |
+| Eco Master | 80 – 100 |
+
+A **downloadable text certificate** is offered when the score reaches 100.
 
 ---
 
 ## Deployment
 
-### Netlify
-
-1. Install the Netlify CLI:
+### Netlify (current production)
 
 ```bash
-npm install -g netlify-cli
+npm run build        # outputs to dist/
+netlify deploy --prod --dir=dist
 ```
 
-2. Log in to your Netlify account:
+`netlify.toml` (already in the repo) handles:
+- Build command: `npm run build`
+- Publish directory: `dist`
+- SPA redirect: `/* → /index.html` (status 200)
+- Build-time env: `VITE_API_URL`
 
-```bash
-netlify login
-```
+Live URL: https://ecotrade-rwanda.netlify.app
 
-3. Build and deploy:
-
-```bash
-npm run build
-netlify deploy --prod
-```
-
-Live URL: https://ecotrade-rwanda.netlify.app  
-Backend API: https://api.ecotrade-rwanda.com/api/docs
-
-### Vercel
+### Vercel (alternative)
 
 ```bash
 npm install -g vercel
 vercel --prod
 ```
 
+### Any Static Host
+
+Upload the `dist/` folder and configure your host to serve `index.html` for all routes (SPA mode).
+
 ---
 
 ## Known Issues
 
-- localStorage data is cleared in private/incognito browsing mode upon exit.
-- Real-time push features (WebSocket) are not yet implemented; the page must be refreshed to see new bids from other users.
+- **Private / incognito browsing** — localStorage is cleared when the session ends; offline fallback data will be lost on next visit.
+- **Real-time push** — WebSocket notifications are not yet implemented; the page must be refreshed to see bids or status changes made by other users.
 
 ---
 
 ## License
 
-MIT License. See the LICENSE file in the root of the repository for details.
+MIT License — see [LICENSE](../LICENSE) in the repository root for details.
