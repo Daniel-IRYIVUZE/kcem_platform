@@ -26,20 +26,15 @@ export default function BusinessGreenScore() {
       .catch(() => {});
   }, []);
 
-  // Fallback calculation when API score is not loaded
+  // Fallback: 1 pt per 100 kg/L collected, capped at 100 (mirrors backend formula)
   const completedCollections = collections.filter(c => c.status === 'completed');
   const totalWaste = completedCollections.reduce((s, c) => s + (c.volume ?? 0), 0);
   const totalCollections = collections.length;
   const totalListings = listings.length;
-
-  const wasteScore = Math.min(totalWaste / 100, 25);
-  const participationScore = Math.min((completedCollections.length / Math.max(totalListings, 1)) * 25, 25);
-  const consistencyScore = Math.min(totalCollections / 10, 25);
-  const qualityScore = 25;
-  const calculatedScore = Math.round(wasteScore + participationScore + consistencyScore + qualityScore);
+  const calculatedScore = Math.min(100, Math.round(totalWaste / 100));
 
   // Prefer API score
-  const greenScore = apiScore !== null ? apiScore : calculatedScore;
+  const greenScore = apiScore !== null ? Math.min(100, Math.round(apiScore)) : calculatedScore;
   const displayName = hotelName || getDashboardDisplayName(authUser, 'Your Hotel');
 
   const handleDownloadCertificate = () => {
@@ -81,11 +76,13 @@ export default function BusinessGreenScore() {
     }],
   };
 
+  // CO₂ saved: approx 0.80 kg CO₂ per kg waste (mixed average)
+  const co2Saved = Math.round(totalWaste * 0.80);
   const scoreBreakdown = [
-    { label: 'Waste Sorting Quality', score: Math.round(qualityScore * 4), max: 100 },
-    { label: 'Collection Frequency',  score: Math.round(participationScore * 4), max: 100 },
-    { label: 'Platform Engagement',   score: Math.round(consistencyScore * 4), max: 100 },
-    { label: 'Environmental Impact',  score: Math.round(wasteScore * 4), max: 100 },
+    { label: 'Waste Diverted',       score: Math.round(totalWaste),              unit: 'kg/L' },
+    { label: 'CO₂ Saved',            score: co2Saved,                            unit: 'kg CO₂' },
+    { label: 'Collections Done',     score: completedCollections.length,         unit: 'completed' },
+    { label: 'Listings Created',     score: totalListings,                       unit: 'total' },
   ];
 
   return (
@@ -123,7 +120,7 @@ export default function BusinessGreenScore() {
             </div>
           </div>
           <p className="text-lg font-semibold text-gray-900 dark:text-white">
-            {greenScore >= 100 ? <span className="flex items-center justify-center gap-1"><Trophy size={16} className="text-yellow-500"/> Perfect!</span> : greenScore >= 80 ? 'Excellent' : greenScore >= 60 ? 'Good' : greenScore >= 40 ? 'Fair' : 'Needs Improvement'}
+            {greenScore >= 100 ? <span className="flex items-center justify-center gap-1"><Trophy size={16} className="text-yellow-500"/> Eco Master!</span> : greenScore >= 80 ? 'Eco Champion' : greenScore >= 60 ? 'Eco Starter' : 'Eco Beginner'}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">Based on {completedCollections.length} completed collections</p>
           {greenScore >= 100 && (
@@ -141,15 +138,13 @@ export default function BusinessGreenScore() {
           </Widget>
         </div>
       </div>
-      <Widget title="Score Breakdown" icon={<Trophy size={20} className="text-yellow-600 dark:text-yellow-400" />}>
+      <Widget title="Impact Breakdown" icon={<Trophy size={20} className="text-yellow-600 dark:text-yellow-400" />}>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {scoreBreakdown.map(item => (
             <div key={item.label} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{item.label}</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{Math.min(item.score, 100)}%</p>
-              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.min(item.score, 100)}%` }} />
-              </div>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{item.score.toLocaleString()}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{item.unit}</p>
             </div>
           ))}
         </div>

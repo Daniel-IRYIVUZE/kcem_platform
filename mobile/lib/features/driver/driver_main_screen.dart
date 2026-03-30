@@ -9,6 +9,7 @@ import '../../core/models/models.dart';
 import '../../core/router/app_router.dart';
 import '../../core/providers/app_providers.dart';
 import '../shared/widgets/offline_banner.dart';
+import '../../core/utils/cat_date_utils.dart';
 import '../shared/live_tracking_screen.dart';
 import 'collection_screen.dart';
 import 'driver_profile_screen.dart';
@@ -90,8 +91,7 @@ class _DriverHomeTab extends ConsumerWidget {
     final route = ref.watch(driverRouteProvider);
     final driverProfile = ref.watch(driverProfileProvider).valueOrNull ?? {};
     final isAvailable = driverProfile['is_available'] as bool? ?? true;
-    final h = DateTime.now().hour;
-    final greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    final greeting = CatDateUtils.greeting();
     final doneCount = route.stops.where((s) => s.status == RouteStopStatus.completed).length;
     final totalCount = route.stops.length;
     final nextStop = route.stops
@@ -532,10 +532,10 @@ class _NextStopCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: context.cSurf,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.4), width: 1.5),
       ),
       child: Column(
@@ -545,31 +545,31 @@ class _NextStopCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.primaryLight,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: const Text(
                   'NEXT STOP',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.w800,
                     color: AppColors.primary,
-                    letterSpacing: 1,
+                    letterSpacing: 0.8,
                   ),
                 ),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.location_on, color: AppColors.primary, size: 16),
-                  const SizedBox(width: 4),
+                  const Icon(Icons.location_on, color: AppColors.primary, size: 14),
+                  const SizedBox(width: 3),
                   ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 140),
+                    constraints: const BoxConstraints(maxWidth: 130),
                     child: Text(
                       stop.location,
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13),
+                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 12),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 1,
                     ),
@@ -578,32 +578,34 @@ class _NextStopCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             stop.businessName,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             stop.location,
-            style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
-          const SizedBox(height: 12),
-          Row(children: [_StopDetail(icon: Icons.recycling, label: stop.wasteType.label)]),
-          const SizedBox(height: 6),
-          Row(children: [_StopDetail(icon: Icons.scale_outlined, label: '${stop.volume.toStringAsFixed(0)} ${stop.wasteType == WasteType.uco ? "L" : "kg"}')]),
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
+          Row(children: [
+            _StopDetail(icon: Icons.recycling, label: stop.wasteType.label),
+            const SizedBox(width: 12),
+            _StopDetail(icon: Icons.scale_outlined, label: '${stop.volume.toStringAsFixed(0)} ${stop.wasteType == WasteType.uco ? "L" : "kg"}'),
+          ]),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: onNavigate,
-                  icon: const Icon(Icons.navigation, size: 16),
+                  icon: const Icon(Icons.navigation, size: 15),
                   label: const Text('Navigate'),
-                  style: ElevatedButton.styleFrom(minimumSize: const Size(0, 42)),
+                  style: ElevatedButton.styleFrom(minimumSize: const Size(0, 38)),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               OutlinedButton.icon(
                 onPressed: stop.contactPhone.isNotEmpty
                     ? () async {
@@ -611,9 +613,9 @@ class _NextStopCard extends StatelessWidget {
                         if (await canLaunchUrl(uri)) await launchUrl(uri);
                       }
                     : null,
-                icon: const Icon(Icons.call, size: 16),
+                icon: const Icon(Icons.call, size: 15),
                 label: const Text('Call'),
-                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 42)),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 38)),
               ),
             ],
           ),

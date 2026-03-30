@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/models/models.dart';
+import '../../core/utils/cat_date_utils.dart';
 import '../shared/widgets/shared_cards.dart';
 import '../shared/live_tracking_screen.dart';
 
@@ -123,11 +124,11 @@ class _CollectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: context.cSurf,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: context.cBorder),
       ),
       child: Column(
@@ -136,26 +137,26 @@ class _CollectionCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
                   color: _statusColor.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.local_shipping, color: _statusColor, size: 22),
+                child: Icon(Icons.local_shipping, color: _statusColor, size: 18),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       collection.driverName ?? collection.recyclerName,
-                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
                     ),
                     Text(
-                      '${collection.scheduledDate.day}/${collection.scheduledDate.month} at ${collection.scheduledTime}',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      '${CatDateUtils.formatDate(collection.scheduledDate)} at ${collection.scheduledTime}',
+                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -171,57 +172,57 @@ class _CollectionCard extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: context.cSurfAlt,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                const Icon(Icons.recycling, size: 16, color: AppColors.textSecondary),
+                const Icon(Icons.recycling, size: 14, color: AppColors.textSecondary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     '${collection.wasteType.label} • ${collection.volume.toStringAsFixed(0)} ${collection.volume > 50 ? 'kg' : 'liters'}',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           Row(
             children: [
-              if (collection.status == CollectionStatus.enRoute) ...[  
+              if (collection.status == CollectionStatus.enRoute) ...[
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 7),
                     decoration: BoxDecoration(
                       color: AppColors.accentLight,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.access_time, color: AppColors.accent, size: 16),
-                        SizedBox(width: 6),
+                        Icon(Icons.access_time, color: AppColors.accent, size: 14),
+                        SizedBox(width: 5),
                         Text(
                           'En route to you',
                           style: TextStyle(
                             color: AppColors.accent,
                             fontWeight: FontWeight.w700,
-                            fontSize: 14,
+                            fontSize: 12,
                           ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
               ],
               Expanded(
                 child: OutlinedButton.icon(
@@ -232,15 +233,16 @@ class _CollectionCard extends StatelessWidget {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.my_location, size: 16),
-                  label: const Text('Show Map'),
+                  icon: const Icon(Icons.my_location, size: 14),
+                  label: const Text('Map'),
                   style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 40),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    minimumSize: const Size(0, 34),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    textStyle: const TextStyle(fontSize: 12),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               OutlinedButton.icon(
                 onPressed: () async {
                   final phone = collection.driverPhone ?? '';
@@ -249,11 +251,12 @@ class _CollectionCard extends StatelessWidget {
                     if (await canLaunchUrl(uri)) await launchUrl(uri);
                   }
                 },
-                icon: const Icon(Icons.call, size: 16),
+                icon: const Icon(Icons.call, size: 14),
                 label: const Text('Call'),
                 style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 40),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  minimumSize: const Size(0, 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  textStyle: const TextStyle(fontSize: 12),
                 ),
               ),
             ],
@@ -314,7 +317,7 @@ class _HistoryList extends StatelessWidget {
                     Text(item.driverName ?? item.recyclerName,
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                     Text(
-                      '${item.wasteType.label} • ${item.scheduledDate.day}/${item.scheduledDate.month}/${item.scheduledDate.year}',
+                      '${item.wasteType.label} • ${CatDateUtils.formatDate(item.scheduledDate)}',
                       style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                     ),
                   ],

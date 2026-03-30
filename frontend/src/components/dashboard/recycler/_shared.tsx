@@ -31,10 +31,11 @@ export const collectionsByType = { labels: [], datasets: [] };
 export function computeGreenScore(
   dbGreenScore: number | undefined | null,
   completedCollectionsKg: number,
-  completedCollectionsCount: number,
+  _completedCollectionsCount: number,
 ): number {
+  // Formula: 1 point per 100 kg/L collected, capped at 100 (mirrors backend)
   if (dbGreenScore && dbGreenScore > 0) return Math.min(100, Math.round(dbGreenScore));
-  return Math.min(100, Math.round(completedCollectionsKg * 0.5 + completedCollectionsCount * 5));
+  return Math.min(100, Math.round(completedCollectionsKg / 100));
 }
 
 export const StatusBadge = ({ status }: { status: string }) => {

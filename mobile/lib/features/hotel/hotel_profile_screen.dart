@@ -296,9 +296,9 @@ class _HotelProfileScreenState extends ConsumerState<HotelProfileScreen> {
   }
 
   String _scoreLevel(int score) {
-    if (score >= 90) return 'Eco Master';
-    if (score >= 75) return 'Eco Champion';
-    if (score >= 55) return 'Eco Starter';
+    if (score >= 80) return 'Eco Master';
+    if (score >= 60) return 'Eco Champion';
+    if (score >= 40) return 'Eco Starter';
     return 'Eco Beginner';
   }
 

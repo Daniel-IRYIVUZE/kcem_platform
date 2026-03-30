@@ -5,6 +5,8 @@ import '../../core/services/api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/utils/cat_date_utils.dart';
+import '../../core/utils/pdf_report_service.dart';
 
 class EarningsScreen extends ConsumerStatefulWidget {
   const EarningsScreen({super.key});
@@ -103,6 +105,40 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
           SliverAppBar(
             expandedHeight: 240,
             pinned: true,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf_outlined, color: Colors.white),
+                tooltip: 'Download PDF Report',
+                onPressed: () async {
+                  if (filteredTx.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('No transactions to export for this period'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                    return;
+                  }
+                  try {
+                    await PdfReportService.exportDriverEarnings(
+                      transactions: filteredTx,
+                      period: periodLabels[_selectedPeriod],
+                      totalEarnings: totalEarnings.toDouble(),
+                    );
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to generate PDF: $e'),
+                          backgroundColor: AppColors.error,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
@@ -458,7 +494,7 @@ class _RealTransactionTile extends StatelessWidget {
     final label = t.from;
     final detail = '${t.wasteType.label} · ${t.volume.toStringAsFixed(0)} kg';
     final amt = t.amount;
-    final dateStr = '${t.date.day}/${t.date.month}/${t.date.year}';
+    final dateStr = CatDateUtils.formatDate(t.date);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(14),

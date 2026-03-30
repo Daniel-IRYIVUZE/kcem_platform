@@ -15,6 +15,7 @@ import 'bids_screen.dart';
 import 'collections_screen.dart';
 import 'hotel_profile_screen.dart';
 import '../../core/utils/image_url.dart';
+import '../../core/utils/cat_date_utils.dart';
 
 class HotelMainScreen extends ConsumerStatefulWidget {
   final Widget child;
@@ -370,12 +371,7 @@ class _HotelHomeTab extends ConsumerWidget {
     );
   }
 
-  String _greeting() {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
+  String _greeting() => CatDateUtils.greeting();
 
   String _fmt(dynamic val) {
     final n = (val ?? 0).toDouble();
@@ -384,9 +380,9 @@ class _HotelHomeTab extends ConsumerWidget {
   }
 
   String _scoreLevel(int score) {
-    if (score >= 90) return 'Eco Master';
-    if (score >= 75) return 'Eco Champion';
-    if (score >= 55) return 'Eco Starter';
+    if (score >= 80) return 'Eco Master';
+    if (score >= 60) return 'Eco Champion';
+    if (score >= 40) return 'Eco Starter';
     return 'Eco Beginner';
   }
 }
@@ -630,12 +626,7 @@ class _BidNotificationCard extends StatelessWidget {
     );
   }
 
-  String _timeAgo(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
-  }
+  String _timeAgo(DateTime dt) => CatDateUtils.timeAgo(dt);
 }
 
 // ─── List Waste Tab (Manage Listings CRUD) ───────────────────────────────────
@@ -968,7 +959,7 @@ class _FilterBar extends StatelessWidget {
   }
 }
 
-// ─── Listing Card ─────────────────────────────────────────────────────────────
+// ─── Listing Card (List Mode) ─────────────────────────────────────────────────
 
 class _ManageListingCard extends StatelessWidget {
   final WasteListing listing;
@@ -1020,255 +1011,176 @@ class _ManageListingCard extends StatelessWidget {
     }
   }
 
+  void _showDetail(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ListingDetailSheet(listing: listing),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final imageUrls = getAbsoluteImageUrls(listing.photos);
     final hasImage = imageUrls.isNotEmpty;
     final canEdit = listing.status == ListingStatus.open ||
         listing.status == ListingStatus.draft;
+    final canDelete = listing.status == ListingStatus.open ||
+        listing.status == ListingStatus.draft ||
+        listing.status == ListingStatus.expired;
     final pickup = listing.collectionDate;
-    final pickupText = pickup != null
-        ? '${pickup.day}/${pickup.month}/${pickup.year}'
-        : null;
+    final pickupText = pickup != null ? CatDateUtils.formatDate(pickup) : null;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: context.cSurf,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.cBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Hero image ────────────────────────────────────────────
-            Stack(
-              children: [
-                hasImage
-                    ? Image.network(
-                        imageUrls.first,
-                        height: 170,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _ImagePlaceholder(icon: _wasteIcon),
-                      )
-                    : _ImagePlaceholder(icon: _wasteIcon),
-                // Status badge
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: _statusColor,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _statusColor.withValues(alpha: 0.45),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+        borderRadius: BorderRadius.circular(16),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Left: image strip ─────────────────────────────────────
+              SizedBox(
+                width: 84,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    hasImage
+                        ? Image.network(
+                            imageUrls.first,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _ListImgPlaceholder(icon: _wasteIcon),
+                          )
+                        : _ListImgPlaceholder(icon: _wasteIcon),
+                    // Photo count
+                    if (imageUrls.length > 1)
+                      Positioned(
+                        bottom: 5, right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            const Icon(Icons.photo_library_outlined, color: Colors.white, size: 9),
+                            const SizedBox(width: 2),
+                            Text('${imageUrls.length}',
+                                style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600)),
+                          ]),
                         ),
-                      ],
-                    ),
-                    child: Text(
-                      _statusLabel,
-                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ),
-                // Photo count badge
-                if (imageUrls.length > 1)
-                  Positioned(
-                    bottom: 10,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.photo_library_outlined, color: Colors.white, size: 13),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${imageUrls.length}',
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                        ),
-                      ]),
-                    ),
-                  ),
-              ],
-            ),
+                  ],
+                ),
+              ),
 
-            // ── Card body ─────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Type + volume row
-                  Row(
+              // ── Right: details ────────────────────────────────────────
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(9),
-                        decoration: BoxDecoration(
-                          color: context.cPrimaryLight,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(_wasteIcon, color: AppColors.primary, size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              listing.wasteType.label,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 16,
-                                color: context.cText,
-                              ),
+                      // Status pill + price
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _statusColor,
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${listing.volume.toStringAsFixed(0)} ${listing.unit}  ·  ${listing.quality.label}',
-                              style: TextStyle(fontSize: 13, color: context.cTextSec),
+                            child: Text(_statusLabel,
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                          ),
+                          const Spacer(),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('RWF ${listing.minBid.toStringAsFixed(0)}',
+                                  style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 13)),
+                              const Text('min bid', style: TextStyle(color: AppColors.primary, fontSize: 9)),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+
+                      // Waste type + volume
+                      Text(listing.wasteType.label,
+                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: context.cText)),
+                      Text('${listing.volume.toStringAsFixed(0)} ${listing.unit}  ·  ${listing.quality.label}',
+                          style: TextStyle(fontSize: 12, color: context.cTextSec)),
+                      const SizedBox(height: 6),
+
+                      // Info chips
+                      Wrap(spacing: 5, runSpacing: 4, children: [
+                        _MiniChip(
+                          icon: Icons.gavel,
+                          label: '${listing.activeBidCount} bid${listing.activeBidCount == 1 ? '' : 's'}',
+                          color: listing.activeBidCount > 0 ? AppColors.success : AppColors.textTertiary,
+                        ),
+                        if (pickupText != null)
+                          _MiniChip(icon: Icons.calendar_today_outlined, label: pickupText, color: AppColors.accent),
+                        _MiniChip(icon: Icons.location_on_outlined, label: listing.location, color: AppColors.textSecondary),
+                      ]),
+
+                      if (listing.description != null && listing.description!.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(listing.description!,
+                            style: TextStyle(fontSize: 11, color: context.cTextSec, height: 1.3),
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ],
+
+                      // QR section (compact embed)
+                      if (listing.qrToken != null) ...[
+                        const SizedBox(height: 8),
+                        _QrCodeSection(listing: listing),
+                      ],
+
+                      const SizedBox(height: 8),
+
+                      // Action row: eye, edit, delete
+                      Row(
+                        children: [
+                          _ActionIconBtn(
+                            icon: Icons.remove_red_eye_outlined,
+                            tooltip: 'View Details',
+                            color: AppColors.primary,
+                            onTap: () => _showDetail(context),
+                          ),
+                          if (canEdit) ...[
+                            const SizedBox(width: 6),
+                            _ActionIconBtn(
+                              icon: Icons.edit_outlined,
+                              tooltip: 'Edit',
+                              color: AppColors.info,
+                              onTap: onEdit,
                             ),
                           ],
-                        ),
-                      ),
-                      // Min bid pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'RWF ${listing.minBid.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13,
-                              ),
+                          const Spacer(),
+                          if (canDelete)
+                            _ActionIconBtn(
+                              icon: Icons.delete_outline,
+                              tooltip: 'Delete',
+                              color: AppColors.error,
+                              onTap: onDelete,
                             ),
-                            const Text(
-                              'min bid',
-                              style: TextStyle(color: AppColors.primary, fontSize: 10),
-                            ),
-                          ],
-                        ),
+                        ],
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 12),
-
-                  // Stats strip
-                  Row(
-                    children: [
-                      _InfoPill(
-                        icon: Icons.gavel,
-                        label: '${listing.activeBidCount} bid${listing.activeBidCount == 1 ? '' : 's'}',
-                        color: listing.activeBidCount > 0 ? AppColors.success : AppColors.textTertiary,
-                      ),
-                      if (pickupText != null) ...[
-                        const SizedBox(width: 8),
-                        _InfoPill(
-                          icon: Icons.calendar_today_outlined,
-                          label: pickupText,
-                          color: AppColors.accent,
-                        ),
-                      ],
-                      if (listing.location.isNotEmpty) ...[
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: _InfoPill(
-                            icon: Icons.location_on_outlined,
-                            label: listing.location,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  if (listing.description != null && listing.description!.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      listing.description!,
-                      style: TextStyle(fontSize: 13, color: context.cTextSec, height: 1.4),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-
-                  // ── QR Code section ───────────────────────────────────
-                  if (listing.qrToken != null) ...[
-                    const SizedBox(height: 14),
-                    _QrCodeSection(listing: listing),
-                  ],
-
-                  const SizedBox(height: 14),
-
-                  // Action row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: canEdit ? onEdit : null,
-                          icon: const Icon(Icons.edit_outlined, size: 15),
-                          label: Text(
-                            canEdit ? 'Edit' : 'View',
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
-                            side: BorderSide(
-                              color: canEdit ? AppColors.primary : context.cBorder,
-                            ),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: onDelete,
-                          icon: const Icon(Icons.delete_outline, size: 15),
-                          label: const Text(
-                            'Delete',
-                            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.error,
-                            side: BorderSide(color: AppColors.error.withValues(alpha: 0.5)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1553,64 +1465,312 @@ class _QrFullDialog extends StatelessWidget {
   }
 }
 
-class _ImagePlaceholder extends StatelessWidget {
+// ─── List-mode image placeholder ─────────────────────────────────────────────
+
+class _ListImgPlaceholder extends StatelessWidget {
   final IconData icon;
-  const _ImagePlaceholder({required this.icon});
+  const _ListImgPlaceholder({required this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 170,
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFCFFAFE), Color(0xFFE0F2FE)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+      color: AppColors.primaryLight,
+      child: Center(
+        child: Icon(icon, size: 30, color: AppColors.primary.withValues(alpha: 0.55)),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    );
+  }
+}
+
+// ─── Mini info chip ───────────────────────────────────────────────────────────
+
+class _MiniChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  const _MiniChip({required this.icon, required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 52, color: AppColors.primary.withValues(alpha: 0.45)),
-          const SizedBox(height: 6),
-          Text(
-            'No photo',
-            style: TextStyle(color: AppColors.primary.withValues(alpha: 0.55), fontSize: 12),
-          ),
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 4),
+          Text(label,
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
   }
 }
 
-class _InfoPill extends StatelessWidget {
+// ─── Action icon button ───────────────────────────────────────────────────────
+
+class _ActionIconBtn extends StatelessWidget {
   final IconData icon;
-  final String label;
+  final String tooltip;
   final Color color;
-  const _InfoPill({required this.icon, required this.label, required this.color});
+  final VoidCallback onTap;
+  const _ActionIconBtn({required this.icon, required this.tooltip, required this.color, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: color.withValues(alpha: 0.22)),
+          ),
+          child: Icon(icon, size: 16, color: color),
+        ),
       ),
+    );
+  }
+}
+
+// ─── Listing Detail Sheet ─────────────────────────────────────────────────────
+
+class _ListingDetailSheet extends StatelessWidget {
+  final WasteListing listing;
+  const _ListingDetailSheet({required this.listing});
+
+  IconData get _wasteIcon {
+    switch (listing.wasteType) {
+      case WasteType.uco:            return Icons.water_drop_outlined;
+      case WasteType.glass:          return Icons.wine_bar_outlined;
+      case WasteType.paperCardboard: return Icons.article_outlined;
+      case WasteType.plastic:        return Icons.recycling;
+      case WasteType.metal:          return Icons.hardware_outlined;
+      case WasteType.organic:        return Icons.eco_outlined;
+      case WasteType.electronic:     return Icons.devices_outlined;
+      case WasteType.textile:        return Icons.checkroom_outlined;
+      default:                       return Icons.category_outlined;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final imageUrls = getAbsoluteImageUrls(listing.photos);
+    final pickup = listing.collectionDate;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (ctx, scrollCtrl) {
+        return Container(
+          decoration: BoxDecoration(
+            color: context.cSurf,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Drag handle
+              Padding(
+                padding: const EdgeInsets.only(top: 10, bottom: 4),
+                child: Container(
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(
+                    color: context.cBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(_wasteIcon, color: AppColors.primary, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(listing.wasteType.label,
+                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: context.cText)),
+                          Text('${listing.volume.toStringAsFixed(0)} ${listing.unit}  ·  ${listing.quality.label}',
+                              style: TextStyle(fontSize: 12, color: context.cTextSec)),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _statusColor,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(_statusLabel,
+                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 20, indent: 20, endIndent: 20),
+              // Scrollable body
+              Expanded(
+                child: ListView(
+                  controller: scrollCtrl,
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                  children: [
+                    // Photo strip
+                    if (imageUrls.isNotEmpty) ...[
+                      SizedBox(
+                        height: 120,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: imageUrls.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 8),
+                          itemBuilder: (_, idx) => ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.network(
+                              imageUrls[idx],
+                              width: 120, height: 120, fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                width: 120, height: 120,
+                                color: AppColors.primaryLight,
+                                child: Icon(_wasteIcon, color: AppColors.primary, size: 36),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Details
+                    _DetailItem(icon: Icons.location_on_outlined, label: 'Location', value: listing.location),
+                    _DetailItem(icon: Icons.monetization_on_outlined, label: 'Min Bid', value: 'RWF ${listing.minBid.toStringAsFixed(0)}'),
+                    if (listing.reservePrice != null)
+                      _DetailItem(icon: Icons.price_check, label: 'Reserve Price', value: 'RWF ${listing.reservePrice!.toStringAsFixed(0)}'),
+                    if (listing.autoAcceptAbove != null)
+                      _DetailItem(icon: Icons.auto_awesome, label: 'Auto-accept Above', value: 'RWF ${listing.autoAcceptAbove!.toStringAsFixed(0)}'),
+                    _DetailItem(icon: Icons.timer_outlined, label: 'Auction Duration', value: '${listing.auctionDuration}h'),
+                    if (pickup != null)
+                      _DetailItem(icon: Icons.calendar_today_outlined, label: 'Pickup Date', value: CatDateUtils.formatDate(pickup)),
+                    _DetailItem(icon: Icons.calendar_month_outlined, label: 'Listed', value: CatDateUtils.formatDateTime(listing.createdAt)),
+                    if (listing.description != null && listing.description!.isNotEmpty)
+                      _DetailItem(icon: Icons.notes_outlined, label: 'Description', value: listing.description!),
+                    if (listing.notes != null && listing.notes!.isNotEmpty)
+                      _DetailItem(icon: Icons.sticky_note_2_outlined, label: 'Notes', value: listing.notes!),
+
+                    // Bids
+                    if (listing.bids.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text('Bids (${listing.bids.length})',
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      const SizedBox(height: 8),
+                      ...listing.bids.map((bid) => Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: context.cSurfAlt,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: context.cBorder),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.recycling, size: 16, color: AppColors.primary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(bid.recyclerName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                  if (bid.note != null)
+                                    Text(bid.note!, style: TextStyle(fontSize: 11, color: context.cTextSec), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                ],
+                              ),
+                            ),
+                            Text('RWF ${bid.amount.toStringAsFixed(0)}',
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: AppColors.primary)),
+                          ],
+                        ),
+                      )),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Color get _statusColor {
+    switch (listing.status) {
+      case ListingStatus.open:      return AppColors.primary;
+      case ListingStatus.assigned:  return AppColors.accent;
+      case ListingStatus.completed: return AppColors.success;
+      case ListingStatus.collected: return AppColors.success;
+      case ListingStatus.cancelled: return AppColors.error;
+      case ListingStatus.expired:   return AppColors.textTertiary;
+      default:                      return AppColors.textSecondary;
+    }
+  }
+
+  String get _statusLabel {
+    switch (listing.status) {
+      case ListingStatus.open:      return 'Open';
+      case ListingStatus.assigned:  return 'Assigned';
+      case ListingStatus.collected: return 'Collected';
+      case ListingStatus.completed: return 'Completed';
+      case ListingStatus.cancelled: return 'Cancelled';
+      case ListingStatus.expired:   return 'Expired';
+      default:                      return 'Draft';
+    }
+  }
+}
+
+// ─── Detail row helper ────────────────────────────────────────────────────────
+
+class _DetailItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  const _DetailItem({required this.icon, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              label,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+          Icon(icon, size: 15, color: AppColors.textSecondary),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 110,
+            child: Text(label,
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          ),
+          Expanded(
+            child: Text(value,
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: context.cText)),
           ),
         ],
       ),

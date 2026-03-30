@@ -119,22 +119,32 @@ def advance_status(collection_id: int, payload: dict, db: Session = Depends(get_
     if col.status == CollectionStatus.completed and col.listing:
         listing = col.listing
         vol_kg = col.actual_volume or listing.volume or 0
-        update_score(db, user_id=listing.hotel.user_id,
-                     waste_type=listing.waste_type.value, kg=vol_kg)
-        # Also update the recycler's accumulated stats
+        waste_type_val = listing.waste_type.value if listing.waste_type else "Other"
+
+        # ── Hotel: accumulate waste + recompute green score (1 pt per 100 kg/L) ──
+        hotel = listing.hotel
+        if hotel:
+            hotel.total_waste_listed = (hotel.total_waste_listed or 0.0) + vol_kg
+            hotel.green_score = min(100.0, hotel.total_waste_listed / 100.0)
+            db.commit()
+            try:
+                update_score(db, user_id=hotel.user_id,
+                             waste_type=waste_type_val, kg=vol_kg)
+            except Exception:
+                pass  # Monthly green_scores table update is non-critical
+
+        # ── Recycler: accumulate collected + recompute green score ──────────────
         if col.recycler_id:
             recycler = crud_recycler.get(db, col.recycler_id)
             if recycler:
                 recycler.total_collected = (recycler.total_collected or 0.0) + vol_kg
-                # Green score: 1% per every 100 kg/L recycled, capped at 100%
-                recycler.green_score = min(100.0, (recycler.total_collected or 0.0) / 100.0)
+                recycler.green_score = min(100.0, recycler.total_collected / 100.0)
                 db.commit()
-        # Update hotel green score: 1% per every 100 kg/L sold, capped at 100%
-        hotel = col.listing.hotel
-        if hotel:
-            hotel.total_waste_listed = (hotel.total_waste_listed or 0.0) + vol_kg
-            hotel.green_score = min(100.0, (hotel.total_waste_listed or 0.0) / 100.0)
-            db.commit()
+                try:
+                    update_score(db, user_id=recycler.user_id,
+                                 waste_type=waste_type_val, kg=vol_kg)
+                except Exception:
+                    pass  # Monthly green_scores table update is non-critical
         # Compute driver fee: 10% of gross bid amount, minimum RWF 500 per collection
         if col.driver_id and col.driver_fee is None:
             gross = col.transaction.gross_amount if col.transaction else 0.0

@@ -16,6 +16,7 @@ import 'marketplace_screen.dart';
 import 'my_bids_screen.dart';
 import 'fleet_screen.dart';
 import 'recycler_collections_screen.dart';
+import '../../core/utils/cat_date_utils.dart';
 import '../../core/utils/image_url.dart';
 
 class RecyclerMainScreen extends ConsumerStatefulWidget {
@@ -393,12 +394,7 @@ class _RecyclerHomeTabState extends ConsumerState<_RecyclerHomeTab> {
     );
   }
 
-  String _greeting() {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning';
-    if (h < 17) return 'Good afternoon';
-    return 'Good evening';
-  }
+  String _greeting() => CatDateUtils.greeting();
 
   String _fmtK(dynamic val) {
     final n = (val ?? 0).toDouble();

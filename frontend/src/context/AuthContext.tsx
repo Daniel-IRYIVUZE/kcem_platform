@@ -97,11 +97,19 @@ async function enrichUserWithRoleProfile(user: User): Promise<User> {
   try {
     if (user.role === 'business') {
       const hotel = await hotelsAPI.me();
-      return { ...user, businessName: hotel.hotel_name || user.businessName };
+      return {
+        ...user,
+        businessName: hotel.hotel_name || user.businessName,
+        greenScore: hotel.green_score ?? user.greenScore,
+      };
     }
     if (user.role === 'recycler') {
       const recycler = await recyclersAPI.me();
-      return { ...user, companyName: recycler.company_name || user.companyName };
+      return {
+        ...user,
+        companyName: recycler.company_name || user.companyName,
+        greenScore: recycler.green_score ?? user.greenScore,
+      };
     }
     if (user.role === 'driver') {
       const driver = await driversAPI.me();

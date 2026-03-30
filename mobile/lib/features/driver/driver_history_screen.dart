@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/models/models.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/utils/cat_date_utils.dart';
+import '../../core/utils/pdf_report_service.dart';
 
 class DriverHistoryScreen extends ConsumerStatefulWidget {
   const DriverHistoryScreen({super.key});
@@ -54,49 +56,35 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
         title: const Text('History'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.file_download_outlined),
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              backgroundColor: Theme.of(context).colorScheme.surface,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              builder: (ctx) => SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 8),
-                    Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
-                    const SizedBox(height: 12),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      child: Text('Export Report', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            icon: const Icon(Icons.picture_as_pdf_outlined),
+            tooltip: 'Download PDF Report',
+            onPressed: () async {
+              if (completed.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('No collections to export for this period'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                return;
+              }
+              try {
+                await PdfReportService.exportDriverHistory(
+                  collections: completed,
+                  period: _filter,
+                );
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to generate PDF: $e'),
+                      backgroundColor: AppColors.error,
+                      behavior: SnackBarBehavior.floating,
                     ),
-                    const SizedBox(height: 8),
-                    ListTile(
-                      leading: Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.picture_as_pdf_outlined, color: AppColors.primary)),
-                      title: const Text('Export as PDF', style: TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: const Text('Full report with charts'),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PDF report downloaded'), backgroundColor: AppColors.primary, behavior: SnackBarBehavior.floating));
-                      },
-                    ),
-                    ListTile(
-                      leading: Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.table_chart_outlined, color: Color(0xFF2E7D32))),
-                      title: const Text('Export as CSV', style: TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: const Text('Raw data for spreadsheet'),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('CSV report downloaded'), backgroundColor: AppColors.primary, behavior: SnackBarBehavior.floating));
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                ),
-              ),
-            ),
-            tooltip: 'Export report',
+                  );
+                }
+              }
+            },
           ),
         ],
       ),
@@ -203,7 +191,7 @@ class _DriverHistoryScreenState extends ConsumerState<DriverHistoryScreen> {
                   _StatusBadge(status: c.status.name),
                 ],
               ),
-              Text('${c.scheduledDate.day}/${c.scheduledDate.month}/${c.scheduledDate.year}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              Text(CatDateUtils.formatDate(c.scheduledDate), style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
               const SizedBox(height: 16),
               _DetailRow(icon: Icons.recycling, label: 'Waste Type', value: c.wasteType.label),
               const SizedBox(height: 8),
@@ -253,47 +241,51 @@ class _CollectionHistoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: context.cSurf,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: context.cBorder),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.recycling, color: AppColors.primary, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(color: AppColors.primaryLight, borderRadius: BorderRadius.circular(8)),
+              child: const Icon(Icons.recycling, color: AppColors.primary, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(collection.businessName,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Row(
                     children: [
-                      Text(collection.businessName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                      Text('${collection.scheduledDate.day}/${collection.scheduledDate.month}/${collection.scheduledDate.year}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      _JobStat(icon: Icons.inventory_2_outlined, value: '${collection.volume.toStringAsFixed(0)} kg'),
+                      const SizedBox(width: 10),
+                      _JobStat(icon: Icons.recycling, value: collection.wasteType.label),
                     ],
                   ),
-                ),
-                _StatusBadge(status: collection.status.name),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _JobStat(icon: Icons.inventory_2_outlined, value: '${collection.volume.toStringAsFixed(0)} kg'),
-                const SizedBox(width: 16),
-                _JobStat(icon: Icons.recycling, value: collection.wasteType.label),
-                if (earnings > 0) ...[
-                  const Spacer(),
-                  Text('RWF ${_fmtRwf(earnings)}', style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary, fontSize: 16)),
                 ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (earnings > 0)
+                  Text('RWF ${_fmtRwf(earnings)}',
+                      style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary, fontSize: 13)),
+                Text(
+                  CatDateUtils.formatDate(collection.scheduledDate),
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
+                ),
               ],
             ),
           ],

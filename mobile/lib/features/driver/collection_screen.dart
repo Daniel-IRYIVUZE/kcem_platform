@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -192,6 +193,9 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
         c.status == CollectionStatus.verified).toList();
     final currentCollection = active.isNotEmpty ? active.first : null;
 
+    final upcomingCollections =
+        active.length > 1 ? active.sublist(1) : <Collection>[];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -202,9 +206,10 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
             child: Chip(
               label: Text(
                 '${collectedItems.length} Collected',
-                style: const TextStyle(fontSize: 12, color: AppColors.primary),
+                style: const TextStyle(fontSize: 11, color: AppColors.primary),
               ),
               backgroundColor: AppColors.primaryLight,
+              padding: EdgeInsets.zero,
             ),
           ),
         ],
@@ -217,7 +222,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
               onRefresh: () => ref.read(collectionsNotifierProvider.notifier).refresh(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -233,54 +238,71 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const SizedBox(height: 12),
-                            Icon(Icons.check_circle_outline, size: 56, color: AppColors.primary),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 10),
+                            Icon(Icons.check_circle_outline, size: 48, color: AppColors.primary),
+                            const SizedBox(height: 10),
                             const Text(
                               'No active collections',
-                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 4),
                             const Text(
                               'All assigned stops have been collected.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 10),
                           ],
                         ),
                       ),
                     ],
 
-                    const SizedBox(height: 28),
+                    // ── Up Next queue ───────────────────────────────────
+                    if (upcomingCollections.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Icon(Icons.queue, color: AppColors.primary, size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Up Next (${upcomingCollections.length})',
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ...upcomingCollections.map((c) => _UpcomingCard(collection: c)),
+                    ],
+
+                    const SizedBox(height: 20),
 
                     // ── Collected items list ────────────────────────────
                     Row(
                       children: [
-                        const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 18),
-                        const SizedBox(width: 8),
+                        const Icon(Icons.inventory_2_outlined, color: AppColors.primary, size: 16),
+                        const SizedBox(width: 6),
                         Text(
-                          'Collections Completed (${collectedItems.length})',
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                          'Completed Today (${collectedItems.length})',
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
                     if (collectedItems.isEmpty)
                       Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: AppColors.background,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: AppColors.border),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.hourglass_empty, color: AppColors.textSecondary, size: 20),
-                            SizedBox(width: 10),
+                            Icon(Icons.hourglass_empty, color: AppColors.textSecondary, size: 18),
+                            SizedBox(width: 8),
                             Text('No collections completed yet today.',
-                                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                                style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                           ],
                         ),
                       )
@@ -336,29 +358,30 @@ class _QrScanCard extends StatelessWidget {
                     ),
                   );
                 },
-                icon: const Icon(Icons.navigation, size: 16),
+                icon: const Icon(Icons.navigation, size: 15),
                 label: const Text('Navigate to Location'),
                 style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 42),
+                  minimumSize: const Size(double.infinity, 36),
+                  textStyle: const TextStyle(fontSize: 13),
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.business, color: AppColors.primary),
-                  const SizedBox(width: 10),
+                  const Icon(Icons.business, color: AppColors.primary, size: 18),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           collection.businessName,
-                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           collection.businessAddress ?? collection.location,
-                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
                         ),
                       ],
                     ),
@@ -371,23 +394,23 @@ class _QrScanCard extends StatelessWidget {
                         if (await canLaunchUrl(uri)) await launchUrl(uri);
                       }
                     },
-                    icon: const Icon(Icons.call, size: 14),
+                    icon: const Icon(Icons.call, size: 13),
                     label: const Text('Call'),
                     style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 34),
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      textStyle: const TextStyle(fontSize: 12),
+                      minimumSize: const Size(0, 30),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      textStyle: const TextStyle(fontSize: 11),
                     ),
                   ),
                 ],
               ),
-              const Divider(height: 24),
-              _DetailRow(icon: Icons.recycling, label: 'Waste Type', value: collection.wasteType.label),
-              const SizedBox(height: 8),
-              _DetailRow(icon: Icons.inventory_2, label: 'Est. Volume', value: '$volume $unit'),
+              const Divider(height: 18),
+              _DetailRow(icon: Icons.recycling, label: 'Waste Type', value: collection.wasteType.label, small: true),
+              const SizedBox(height: 6),
+              _DetailRow(icon: Icons.inventory_2, label: 'Est. Volume', value: '$volume $unit', small: true),
               if (collection.scheduledTime.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                _DetailRow(icon: Icons.access_time, label: 'Scheduled', value: collection.scheduledTime),
+                const SizedBox(height: 6),
+                _DetailRow(icon: Icons.access_time, label: 'Scheduled', value: collection.scheduledTime, small: true),
               ],
             ],
           ),
@@ -411,35 +434,98 @@ class _QrScanCard extends StatelessWidget {
 
         const SizedBox(height: 24),
 
-        // Big QR scan button — only action on the collection page
+        // QR scan button
         ElevatedButton.icon(
           onPressed: isLoading ? null : onScan,
           icon: isLoading
               ? const SizedBox(
-                  width: 20, height: 20,
+                  width: 18, height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
-              : const Icon(Icons.qr_code_scanner, size: 24),
+              : const Icon(Icons.qr_code_scanner, size: 20),
           label: Text(
-            isLoading ? 'Verifying QR Code...' : 'Scan QR Code to Collect',
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            isLoading ? 'Verifying...' : 'Scan QR Code to Collect',
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
           ),
           style: ElevatedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 60),
+            minimumSize: const Size(double.infinity, 50),
             backgroundColor: AppColors.primary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         const Center(
           child: Text(
-            'Scan the hotel\'s QR code to instantly mark this collection as complete',
+            'Scan the QR code to mark this collection as complete',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
           ),
         ),
       ],
     ).animate().fadeIn(duration: 300.ms);
+  }
+}
+
+// ─── Upcoming Collection Card (queue item) ────────────────────────────────────
+
+class _UpcomingCard extends StatelessWidget {
+  final Collection collection;
+  const _UpcomingCard({required this.collection});
+
+  @override
+  Widget build(BuildContext context) {
+    final unit = collection.wasteType == WasteType.uco ? 'L' : 'kg';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: context.cSurf,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: context.cBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: const BoxDecoration(
+              color: AppColors.primaryLight,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.schedule, color: AppColors.primary, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(collection.businessName,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  '${collection.wasteType.label} · ${collection.volume.toStringAsFixed(0)} $unit',
+                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text('UP NEXT',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                  letterSpacing: 0.5,
+                )),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -459,18 +545,18 @@ class _CollectedItemCard extends StatelessWidget {
     final isCompleted = collection.status == CollectionStatus.completed;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.primaryLight,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 34,
+            height: 34,
             decoration: const BoxDecoration(
               color: AppColors.primary,
               shape: BoxShape.circle,
@@ -478,38 +564,38 @@ class _CollectedItemCard extends StatelessWidget {
             child: Icon(
               isVerified ? Icons.verified : Icons.check_circle,
               color: Colors.white,
-              size: 20,
+              size: 17,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   collection.businessName,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${collection.wasteType.label} · $weight',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
                 ),
               ],
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               isVerified ? 'Verified' : isCompleted ? 'Completed' : 'Collected',
               style: const TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: FontWeight.w700,
                 color: AppColors.primary,
               ),
