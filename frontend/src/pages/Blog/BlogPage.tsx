@@ -8,11 +8,11 @@ import BlogHero from '../../components/blog/BlogHero';
 import FeaturedPost from '../../components/blog/FeaturedPost';
 import CategoryFilter from '../../components/blog/CategoryFilter';
 import BlogGrid from '../../components/blog/BlogGrid';
-import PopularPosts from '../../components/blog/PopularPosts';
-import NewsletterWidget from '../../components/blog/NewsletterWidget';
+// import PopularPosts from '../../components/blog/PopularPosts';
+// import NewsletterWidget from '../../components/blog/NewsletterWidget';
 import BlogSearch from '../../components/blog/BlogSearch';
 import BlogCategories from '../../components/blog/BlogCategories';
-import BlogTags from '../../components/blog/BlogTags';
+// import BlogTags from '../../components/blog/BlogTags';
 import Modal from '../../components/common/Modal/Modal';
 
 const BlogPage = () => {
@@ -111,16 +111,16 @@ const BlogPage = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="lg:col-span-1 space-y-8">
+            {/* <div className="lg:col-span-1 space-y-8">
               <PopularPosts onReadMore={handleOpenPost} posts={posts} loading={loading} />
-              <BlogCategories 
-                activeCategory={activeCategory} 
-                setActiveCategory={setActiveCategory}
-                posts={allPosts}
-              />
-              <BlogTags onTagClick={handleTagClick} posts={posts} />
+              // <BlogCategories 
+              //   activeCategory={activeCategory} 
+              //   setActiveCategory={setActiveCategory}
+              //   posts={allPosts}
+              // />
+  
               <NewsletterWidget />
-            </div>
+            </div> */}
           </div>
         </div>
       </main>

@@ -32,7 +32,7 @@ const BlogHero = () => {
           </p>
 
           {/* Blog Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
+          {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
             <div className="text-center">
               <div className="text-2xl font-bold">50+</div>
               <div className="text-xs text-cyan-200">Articles</div>
@@ -49,7 +49,7 @@ const BlogHero = () => {
               <div className="text-2xl font-bold">5</div>
               <div className="text-xs text-cyan-200">Categories</div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
