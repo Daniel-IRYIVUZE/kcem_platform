@@ -20,6 +20,11 @@ class _BidsScreenState extends ConsumerState<BidsScreen> with SingleTickerProvid
 
   String get sortBy => _sortBy;
 
+  Future<void> _refresh() async {
+    ref.read(listingsNotifierProvider.notifier).refresh();
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -78,15 +83,24 @@ class _BidsScreenState extends ConsumerState<BidsScreen> with SingleTickerProvid
       body: TabBarView(
         controller: _tabController,
         children: [
-          _BidsList(bids: sorted),
-          _BidsList(bids: activeBids),
+          _BidsList(bids: sorted, onRefresh: _refresh),
+          _BidsList(bids: activeBids, onRefresh: _refresh),
           wonBids.isEmpty
-              ? const _EmptyState(
-                  icon: Icons.check_circle_outline,
-                  title: 'No accepted bids yet',
-                  subtitle: 'Accept a bid to start a collection',
+              ? RefreshIndicator(
+                  onRefresh: _refresh,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(height: 120),
+                      _EmptyState(
+                        icon: Icons.check_circle_outline,
+                        title: 'No accepted bids yet',
+                        subtitle: 'Accept a bid to start a collection',
+                      ),
+                    ],
+                  ),
                 )
-              : _BidsList(bids: wonBids),
+              : _BidsList(bids: wonBids, onRefresh: _refresh),
         ],
       ),
     );
@@ -95,27 +109,41 @@ class _BidsScreenState extends ConsumerState<BidsScreen> with SingleTickerProvid
 
 class _BidsList extends StatelessWidget {
   final List<Bid> bids;
-  const _BidsList({required this.bids});
+  final Future<void> Function() onRefresh;
+  const _BidsList({required this.bids, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
     if (bids.isEmpty) {
-      return const _EmptyState(
-        icon: Icons.search_off,
-        title: 'No bids here',
-        subtitle: 'Check back later',
+      return RefreshIndicator(
+        onRefresh: onRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: const [
+            SizedBox(height: 120),
+            _EmptyState(
+              icon: Icons.search_off,
+              title: 'No bids here',
+              subtitle: 'Check back later',
+            ),
+          ],
+        ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-      itemCount: bids.length,
-      itemBuilder: (context, index) {
-        return _BidCard(bid: bids[index])
-            .animate()
-            .slideY(begin: 0.15, duration: 300.ms, delay: (index * 60).ms)
-            .fadeIn();
-      },
+    return RefreshIndicator(
+      onRefresh: onRefresh,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        itemCount: bids.length,
+        itemBuilder: (context, index) {
+          return _BidCard(bid: bids[index])
+              .animate()
+              .slideY(begin: 0.15, duration: 300.ms, delay: (index * 60).ms)
+              .fadeIn();
+        },
+      ),
     );
   }
 }
@@ -389,7 +417,7 @@ class _BidCardState extends ConsumerState<_BidCard> {
               setState(() => _accepting = true);
               try {
                 await ApiService.rejectBid(int.parse(bid.id));
-                ref.invalidate(businessListingsProvider);
+                ref.read(listingsNotifierProvider.notifier).refresh();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
