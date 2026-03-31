@@ -29,6 +29,14 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
             c.status == CollectionStatus.scheduled)
         .toList();
 
+    // If the selected collection is no longer active (was collected/completed),
+    // clear the selection so the screen goes back to the list / empty state.
+    if (_selected != null && !active.any((c) => c.id == _selected!.id)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selected = null);
+      });
+    }
+
     // Auto-navigate to the single active collection immediately
     if (_selected == null && active.length == 1) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -37,7 +45,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
     }
 
     // Full-screen live navigation for selected collection
-    if (_selected != null) {
+    if (_selected != null && active.any((c) => c.id == _selected!.id)) {
       return Scaffold(
         body: Stack(
           children: [
