@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -232,13 +233,13 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       if (isActive(c)) {
         activeGroups.update(
           key,
-          (g) => g..count++,
+          (g) { g.count++; return g; },
           ifAbsent: () => _LocationGroup(point: point, count: 1),
         );
       } else if (isDone(c)) {
         doneGroups.update(
           key,
-          (g) => g..count++,
+          (g) { g.count++; return g; },
           ifAbsent: () => _LocationGroup(point: point, count: 1),
         );
       }
@@ -254,7 +255,7 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
             '${selectedDestination.latitude.toStringAsFixed(4)},${selectedDestination.longitude.toStringAsFixed(4)}';
         activeGroups.update(
           key,
-          (g) => g..count++,
+          (g) { g.count++; return g; },
           ifAbsent: () => _LocationGroup(point: selectedDestination, count: 1),
         );
       }
@@ -593,10 +594,14 @@ class _CollectionPin extends StatelessWidget {
                 ),
                 child: Icon(icon, color: Colors.white, size: 18),
               ),
-              // Small downward pointer
-              CustomPaint(
-                size: const Size(10, 6),
-                painter: _PointerPainter(color),
+              // Small downward pointer (using ClipPath to avoid dart:ui Path conflict)
+              ClipPath(
+                clipper: _TriangleClipper(),
+                child: Container(
+                  width: 10,
+                  height: 6,
+                  color: color,
+                ),
               ),
             ],
           ),
@@ -629,23 +634,18 @@ class _CollectionPin extends StatelessWidget {
   }
 }
 
-class _PointerPainter extends CustomPainter {
-  final Color color;
-  const _PointerPainter(this.color);
-
+class _TriangleClipper extends CustomClipper<ui.Path> {
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
-    final path = Path()
+  ui.Path getClip(Size size) {
+    return ui.Path()
       ..moveTo(0, 0)
       ..lineTo(size.width, 0)
       ..lineTo(size.width / 2, size.height)
       ..close();
-    canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(_PointerPainter old) => old.color != color;
+  bool shouldReclip(_TriangleClipper old) => false;
 }
 
 class _InfoTile extends StatelessWidget {
