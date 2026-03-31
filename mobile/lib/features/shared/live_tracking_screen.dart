@@ -209,55 +209,40 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   /// Active stops → green; completed stops → gray with checkmark.
   /// Multiple stops at the same location get a count badge.
   List<Marker> _buildCollectionMarkers(LatLng? selectedDestination) {
-    // Group collections by location key (rounded to ~11m precision)
     final activeGroups = <String, _LocationGroup>{};
     final doneGroups = <String, _LocationGroup>{};
 
-    bool isActive(Collection c) =>
-        c.status == CollectionStatus.scheduled ||
-        c.status == CollectionStatus.enRoute;
+    String locKey(LatLng p) =>
+        '${p.latitude.toStringAsFixed(4)},${p.longitude.toStringAsFixed(4)}';
 
-    bool isDone(Collection c) =>
-        c.status == CollectionStatus.collected ||
-        c.status == CollectionStatus.verified ||
-        c.status == CollectionStatus.completed;
+    void addTo(Map<String, _LocationGroup> groups, LatLng point) {
+      final key = locKey(point);
+      if (groups.containsKey(key)) {
+        groups[key]!.count++;
+      } else {
+        groups[key] = _LocationGroup(point: point, count: 1);
+      }
+    }
 
+    // Process all collections that have lat/lng stored in the model
     for (final c in widget.allCollections) {
       final lat = c.destinationLat;
       final lng = c.destinationLng;
       if (lat == null || lng == null) continue;
-      final key =
-          '${lat.toStringAsFixed(4)},${lng.toStringAsFixed(4)}';
       final point = LatLng(lat, lng);
-
-      if (isActive(c)) {
-        activeGroups.update(
-          key,
-          (g) { g.count++; return g; },
-          ifAbsent: () => _LocationGroup(point: point, count: 1),
-        );
-      } else if (isDone(c)) {
-        doneGroups.update(
-          key,
-          (g) { g.count++; return g; },
-          ifAbsent: () => _LocationGroup(point: point, count: 1),
-        );
-      }
+      final isDone = c.status == CollectionStatus.collected ||
+          c.status == CollectionStatus.verified ||
+          c.status == CollectionStatus.completed;
+      addTo(isDone ? doneGroups : activeGroups, point);
     }
 
-    // If selected collection has no lat/lng in model but was resolved via API
+    // Always show the API-resolved destination for the current collection.
+    // Most models lack lat/lng so we rely on _destination from _resolveDestination().
     if (selectedDestination != null) {
-      final selLat = widget.collection.destinationLat;
-      final selLng = widget.collection.destinationLng;
-      if (selLat == null || selLng == null) {
-        // Add the selected destination as an active marker
-        final key =
-            '${selectedDestination.latitude.toStringAsFixed(4)},${selectedDestination.longitude.toStringAsFixed(4)}';
-        activeGroups.update(
-          key,
-          (g) { g.count++; return g; },
-          ifAbsent: () => _LocationGroup(point: selectedDestination, count: 1),
-        );
+      final key = locKey(selectedDestination);
+      // Only add if not already present from the model loop above
+      if (!activeGroups.containsKey(key) && !doneGroups.containsKey(key)) {
+        activeGroups[key] = _LocationGroup(point: selectedDestination, count: 1);
       }
     }
 
