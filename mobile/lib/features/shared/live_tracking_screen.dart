@@ -38,6 +38,10 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   bool _loading = true;
   String? _error;
 
+  /// Resolved lat/lng for every collection in allCollections, keyed by collection ID.
+  /// Populated async after the main tracking loads — used to show all stops on map.
+  final Map<String, LatLng> _resolvedLocations = {};
+
   static const LatLng _kigaliFallback = LatLng(-1.9441, 30.0619);
 
   @override
@@ -90,6 +94,9 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
 
       _fitBounds();
       if (widget.pushDriverLocation) await _safePushLocation(current);
+
+      // Background: resolve lat/lng for all other collection stops
+      _resolveAllCollectionLocations();
 
       _positionSub = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(
@@ -175,6 +182,33 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
     return _kigaliFallback;
   }
 
+  /// Resolves lat/lng for all collections in allCollections that don't already
+  /// have coordinates in the model. Fetches /collections/{id}/tracking per stop.
+  /// Updates _resolvedLocations and rebuilds the marker layer on each result.
+  Future<void> _resolveAllCollectionLocations() async {
+    for (final c in widget.allCollections) {
+      if (!mounted) return;
+      // Skip if already resolved or already has coords in model
+      if (_resolvedLocations.containsKey(c.id)) continue;
+      if (c.destinationLat != null && c.destinationLng != null) {
+        _resolvedLocations[c.id] = LatLng(c.destinationLat!, c.destinationLng!);
+        continue;
+      }
+      final id = int.tryParse(c.id);
+      if (id == null) continue;
+      try {
+        final tracking = await ApiService.getCollectionTracking(id);
+        final lat = (tracking['hotel_lat'] as num?)?.toDouble();
+        final lng = (tracking['hotel_lng'] as num?)?.toDouble();
+        if (lat != null && lng != null && mounted) {
+          setState(() {
+            _resolvedLocations[c.id] = LatLng(lat, lng);
+          });
+        }
+      } catch (_) {}
+    }
+  }
+
   void _fitBounds() {
     if (_current == null || _destination == null) return;
     final allPoints = [_current!, _destination!, ..._routePoints];
@@ -224,10 +258,10 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
       }
     }
 
-    // Process all collections that have lat/lng stored in the model
+    // Process all collections — use model lat/lng first, fallback to API-resolved
     for (final c in widget.allCollections) {
-      final lat = c.destinationLat;
-      final lng = c.destinationLng;
+      final lat = c.destinationLat ?? _resolvedLocations[c.id]?.latitude;
+      final lng = c.destinationLng ?? _resolvedLocations[c.id]?.longitude;
       if (lat == null || lng == null) continue;
       final point = LatLng(lat, lng);
       final isDone = c.status == CollectionStatus.collected ||
