@@ -244,59 +244,43 @@ class _LiveTrackingScreenState extends State<LiveTrackingScreen> {
   /// Multiple stops at the same location get a count badge.
   List<Marker> _buildCollectionMarkers(LatLng? selectedDestination) {
     final activeGroups = <String, _LocationGroup>{};
-    final doneGroups = <String, _LocationGroup>{};
 
     String locKey(LatLng p) =>
         '${p.latitude.toStringAsFixed(4)},${p.longitude.toStringAsFixed(4)}';
 
-    void addTo(Map<String, _LocationGroup> groups, LatLng point) {
+    void addActive(LatLng point) {
       final key = locKey(point);
-      if (groups.containsKey(key)) {
-        groups[key]!.count++;
+      if (activeGroups.containsKey(key)) {
+        activeGroups[key]!.count++;
       } else {
-        groups[key] = _LocationGroup(point: point, count: 1);
+        activeGroups[key] = _LocationGroup(point: point, count: 1);
       }
     }
 
-    // Process all collections — use model lat/lng first, fallback to API-resolved
+    // Only show active (scheduled/enRoute) stops — completed are auto-removed
     for (final c in widget.allCollections) {
+      final isActive = c.status == CollectionStatus.scheduled ||
+          c.status == CollectionStatus.enRoute;
+      if (!isActive) continue;
       final lat = c.destinationLat ?? _resolvedLocations[c.id]?.latitude;
       final lng = c.destinationLng ?? _resolvedLocations[c.id]?.longitude;
       if (lat == null || lng == null) continue;
-      final point = LatLng(lat, lng);
-      final isDone = c.status == CollectionStatus.collected ||
-          c.status == CollectionStatus.verified ||
-          c.status == CollectionStatus.completed;
-      addTo(isDone ? doneGroups : activeGroups, point);
+      addActive(LatLng(lat, lng));
     }
 
-    // Always show the API-resolved destination for the current collection.
-    // Most models lack lat/lng so we rely on _destination from _resolveDestination().
+    // Always show the API-resolved destination for the current active collection.
     if (selectedDestination != null) {
       final key = locKey(selectedDestination);
-      // Only add if not already present from the model loop above
-      if (!activeGroups.containsKey(key) && !doneGroups.containsKey(key)) {
+      if (!activeGroups.containsKey(key)) {
         activeGroups[key] = _LocationGroup(point: selectedDestination, count: 1);
       }
     }
 
     final markers = <Marker>[];
 
-    // Done markers (gray, behind active)
-    for (final g in doneGroups.values) {
-      markers.add(Marker(
-        point: g.point,
-        width: 52,
-        height: 52,
-        child: _CollectionPin(
-          icon: Icons.check_circle,
-          color: Colors.grey.shade500,
-          count: g.count,
-        ),
-      ));
-    }
+    // Completed stops are intentionally NOT shown — they auto-remove when collected.
 
-    // Active markers (green, in front of done)
+    // Active markers (green)
     for (final g in activeGroups.values) {
       markers.add(Marker(
         point: g.point,
