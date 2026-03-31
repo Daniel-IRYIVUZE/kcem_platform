@@ -29,8 +29,7 @@ export default function BusinessGreenScore() {
   // Fallback: 1 pt per 100 kg/L collected, capped at 100 (mirrors backend formula)
   const completedCollections = collections.filter(c => c.status === 'completed');
   const totalWaste = completedCollections.reduce((s, c) => s + (c.volume ?? 0), 0);
-  const totalCollections = collections.length;
-  const totalListings = listings.length;
+const totalListings = listings.length;
   const calculatedScore = Math.min(100, Math.round(totalWaste / 100));
 
   // Prefer API score

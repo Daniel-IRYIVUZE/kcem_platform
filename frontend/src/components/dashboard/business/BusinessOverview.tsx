@@ -7,8 +7,8 @@ import {
   type WasteListing, type Collection, type Transaction, type Message
 } from '../../../services/api';
 import {
-  Package, DollarSign, Trophy, Calendar,
-  MessageSquare, TrendingUp, BarChart3, Clock, PlusCircle, Leaf, Zap
+  Package, Trophy, Calendar,
+  TrendingUp, BarChart3, Clock, PlusCircle, Leaf, Zap
 } from 'lucide-react';
 import StatCard from '../StatCard';
 import Widget from '../Widget';
@@ -46,13 +46,8 @@ export default function BusinessOverview() {
   }, []);
 
   const openListings  = listings.filter(l => l.status === 'open');
-  // Hotels receive net_amount (gross bid minus platform fee)
-  const totalRevenue  = transactions.reduce((s, t) => s + (t.net_amount || 0), 0);
   const unreadMsgs    = messages.filter(m => !m.is_read).length;
   const activeCollect = collections.filter(c => c.status === 'scheduled' || c.status === 'en_route');
-  const sparkRevenue = transactions.length > 0
-    ? transactions.slice(-8).map(t => t.net_amount ?? 0)
-    : [0, 0, 0, 0, 0, 0, 0, 0];
   const displayName = getDashboardDisplayName(authUser, hotelProfile.name);
 
   // Build Revenue Trend chart from real transaction data (last 6 months)

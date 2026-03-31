@@ -11,7 +11,7 @@ import BlogGrid from '../../components/blog/BlogGrid';
 // import PopularPosts from '../../components/blog/PopularPosts';
 // import NewsletterWidget from '../../components/blog/NewsletterWidget';
 import BlogSearch from '../../components/blog/BlogSearch';
-import BlogCategories from '../../components/blog/BlogCategories';
+// import BlogCategories from '../../components/blog/BlogCategories';
 // import BlogTags from '../../components/blog/BlogTags';
 import Modal from '../../components/common/Modal/Modal';
 
